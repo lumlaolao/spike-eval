@@ -54,6 +54,33 @@ public class ContextMemoryTest {
         Assert.assertTrue(memory.execute("MEMORY READ 1 40000").contains("next=END"));
     }
 
+    /** Each decision's whole prompt is archived as one entry, so a card's name usually sits far past an entry's
+     *  first 240 characters (the turn and life header): the search result showed the header and never the match
+     *  (runs/loop: query "turn", 18 matches, every one the same header). A snippet now shows the text around the
+     *  first match when it lies past the head; one whose match is in the head is unchanged. */
+    @Test
+    public void aSearchSnippetShowsTheTextAroundAMatchPastTheEntrysHead() {
+        ContextMemory memory = new ContextMemory();
+        String head = "== Turn 3 MAIN1 (active: you | priority: you) == YOU life 20 | hand 4 | library 52 ";
+        String state = head + "x ".repeat(1500) + "OPPONENT GRAVEYARD: Brainstorm, Ponder " + "y ".repeat(800);
+        memory.observe(state);
+        memory.observe("Opponent cast Brainstorm targeting nothing");
+        String out = memory.execute("MEMORY SEARCH 0 brainstorm");
+        String m1 = out.lines().filter(l -> l.startsWith("M1 ")).findFirst().orElse("");
+        Assert.assertTrue(m1.contains("OPPONENT GRAVEYARD: Brainstorm, Ponder"), m1);
+        Assert.assertFalse(m1.contains("== Turn 3"), "the window around the match, not the head: " + m1);
+        Assert.assertTrue(m1.contains("... ") && m1.endsWith(" ... [READ for full text]"), m1);
+        Assert.assertTrue(m1.length() < 400, m1);
+        // A short entry is shown whole, as before.
+        Assert.assertTrue(out.contains("M2 (observation): Opponent cast Brainstorm targeting nothing\n"), out);
+        // A match inside the head keeps the head's snippet, byte for byte.
+        String early = memory.execute("MEMORY SEARCH 0 priority: you");
+        Assert.assertTrue(early.contains("M1 (observation): " + head + "x x x"), early);
+        // Words found apart (no literal match) are shown around the first of them.
+        String words = memory.execute("MEMORY SEARCH 0 ponder graveyard");
+        Assert.assertTrue(words.contains("OPPONENT GRAVEYARD: Brainstorm, Ponder"), words);
+    }
+
     @Test
     public void searchPaginationDoesNotLoseOldMatches() {
         ContextMemory memory = new ContextMemory();

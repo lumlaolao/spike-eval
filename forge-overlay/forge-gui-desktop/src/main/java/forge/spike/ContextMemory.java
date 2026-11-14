@@ -20,7 +20,9 @@ final class ContextMemory {
      *  more than one preview a decision, every note shown, and a note of up to 2000 characters. */
     // v4 (2026-10-18): a search no entry answers with every word lists the entries holding some of the words, most
     // first (runs/loop/g08: "Doomsday pile selected" found nothing).
-    static final String VERSION = "evidence-tools-v4";
+    // v5 (2026-11-14, audit B3): a search result whose match lies past the entry's first 240 characters shows the 240
+    // around it (an archived prompt's head is the same turn and life header in every state).
+    static final String VERSION = "evidence-tools-v5";
     static final int TOOLS_PER_ASK = 16;
     static final int TOOLS_PER_GAME = 1000;
     static final int PAGE_CHARS = 20000;
@@ -442,7 +444,7 @@ final class ContextMemory {
             int index = matches.get(i);
             Entry e = entries.get(index);
             out.append('M').append(index + 1).append(" (").append(e.kind).append("): ")
-                    .append(snippet(e.text)).append('\n');
+                    .append(snippet(e.text, needle, words(needle))).append('\n');
         }
         return out.toString();
     }
@@ -462,8 +464,29 @@ final class ContextMemory {
         return out;
     }
 
+    private static final int SNIPPET_CHARS = 240;
+
+    /** An entry's first 240 characters: the brief's reveal lines, and a search result whose match is in them. */
     private static String snippet(String text) {
-        String shortText = text.substring(0, Math.min(text.length(), 240)).replace('\n', ' ').replace('\r', ' ');
-        return shortText + (text.length() > 240 ? " ... [READ for full text]" : "");
+        String shortText = text.substring(0, Math.min(text.length(), SNIPPET_CHARS)).replace('\n', ' ').replace('\r', ' ');
+        return shortText + (text.length() > SNIPPET_CHARS ? " ... [READ for full text]" : "");
+    }
+
+    /** An entry's search result: its first 240 characters, or, when its first match (the query, else the earliest
+     *  of its words) ends past them, 240 characters around that match. Each decision's whole prompt is one entry, so
+     *  the head alone was the same turn and life header for every state that held the card (B3, 2026-11-14). */
+    private static String snippet(String text, String needle, List<String> words) {
+        String lower = text.toLowerCase(Locale.ROOT);
+        int at = lower.indexOf(needle), len = needle.length();
+        if (at < 0) {
+            for (String w : words) {
+                int i = lower.indexOf(w);
+                if (i >= 0 && (at < 0 || i < at)) { at = i; len = w.length(); }
+            }
+        }
+        if (at < 0 || at + len <= SNIPPET_CHARS) return snippet(text);
+        int from = Math.max(0, at - 100), to = Math.min(text.length(), from + SNIPPET_CHARS);
+        return "... " + text.substring(from, to).replace('\n', ' ').replace('\r', ' ')
+                + (to < text.length() ? " ... [READ for full text]" : "");
     }
 }

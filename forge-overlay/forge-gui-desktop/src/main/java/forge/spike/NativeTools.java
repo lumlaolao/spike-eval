@@ -40,8 +40,11 @@ final class NativeTools {
      *  when not (docs/harness/PROMPT-AUDIT.md G1).
      *  v9 (2026-10-15): no decision limits in the definitions (docs/harness/MODEL-LIMITS.md): `simulate` may
      *  run more than once a decision and its line takes any number of further options; a search page holds
-     *  50 results, a read page 20000 characters, a note or report up to 2000 characters. */
-    static final String VERSION = "seat-tools-v11";
+     *  50 results, a read page 20000 characters, a note or report up to 2000 characters.
+     *  v12 (2026-11-14, audit B1/B7): rules_lookup `term` takes a term of several words ("first strike": 318 of the
+     *  741 Glossary terms were refused), and its description says so; an over-long `note`, or any argument too long
+     *  for the executor, is refused by name before it spends a lookup (it was the text grammar's error). */
+    static final String VERSION = "seat-tools-v12";
     // v11 (2026-10-17): `simulate` also previews a target while the seat aims a play it is making (runs/loop/g03
     // asked it there twice and was refused).
     // v10 (2026-10-17): the instructions name the preview, and end "answer the decision as it asks" (every decision says
@@ -220,7 +223,7 @@ final class NativeTools {
         if (rules) {
             JsonObject action = prop("string", "search: find rules by words. read: one rule in full (query = its number, "
                     + "e.g. \"509.1a\"). section: a digest of a section (query = its number, e.g. \"509\"). "
-                    + "term: a glossary definition (query = the word). toc: list the chapters (no query).", null, null);
+                    + "term: a glossary definition (query = the term, e.g. \"first strike\"). toc: list the chapters (no query).", null, null);
             JsonArray actions = new JsonArray();
             for (String s : RULES_ACTIONS) actions.add(s);
             action.add("enum", actions);
@@ -231,7 +234,7 @@ final class NativeTools {
                 + "a keyword works. It returns public reference text, not facts about this game; a card's own text is "
                 + "in the message or from inspect. Replies are pages; pass the next= offset to read on.",
                 props("action", action,
-                      "query", prop("string", "Words, a rule or section number, or a glossary word; omit for toc.", null, null),
+                      "query", prop("string", "Words, a rule or section number, or a glossary term; omit for toc.", null, null),
                       "offset", prop("integer", "Page offset from a previous reply's next=; 0 for the first page.", 0, null)),
                 "action"));
         }
@@ -285,6 +288,16 @@ final class NativeTools {
      * spends the seat's tool budget.
      */
     static String command(String name, String argumentsJson) {
+        String line = commandLine(name, argumentsJson);
+        // An argument the executor cannot take is refused here, by name, before it spends a lookup; the executor's
+        // own error names the text grammar, which a native seat never saw. A report is not a lookup command.
+        if (!line.startsWith("ERROR:") && !REPORT.equals(name) && line.length() > ContextMemory.REQUEST_CHARS)
+            return "ERROR: " + name + "'s arguments are too long (" + line.length() + " characters as a request; at most "
+                    + ContextMemory.REQUEST_CHARS + "). Nothing was run and no lookup was spent: shorten them.";
+        return line;
+    }
+
+    private static String commandLine(String name, String argumentsJson) {
         JsonObject args = arguments(argumentsJson);
         if (args == null) return "ERROR: tool arguments are not a JSON object.";
         if (name == null) return "ERROR: tool call has no name.";
@@ -295,7 +308,7 @@ final class NativeTools {
             }
             case "rules_lookup": {
                 // The executor's grammar is RULES SEARCH <offset> <words> | READ <rule> [offset] |
-                // SECTION <number> [offset] | TERM <word> [offset] | TOC [offset] (RulesTool.lookup).
+                // SECTION <number> [offset] | TERM <term> [offset] | TOC [offset] (RulesTool.lookup).
                 String action = oneLine(args.get("action")).toLowerCase(java.util.Locale.ROOT);
                 String q = oneLine(args.get("query"));
                 Integer off = integer(args, "offset", 0);
@@ -304,8 +317,10 @@ final class NativeTools {
                 if ("toc".equals(action)) return "RULES TOC " + off;
                 if (q.isEmpty()) return "ERROR: rules_lookup " + action + " needs `query`.";
                 if ("search".equals(action)) return "RULES SEARCH " + off + " " + q;
-                // READ / SECTION / TERM take ONE token before the offset.
-                if (q.indexOf(' ') >= 0) return "ERROR: rules_lookup " + action + " takes a single rule number or word as `query`.";
+                // A Glossary term may be several words (RulesTool reads a trailing number as the offset).
+                if ("term".equals(action)) return "RULES TERM " + q + " " + off;
+                // READ / SECTION take ONE token before the offset.
+                if (q.indexOf(' ') >= 0) return "ERROR: rules_lookup " + action + " takes a single rule or section number as `query`.";
                 return "RULES " + action.toUpperCase(java.util.Locale.ROOT) + " " + q + " " + off;
             }
             case "memory_search": {
@@ -325,6 +340,9 @@ final class NativeTools {
                 String note = oneLine(args.get("note"));
                 if (id == null || id < 1 || note.isEmpty())
                     return "ERROR: memory_note needs an integer `evidence_id` and a `note`.";
+                if (note.length() > ContextMemory.NOTE_CHARS)
+                    return "ERROR: `note` is at most " + ContextMemory.NOTE_CHARS + " characters; yours is " + note.length()
+                            + ". Nothing was saved and no lookup was spent: shorten it and call memory_note again.";
                 return "MEMORY NOTE " + id + " " + note;
             }
             case REPORT: {

@@ -40,8 +40,8 @@ class ToolUseSuiteTest(unittest.TestCase):
 
     def test_text_arm_is_the_shipped_grammar(self):
         memory = java_literals("ContextMemory.java")
-        self.assertIn(tu.MEMORY_INSTRUCTIONS.split("evidence-tools-v4", 1)[1], memory)
-        self.assertIn('VERSION = "evidence-tools-v4"', memory)
+        self.assertIn(tu.MEMORY_INSTRUCTIONS.split("evidence-tools-v5", 1)[1], memory)
+        self.assertIn('VERSION = "evidence-tools-v5"', memory)
         self.assertIn(tu.NATIVE_INSTRUCTIONS, java_literals("NativeTools.java"))
         self.assertIn('VERSION = "%s"' % self.tools["version"], java_literals("NativeTools.java"))
         self.assertIn(tu.INSPECT_INSTRUCTIONS, java_literals("SeatObservation.java"))
@@ -51,7 +51,8 @@ class ToolUseSuiteTest(unittest.TestCase):
         self.assertIn("SEARCH_PAGE = %d;" % tu.SEARCH_PAGE, memory)
         self.assertIn("REQUEST_CHARS = NOTE_CHARS + 100;", memory)
         self.assertIn("NOTE_CHARS = %d;" % (tu.REQUEST_CHARS - 100), memory)
-        self.assertIn("Math.min(text.length(), %d)" % tu.SNIPPET, memory)
+        self.assertIn("SNIPPET_CHARS = %d;" % tu.SNIPPET, memory)
+        self.assertIn("int from = Math.max(0, at - 100), to = Math.min(text.length(), from + SNIPPET_CHARS);", memory)
         self.assertIn(tu.BUDGET_ERROR, memory)
         gui = java_literals("LlmSpikeGui.java")
         for tier in ("smart", "fast"):

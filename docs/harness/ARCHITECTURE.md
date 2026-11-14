@@ -591,7 +591,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   keeps its text: it says what is malformed, not which rule applies. The row keeps the engine's diagnosis in
   `error` and `category`, and what the seat was told in `error_shown`, so both arms count the same rules
   (`proposal_audit.py`'s `repair` and `refusal_text`). Stamped `propose_terse` on the game line and puzzle row and
-  `answer-tool-v19+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
+  `answer-tool-v20+propose+terse`; keyed by `aggregate.PROVENANCE_FIELDS` and `puzzle_score.BRIDGE_CONDITIONS`;
   pinned by `run_batch.py --propose-terse` and `puzzle_solve.py --propose-terse`, each refused without
   `--propose-actions`. The preamble's general ANSWERS sentence ("you are told why") is the same in both arms: it is
   about answers to listed decisions, and the b2 block was played with it. Results: the research note's section "Does
@@ -628,7 +628,7 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   elsewhere. Repair gains level off after two to five rounds of checker feedback (COPRA, Goedel-Prover-V2).
 - **What the state hides and adds:** the hand's "(castable)" tags are gone (they run the menu's own legality check);
   YOUR ACTIVATED ABILITIES lists, numbered, what each of the seat's cards can activate, as state, not legality. The
-  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v46+propose`, `answer-tool-v19+propose`.
+  guide (`SeatObservation.guide()`) says so. Stamped `observation-faithful-v46+propose`, `answer-tool-v20+propose`.
 - **The same windows are asked:** the window skips are the menu's (a window whose only play is PASS is not asked), so
   the two arms see the same spots. That says one thing a menu-less player would not know: when the seat is asked,
   something other than passing is legal. *Why accepted:* asking every priority window would multiply the calls
@@ -730,11 +730,18 @@ lookahead seat, declared on every ask. A call that does not apply gets an error 
 | Tool | What it does |
 |---|---|
 | `inspect` | the full text and state of a visible object or a card by name |
-| `memory_search`, `memory_read` | the evidence archive of this game, which the brief summarises |
-| `memory_note` | the seat's own notebook |
+| `memory_search`, `memory_read` | the evidence archive of this game, which the brief summarises. A result shows each entry's first 240 characters, or the 240 around its first match when the match lies past them (evidence-tools-v5: each decision's whole prompt is one entry, and its head is the same turn and life header in every state) |
+| `memory_note` | the seat's own notebook. A note over 2000 characters is refused by name before it spends a lookup, as is any argument too long for the executor (seat-tools-v12) |
 | `rules_lookup` | the comprehensive rules, effective date stated (`docs/harness/RULES-TOOL.md`). Offered only with `MEMORY_TOOLS=1` and `RULES_TOOL=1` together, so `run_batch.py` and `puzzle_solve.py` refuse `--rules-tool` without `--memory-tools` (alone it recorded `RULES_TOOL=1` for a benchmark pilot that never had the tool, 2026-10-20) |
 | `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`). The copy shuffles every library and re-deals each opponent's hand from its hand and library, so a preview reveals no hidden card (lookahead-preview-v6, `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`). While the seat aims a play it is making, `option` is a target's number and the play is previewed at it (lookahead-preview-v10, seat-tools-v11; g03 asked there and was refused). A preview restores the targets of every ability of the chain it aimed (`aPreviewLeavesNoTargetOnAnyAbilityOfTheChain`: Arc Trail's second target stayed set, and the real cast skipped asking for it). A mana ability is a step like any other and the report shows the mana pool (lookahead-preview-v12; g10's line "cast Heritage Druid twice, then tap Gaea's Cradle" was refused whole). A counterspell's preview is aimed at the spell on the copy's stack (the copier maps only cards and players, and a counter aimed at the card fizzled), and the report counts exile as well as graveyards (lookahead-preview-v15, g28: Force of Negation against Seam Rip was unavailable, then showed Seam Rip resolving; `aForceOfNegationPitchOnTheOpponentsTurnIsPreviewed`). A modal spell's target is previewed in the modes the seat chose: the copy takes the chained modes as its chosen list, read by one walk (`modeWalk`): the engine chains a copy of each chosen mode with the abilities that mode chains itself, so a mode starts where the one before it, as long as its own chain, ends, whatever mode text its own abilities carry (Bushwhack's fight, Erebos's Intervention's life gain). A modal spell the simulator plays as the copy's own version (an alternative cost, Wreck and Rebuild's flashback; a mode that counters a spell) is given those modes, targeted along each mode's whole chain (`carryModes`). Before, the copy had Forge's AI choose the modes again and put the seat's target on the AI's mode (lookahead-preview-v16, issue #395: every target of Barbed Lightning's player mode and Betrayal of Flesh's destroy mode was unavailable, "failed to target"; `aChosenModesTargetIsPreviewedInThatMode` and six more in `LookaheadProbeTest`). The walk reads all 538 `SP$ Charm` cards of the pinned card pool (no two modes of one share a text). Left: a mode chosen twice (repeatable modes) on such an alternative cast keeps one set of targets. The copy's seat is the engine AI's but pays as a harness seat, by the rules only, as the live seat does, in every use of the patch's harness-seat predicate (lookahead-preview-v17, v18 for the five of #432, `PlayerLookahead.isCopySeat`; g33 T2: Forge's AI would not spend Black Lotus on Time Walk, so Bilbo then Time Walk on Tundra, Lotus and Mox Ruby read "could NOT pay"; `blackLotusPaysForACheapSpellOnTheCopy`) |
 | `report_unclear_decision` | the model reports a confusing ask, which feeds the defect backlog |
+
+`rules_lookup`'s `term` takes a Glossary term of one or more words ("first strike": 318 of the 741 terms are more
+than one; rules-tool-v2, seat-tools-v12).
+
+A tool call written as text in the reply is not run. The seat is told it must be a function call while its lookups
+are open, and to answer by calling `answer` once they are closed (answer-tool-v20; it used to hear "no lookups are
+available" either way).
 
 Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - *Why native calls, not a text command grammar:* across 48 recorded games the text grammar refused 30
@@ -752,7 +759,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 
 - **The archive (`ContextMemory`):** every event the seat saw, searchable with `memory_search`. Each ask
   starts with a short brief of what is there.
-- **The plan:** `set_plan` (goal and next steps), shown back on later asks as "a note, not a commitment".
+- **The plan:** `set_plan` (goal and next steps), shown back on later asks as "a note, not a commitment". A `goal`
+  over 300 characters or a `next` over 500 (the schema's maxLength, advisory on a non-strict tool) is refused by
+  field and length and the plan is not recorded: a plan is carried in every later prompt, and the harness never cuts
+  the model's words (answer-tool-v20).
   - *Why a note:* every decision is re-made on the state then. The agent guides of Anthropic, OpenAI, Google and
     xAI all describe a loop in which the model sees the environment's result before each step. A plan carried out
     without asking again (`PLAN_EXECUTE`, opt-in for measurement only) is a predefined workflow, and Magic has
