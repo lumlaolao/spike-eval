@@ -190,5 +190,23 @@ class TestRecordedGames(unittest.TestCase):
             bv.components(games=bv.games_of_dirs([FIX / "compare-two-tier", FIX / "frontier-opus"]))
 
 
+class OverlayShaCommandTest(unittest.TestCase):
+    """--overlay-sha is the one command the gauntlet and acceptance ask for the hash run_batch.py stamps."""
+
+    def test_it_prints_the_checkout_s_hash_and_refuses_an_unknown_one(self):
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+        out = io.StringIO()
+        with mock.patch.object(bv, "overlay_sha_of_checkout", return_value="0123456789ab") as sha, redirect_stdout(out):
+            self.assertEqual(bv.main(["--overlay-sha", "--forge", "/f"]), 0)
+        self.assertEqual(out.getvalue(), "0123456789ab\n")
+        sha.assert_called_once_with(forge="/f")
+        for got in (dict(return_value="unknown"), dict(side_effect=bv.VersionError("x"))):
+            out, err = io.StringIO(), io.StringIO()
+            with mock.patch.object(bv, "overlay_sha_of_checkout", **got), redirect_stdout(out), redirect_stderr(err):
+                self.assertEqual(bv.main(["--overlay-sha"]), 1)
+            self.assertEqual(out.getvalue(), "", "an unknown hash is never printed as one")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

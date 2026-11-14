@@ -123,6 +123,42 @@ class PrFormatTest(unittest.TestCase):
             self.assertIn("not a full pass", str(cm.exception.code))
         self.assertGreaterEqual(pf.full_stage_count(), 19)
 
+    def test_record_acceptance_ties_the_run_to_the_commit_it_names(self):
+        # summary.txt names no commit: any full pass could be recorded for any head. head.txt (written by acceptance)
+        # must hold exactly the recorded sha (40 hex) and 0 uncommitted changes; without it nothing is recorded.
+        stages = pf.all_stages()
+        full = ["PASS %s: ok" % (st if st != "canary" else "canary-floor") for st in stages] + ["PASS canary-random: ok"]
+        n = str(len(full))
+        sha = "abc1234def" + "0" * 30
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "summary.txt").write_text("\n".join(full) + "\n")
+            (Path(d) / "head.txt").write_text(sha + "\n0\n")
+            self.assertEqual(pf.summary_problems(d, n, n, "abc1234"), [])
+            p = pf.summary_problems(d, n, n, "fff0000")
+            self.assertTrue(any("tested abc1234de, not fff0000" in x for x in p), p)
+            (Path(d) / "head.txt").write_text(sha + "\n3\n")
+            self.assertTrue(any("3 uncommitted change(s)" in x for x in pf.summary_problems(d, n, n, "abc1234")))
+            for bad in (sha + "\n", "abc1234def\n0\n", "unknown\nunknown\n"):
+                (Path(d) / "head.txt").write_text(bad)
+                p = pf.summary_problems(d, n, n, "abc1234")
+                self.assertTrue(any("does not hold a 40-hex commit" in x for x in p), (bad, p))
+            (Path(d) / "head.txt").unlink()
+            (Path(d) / "overlay-sha.txt").write_text("0123456789ab\n")       # an older run's file: not evidence
+            p = pf.summary_problems(d, n, n, "abc1234")
+            self.assertTrue(any("has no head.txt: which commit it tested cannot be checked" in x for x in p), p)
+            # Through the command: the sha typed is the one checked.
+            (Path(d) / "head.txt").write_text(sha + "\n0\n")
+            with self.assertRaises(SystemExit) as cm, mock.patch.object(pf, "record_line") as rec:
+                pf.main(["record-acceptance", "1", "fff0000", d, n, n])
+            self.assertIn("tested abc1234de, not fff0000", str(cm.exception.code))
+            rec.assert_not_called()
+
+    def test_acceptance_records_the_head_it_tested(self):
+        text = (Path(pf.__file__).resolve().parents[1] / "eval" / "harness_acceptance.sh").read_text()
+        self.assertRegex(text, r'ACC_HEAD="\$\(git -C "\$REPO" rev-parse HEAD 2>/dev/null \|\| echo unknown\)"')
+        self.assertIn('> "$OUT/head.txt"', text)
+        self.assertIn("uncommitted changes: this run cannot be recorded", text)
+
     def test_record_acceptance_reads_the_runs_own_summary(self):
         # The typed counts must match the run's own summary.txt: a PASS line per stage in ALL_STAGES, no FAIL line
         # (standards of #357).

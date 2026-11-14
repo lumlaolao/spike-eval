@@ -6,8 +6,11 @@ how its games get their conditions, so the rule's list of launchers cannot go st
 the first wording named every launcher, the second missed harness_acceptance.sh; #347's missed run-llm-spike.sh).
 """
 import os
+import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
@@ -79,6 +82,98 @@ class LaunchersTest(unittest.TestCase):
         for f, kind in LAUNCHERS.items():
             if kind == "diagnostic":
                 self.assertIn(os.path.basename(f), text, f)
+
+
+
+class GauntletBuildTest(unittest.TestCase):
+    """The keyword gauntlet is the free check before a paid game: it plays only a build of this checkout's overlay."""
+
+    def gauntlet(self, tmp, build_name, recorded, **env):
+        repo = os.path.join(tmp, "repo")
+        os.makedirs(os.path.join(repo, "eval"), exist_ok=True)
+        for f in ("keyword_gauntlet.sh", "benchmark_version.py", "engine_patches.py"):
+            shutil.copy(str(evalpath.EVAL / f), os.path.join(repo, "eval", f))
+        build = os.path.join(repo, "runs", "harness-acceptance", build_name)
+        os.makedirs(os.path.join(build, "classes"), exist_ok=True)
+        open(os.path.join(build, "classpath.txt"), "w").write("/x.jar")
+        open(os.path.join(build, "overlay-sha.txt"), "w").write(recorded + "\n")
+        forge = os.path.join(tmp, "forge")
+        os.makedirs(os.path.join(forge, "forge-gui-desktop"), exist_ok=True)
+        full = {k: v for k, v in os.environ.items() if not k.startswith("GAUNTLET_")
+                and k not in ("OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY")}
+        full.update(HOME=tmp, FORGE_HOME=forge, **env)
+        return subprocess.run(["bash", os.path.join(repo, "eval", "keyword_gauntlet.sh"), os.path.join(tmp, "out")],
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=full,
+                              timeout=60)
+
+    def test_a_build_of_another_overlay_is_refused_before_any_game(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self.gauntlet(tmp, "20261101T000000Z", "000000000000")
+            self.assertEqual(p.returncode, 2, p.stdout)
+            self.assertIn("compiled from overlay 000000000000", p.stdout)
+            self.assertIn("compile first", p.stdout)
+            self.assertFalse(os.path.exists(os.path.join(tmp, "out", "g-kw00")), "no game started")
+
+    def test_a_named_build_dir_is_found_and_gauntlet_build_names_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self.gauntlet(tmp, "propose-final", "111111111111")      # a named OUT, not a 2* stamp
+            self.assertIn("propose-final was compiled from overlay 111111111111", p.stdout)
+            p = self.gauntlet(tmp, "x", "222222222222", GAUNTLET_BUILD=os.path.join(tmp, "nowhere"))
+            self.assertEqual(p.returncode, 2, p.stdout)
+            self.assertIn("no passing acceptance build at %s" % os.path.join(tmp, "nowhere"), p.stdout)
+
+    def test_an_unknown_overlay_hash_never_matches_an_unknown_one(self):
+        # The copied repository has no overlay, so this checkout's hash cannot be made: a build recorded "unknown"
+        # must not pass for it.
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self.gauntlet(tmp, "20261101T000000Z", "unknown")
+            self.assertEqual(p.returncode, 2, p.stdout)
+            self.assertIn("this checkout's is unreadable", p.stdout)
+
+    def test_shadow_canary_builds_with_install(self):
+        # A game loads an engine patch from its module jar in ~/.m2: only `mvn install` writes it, and the launchers
+        # refuse a game whose jar is older than the patched source.
+        text = (evalpath.EVAL / "shadow_canary.sh").read_text()
+        build = text[text.index("build() {"):text.index("\n}\n", text.index("build() {"))]
+        self.assertRegex(build, r"mvn [^\n]* install >")
+        self.assertNotRegex(build, r"mvn [^\n]* compile ")
+
+
+def jvm_flags(text):
+    """The --add-opens and -D flags a text passes, comments left out."""
+    code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
+    return sorted(set(re.findall(r"--add-opens ([^\s\\\"]+)", code)) | set(re.findall(r"(?<![\w-])(-D[\w.]+=[^\s\\\"]+)", code)))
+
+
+class JvmFlagsTest(unittest.TestCase):
+    """A scored game runs through the launchers; the free checks (the acceptance canaries, the keyword gauntlet) must
+    run the same JVM, or a green check is about another configuration."""
+
+    def test_the_launchers_the_canaries_and_the_gauntlet_pass_one_flag_set(self):
+        read = lambda f: (evalpath.REPO / f).read_text(encoding="utf-8")
+        acc = read("eval/harness_acceptance.sh")
+        play = acc[acc.index("\nplay() {"):acc.index("\n}\n", acc.index("\nplay() {"))]
+        addopens = re.search(r'^ADDOPENS="(.*?)"$', acc, re.M | re.S).group(1)
+        gauntlet = read("eval/keyword_gauntlet.sh")
+        game = gauntlet[gauntlet.index("game() {"):gauntlet.index("\n}\n", gauntlet.index("game() {"))]
+        game += gauntlet[gauntlet.index('JVM_FLAGS="'):gauntlet.index('"\n', gauntlet.index('JVM_FLAGS="') + 11)]
+        launcher = lambda f: (lambda t: t[:t.index("CP_FILE=")] + t[t.index("ADDOPENS="):])(read(f))  # not the mvn hint
+        # The GUI game (run-llm-spike.sh) is a window a person plays in: it alone keeps its Dock icon.
+        spike = [f for f in jvm_flags(launcher("forge-overlay/run-llm-spike.sh"))] + ["-Dapple.awt.UIElement=true"]
+        sets = {"run-llm-headless.sh": jvm_flags(launcher("forge-overlay/run-llm-headless.sh")),
+                "run-llm-spike.sh": sorted(set(spike)),
+                "harness_acceptance.sh play()": jvm_flags(addopens + "\n" + play),
+                "keyword_gauntlet.sh": jvm_flags(game)}
+        ref = sets["run-llm-headless.sh"]
+        self.assertGreater(len(ref), 20)
+        self.assertNotIn("-Djava.awt.headless=true", ref)
+        for name, flags in sets.items():
+            self.assertEqual(flags, ref, name)
+        # Outside the pinned set, still with headless=true: acceptance's scoring stand-in (the run-llm-headless.sh the
+        # `scoring` stage writes for its zero-model panel games, which check the scoring, not the JVM) and
+        # eval/demo/demo_compare.py (a demo replay, never a score).
+        self.assertIn("-Djava.awt.headless=true", read("eval/harness_acceptance.sh")[acc.index("\nplay() {") + 1:])
+        self.assertIn("-Djava.awt.headless=true", read("eval/demo/demo_compare.py"))
 
 
 if __name__ == "__main__":

@@ -59,8 +59,11 @@ deck_a="$(resolve "$deck")"; deck_b="$(resolve "$vs")"
 case "$games" in ''|*[!0-9]*|0) echo "play-vs-llm: --games takes a positive number" >&2; exit 2 ;; esac
 
 # The owner's own consent and key file, read as eval/puzzles/puzzle_solve.py reads it (KEY=VALUE, whitespace and a CR
-# trimmed, # comments skipped, the first occurrence kept); the environment wins.
-if [ -f "$REPO/secrets.env" ]; then
+# trimmed, # comments skipped, the first occurrence kept); the environment wins. Only a model reached through
+# openrouter.ai needs the key and the consent: an openrouter: chat model, or a jev: decision model (the Decisions API
+# on the same host). For any other the shell's key is unset too, so the game, the build and the commentary never hold it.
+case "$model" in openrouter:*|jev:*) holds_key=1 ;; *) holds_key=0; unset OPENROUTER_API_KEY ;; esac
+if [ -f "$REPO/secrets.env" ] && [ "$holds_key" = 1 ]; then
   while IFS= read -r ln || [ -n "$ln" ]; do
     ln="${ln%$'\r'}"; case "$ln" in *=*) ;; *) continue ;; esac
     k="${ln%%=*}"; v="${ln#*=}"
@@ -69,7 +72,7 @@ if [ -f "$REPO/secrets.env" ]; then
   done < "$REPO/secrets.env"
 fi
 case "$model" in
-  openrouter:*) [ "${OPENROUTER_ALLOW_EGRESS:-}" = 1 ] || { echo "play-vs-llm: $model sends the game to" \
+  openrouter:*|jev:*) [ "${OPENROUTER_ALLOW_EGRESS:-}" = 1 ] || { echo "play-vs-llm: $model sends the game to" \
       "openrouter.ai; that needs your consent, OPENROUTER_ALLOW_EGRESS=1 in secrets.env (secrets.env.example)" >&2
       exit 3; } ;;
   claude-cli:*) [ "${CLAUDE_CLI_SEAT:-}" = 1 ] || { echo "play-vs-llm: $model runs Claude Code on your" \

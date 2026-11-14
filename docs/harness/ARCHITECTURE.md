@@ -41,7 +41,10 @@ them and refuses to pool what is not comparable.
   (`eval/benchmark_version.py`) includes the commit, and every game line records it.
 - *Why unmodified except for listed patches:* a forked rules engine could drift from the one it claims to
   be. Everything we add lives in `forge-overlay/` and is copied in by `install.sh`. The overlay is the source of truth; files in
-  the Forge checkout get overwritten.
+  the Forge checkout get overwritten. `install.sh` refuses a checkout that is not at the pin before writing, and
+  removes a seat file (`forge/spike`) the overlay no longer has. The game launchers refuse to start when an installed
+  seat source or `HARNESS PATCH` source is newer than the class or module jar the game would load
+  (`forge-overlay/harness-classes-check.sh`): `install.sh` writes sources, only `mvn install` builds them.
 - *Engine patches (owner, 2026-10-15), only where the seat has no hook:* a unified diff against the upstream
   file at `FORGE_COMMIT`, in `engine-patches/<path>.patch` (Forge is GPL: the repository carries our changes,
   not Forge's files), every change marked `HARNESS PATCH`, the upstream original's sha256 recorded in
@@ -1434,7 +1437,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      553; 1996 World Champion is left out, as the script says) and Forge's twelve Forecast cards (`kw28`: Forecast is
      an ability parameter, not a keyword, so the sweep never drew one) in 29 decks (`eval/gauntlet/`), each deck's
      LLM seat on the loopback fake model (`--policy first --answer-tool`: the first option of every ask) against
-     the next deck's Forge AI, in full games. Triggers, combat, upkeep and
+     the next deck's Forge AI, in full games, on the build of a passing acceptance compile whose overlay hash is the
+     checkout's (`GAUNTLET_BUILD`, else the newest; refused otherwise) and with the launchers' JVM flags
+     (`eval/tests/test_launchers.py` keeps the launchers, the canaries and the gauntlet on one set). Triggers, combat,
+     upkeep and
      end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's
      AI made, an unreadable answer, a play that failed to pay or to target, a crash or an unfinished game. The engine's
      "failed to target" line names a card, not a player, so it is set apart (listed, not counted) only when the card is
