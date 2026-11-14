@@ -40,8 +40,8 @@ requests `create_pull_request`, `pull_request_read`, `update_pull_request`, `lis
 `list_issues`, `search_issues`, `issue_read`, `issue_write`, `add_issue_comment` (a label applied to an issue is
 created if it does not exist: check it with `get_label`). The gate's own steps (`pr_format.py check-pr`,
 `record-review`, `record-acceptance`, `scripts/pr_merge.sh`) read and write the PR through `gh api` and have no MCP
-form: where `gh api` is refused, run the local checks (`check-commit`, `check-branch`), push, and leave recording
-and merging to a session where it works. Never merge another way.
+form: where `gh api` is refused, run the local checks (`check-commit`, `check-branch`) and push, and ask the owner
+how the gate is to be run there before merging.
 
 ## Review, then merge
 
