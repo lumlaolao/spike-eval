@@ -66,6 +66,7 @@ DEFAULT_JAVA = (REPO_ROOT / "forge-overlay" / "forge-gui-desktop" / "src"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5)
+import seed_registry  # noqa: E402  the declared seed banks: an eval-only bank (the STR-AI panel's 7800-7999) is refused too
 import aggregate  # noqa: E402  unscorable: the one rule for a game the model did not fully play
 
 # (relative dir, build tag). Build tag selects the preamble shape (see below).
@@ -653,10 +654,20 @@ def enforce_seed_policy(labeled_seeds, allow_reserved_seeds):
     reserved_seed_override so a contaminated build is traceable after the
     fact (additive field only)."""
     offenders = {}
+    # The registry's eval-only banks (eval/seed_registry.json) are eval seeds as much as seed_policy's blocks: the
+    # STR-AI panels play 7800-7999 in the stage3-holdout bank, which seed_policy does not list.
+    try:
+        registry = seed_registry.load_registry()
+    except seed_registry.RegistryError as e:
+        print("\nREFUSING: the seed registry is unusable (%s), so whether a seed is eval-only cannot be "
+              "judged." % e, file=sys.stderr)
+        sys.exit(2)
     for label, seed in labeled_seeds:
         if not isinstance(seed, int) or isinstance(seed, bool):
             continue
         block = seed_policy.reserved_block(seed)
+        if not block and registry.policy_for(seed) == "eval-only":
+            block = "seed bank %s (eval-only in seed_registry.json)" % registry.bank_name_for(seed)
         if block:
             offenders.setdefault(block, set()).add("%s#%d" % (label, seed))
     if not offenders:

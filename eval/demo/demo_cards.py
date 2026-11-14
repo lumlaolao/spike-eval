@@ -32,7 +32,7 @@ import demo_state
 
 DEFAULT_CACHE = os.path.join(os.path.expanduser("~"), ".cache", "mtg-forge-demo", "cards")
 API = "https://api.scryfall.com/cards/named?exact=%s&format=image&version=normal"
-HEADERS = {"User-Agent": "mtg-forge-llm-agent-demo/1.0", "Accept": "image/jpeg,image/*;q=0.9,*/*;q=0.1"}
+HEADERS = {"User-Agent": "card-image-viewer/1.0", "Accept": "image/jpeg,image/*;q=0.9,*/*;q=0.1"}
 MIN_GAP_S = 0.1
 TIMEOUT_S = 5
 RETRY_AFTER_S = 300   # a network failure is not a miss, but the name is not tried again for five minutes

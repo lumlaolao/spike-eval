@@ -8,10 +8,15 @@ egress-safety property a verifier flagged as the tool's highest-risk contract.
 Run: python3 eval/tests/test_tournament.py   (must exit 0)
 """
 
+import io
+import signal
+import subprocess
 import sys
 import tempfile
+import time
 import types
 import urllib.request
+from contextlib import redirect_stdout
 from unittest import mock
 from pathlib import Path
 
@@ -42,6 +47,150 @@ def test_a_tournament_game_never_inherits_a_condition_from_the_shell():
     assert [n for n in names if n in env] == [], [n for n in names if n in env]
     assert env["CONTROLLER_A"] == "llm" and env["GAME_SEED"] == "7"
     ok("a tournament game drops the shell's conditions")
+
+
+def _group_gone(pgid, wait_s=10):
+    """True once process group `pgid` is empty (a killed orphan is reaped by init, not at once). A group still alive
+    after wait_s is killed, so a failing check leaves nothing running."""
+    deadline = time.time() + wait_s
+    while time.time() < deadline:
+        try:
+            os.killpg(pgid, 0)
+        except ProcessLookupError:
+            return True
+        time.sleep(0.1)
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except ProcessLookupError:
+        return True
+    return False
+
+
+def _launch_stub(fh):
+    """A launcher whose background job ignores SIGINT (as one of a non-interactive bash does), like a JVM."""
+    Path(fh, "run-llm-spike.sh").write_text("echo $$ > pgid\nsleep 60 & sleep 60\n")
+
+
+def test_a_backstop_stops_its_own_match_and_nothing_else():
+    # stop_group signals the launcher's own group only, and kills what ignores SIGINT after the grace.
+    outsider = subprocess.Popen(["sleep", "60"])
+    proc = subprocess.Popen(["bash", "-c", "sleep 60 & sleep 60"], start_new_session=True)
+    try:
+        time.sleep(0.3)
+        T.stop_group(proc, grace_s=1)
+        assert _group_gone(proc.pid), "the match's process group is still alive"
+        assert outsider.poll() is None, "a process outside the match was signalled"
+    finally:
+        _group_gone(proc.pid, wait_s=0)
+        outsider.kill()
+        outsider.wait()
+    ok("a backstop stops its own match's process group and nothing else")
+
+
+def _launch_with_wait_raising(exc):
+    """_launch_and_read on the stub launcher with its first wait() raising `exc`. Returns (result or the exception
+    raised, the launcher's pid)."""
+    real = subprocess.Popen
+    started = []
+
+    def popen(*a, **kw):
+        p = real(*a, **kw)
+        started.append(p)
+        waits = iter([exc])
+
+        def wait(timeout=None):
+            e = next(waits, None)
+            if e:
+                raise e
+            return real.wait(p, timeout=timeout)
+        p.wait = wait
+        return p
+
+    with tempfile.TemporaryDirectory() as fh, tempfile.TemporaryDirectory() as jd:
+        _launch_stub(fh)
+        args = argparse.Namespace(cap_minutes=1, forge_home=fh)
+        stop = T.stop_group
+        with mock.patch.object(T.subprocess, "Popen", popen), mock.patch.object(T, "log"), \
+                mock.patch.object(T, "stop_group", lambda p: stop(p, grace_s=1)):
+            try:
+                result = T._launch_and_read(dict(os.environ), Path(jd), 1, False, args)
+            except BaseException as e:      # noqa: B902 (the interrupt under test)
+                result = e
+    return result, started[0].pid
+
+
+def test_an_interrupted_match_stops_its_own_launcher_and_jvm():
+    # The match runs in its own session, so a Ctrl-C reaches only this process: the launcher and JVM (which may be
+    # calling a paid model) must be stopped on the way out, not left playing.
+    result, pid = _launch_with_wait_raising(KeyboardInterrupt())
+    assert _group_gone(pid), "the match's launcher and JVM are still running after the interrupt"
+    assert isinstance(result, KeyboardInterrupt), "the interrupt is not swallowed: %r" % (result,)
+    ok("an interrupted match stops its own launcher and JVM")
+
+
+def test_a_match_past_its_backstop_is_stopped_and_reads_as_a_timeout():
+    result, pid = _launch_with_wait_raising(subprocess.TimeoutExpired("run-llm-spike.sh", 1))
+    assert _group_gone(pid), "the match's launcher and JVM are still running after the backstop"
+    assert result == "timeout", result
+    ok("a match past its backstop is stopped and reads as a timeout")
+
+
+def test_main_installs_the_hangup_handler_and_a_second_signal_is_ignored():
+    saved = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGHUP)}
+    try:
+        for sig in saved:
+            signal.signal(sig, signal.SIG_DFL)
+        with mock.patch.object(sys, "argv", ["tournament.py", "--help"]), redirect_stdout(io.StringIO()):
+            try:
+                T.main()
+            except SystemExit:
+                pass
+        handler = signal.getsignal(signal.SIGTERM)
+        assert callable(handler) and handler is signal.getsignal(signal.SIGHUP), "main() did not install the handler"
+        try:
+            handler(signal.SIGTERM, None)
+            raise AssertionError("the handler did not raise SystemExit")
+        except SystemExit as e:
+            assert e.code == 128 + signal.SIGTERM, e.code
+        assert signal.getsignal(signal.SIGTERM) == signal.SIG_IGN, "a second SIGTERM would interrupt the stop"
+        assert signal.getsignal(signal.SIGHUP) == signal.SIG_IGN, "a SIGHUP would interrupt the stop"
+    finally:
+        for sig, h in saved.items():
+            signal.signal(sig, h)
+    ok("main() installs the hangup handler, and the handler ignores a second signal while the match stops")
+
+
+def test_a_killed_tournament_stops_its_match():
+    # SIGTERM or SIGHUP to the tournament: the match is in its own session and would play on unless the tournament
+    # unwinds (exit_on_hangup, installed by main) and its finally stops the group.
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        with tempfile.TemporaryDirectory() as fh, tempfile.TemporaryDirectory() as jd:
+            _launch_stub(fh)
+            child = subprocess.Popen([sys.executable, "-c", (
+                "import argparse, os, sys; from pathlib import Path; from unittest import mock\n"
+                "sys.path.insert(0, %r); import evalpath; import tournament as T\n"
+                "T.exit_on_hangup(); stop = T.stop_group\n"
+                "with mock.patch.object(T, 'stop_group', lambda p: stop(p, grace_s=1)):\n"
+                "    T._launch_and_read(dict(os.environ), Path(%r), 1, False,\n"
+                "                       argparse.Namespace(cap_minutes=1, forge_home=%r))\n")
+                % (str(Path(T.__file__).parent), jd, fh)])
+            pgid_file, deadline = Path(fh, "pgid"), time.time() + 20
+            while not (pgid_file.is_file() and pgid_file.read_text().strip()) and time.time() < deadline:
+                time.sleep(0.1)
+            pgid = int(pgid_file.read_text())
+            time.sleep(0.3)
+            os.kill(child.pid, sig)
+            time.sleep(0.3)
+            os.kill(child.pid, sig)          # a second one during the stop's grace must not cut the SIGKILL short
+            try:
+                code = child.wait(timeout=20)
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                    child.wait()
+            assert _group_gone(pgid), "signal %d left the match's launcher and JVM running" % sig
+            assert code == 128 + sig, code
+    ok("a tournament killed by SIGTERM or SIGHUP stops its match")
 
 
 def test_snake_single_round():
@@ -237,6 +386,11 @@ def main():
     test_run_bracket_one_at_a_time()
     test_dry_run_makes_no_network_or_game_calls()
     test_a_tournament_game_never_inherits_a_condition_from_the_shell()
+    test_a_backstop_stops_its_own_match_and_nothing_else()
+    test_an_interrupted_match_stops_its_own_launcher_and_jvm()
+    test_a_match_past_its_backstop_is_stopped_and_reads_as_a_timeout()
+    test_a_killed_tournament_stops_its_match()
+    test_main_installs_the_hangup_handler_and_a_second_signal_is_ignored()
     print("\nAll checks passed.")
     return 0
 

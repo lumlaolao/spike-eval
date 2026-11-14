@@ -50,7 +50,9 @@ refs() { # $1 = file; count SHADOW mentions without the `|| echo 0` trap
 }
 build() {
   ( cd "$REPO" && bash install.sh >/dev/null 2>&1 ) || return 1
-  ( cd "$FORGE" && mvn -q -pl forge-gui-desktop -am -o -DskipTests -Dcheckstyle.skip=true compile >/dev/null 2>&1 )
+  # install, not compile: a game loads an engine patch from its module jar in ~/.m2, and the launchers refuse a game
+  # whose jar is older than the patched source (harness-classes-check.sh).
+  ( cd "$FORGE" && mvn -q -pl forge-gui-desktop -am -o -DskipTests -Dcheckstyle.skip=true install >/dev/null 2>&1 )
 }
 play() { # $1 = tag, $2 = seed, $3 = shadow(0|1) -> "winner|turns|cond ROWS=n LABELS=n"
   local out="$WORK/$1"; rm -rf "$out"; mkdir -p "$out"

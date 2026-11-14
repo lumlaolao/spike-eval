@@ -37,6 +37,9 @@ fi
 cp_list="$(cat "$CP_FILE")"
 case "$cp_list" in *\;*) SEP=';' ;; *) SEP=: ;; esac
 CP="target/classes$SEP$cp_list"
+# The classes that will load must be built from the sources installed for them (harness-classes-check.sh).
+. "$REPO/harness-classes-check.sh"
+harness_classes_check "$REPO" "$CP" "$SEP" || exit 4
 
 ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED \
 --add-opens java.desktop/javax.swing.border=ALL-UNNAMED \

@@ -909,6 +909,8 @@ class TwinSuiteTest(unittest.TestCase):
         (here / "forge-overlay").mkdir(parents=True)
         (here / "forge-overlay/run-llm-spike.sh").write_text("")
         (here / "forge-overlay/run-llm-headless.sh").write_text("")
+        for kind in ("main", "test"):           # install.sh removes nothing without the overlay's seat folders
+            (here / "forge-overlay/forge-gui-desktop/src" / kind / "java/forge/spike").mkdir(parents=True)
         (here / "eval/puzzles").mkdir(parents=True)
         (here / "eval/engine_patches.py").write_text("")
         for f in ("puzzle_twin.py", "puzzle_format.py"):

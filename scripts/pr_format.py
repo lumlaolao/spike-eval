@@ -66,11 +66,34 @@ def full_pass(passed, total):
     return passed == total and int(total) >= full_stage_count()
 
 
-def summary_problems(outdir, passed, total):
-    """What keeps `<out>/summary.txt` from being a full pass matching the typed counts (standards of #357)."""
+HEAD_TXT = re.compile(r"\A([0-9a-f]{40})\s+(\d+)\s*\Z")
+
+
+def head_problems(outdir, sha):
+    """What keeps the run in `outdir` from being evidence for commit `sha`: its head.txt (harness_acceptance.sh writes
+    the commit it tested and its count of uncommitted changes) must hold exactly a 40-hex sha naming `sha` and 0."""
+    head = outdir / "head.txt"
+    if not head.is_file():
+        return ["%s has no head.txt: which commit it tested cannot be checked" % outdir]
+    text = head.read_text(encoding="utf-8", errors="replace")
+    m = HEAD_TXT.match(text)
+    if not m:
+        return ["%s does not hold a 40-hex commit and a count of changes (%r): which commit the run tested cannot be "
+                "checked" % (head, text.strip()[:60])]
+    if not same_commit(m.group(1), sha):
+        return ["%s says the run tested %s, not %s" % (head, m.group(1)[:9], sha[:9])]
+    if m.group(2) != "0":
+        return ["%s says the run's checkout had %s uncommitted change(s)" % (head, m.group(2))]
+    return []
+
+
+def summary_problems(outdir, passed, total, sha=None):
+    """What keeps `<out>/summary.txt` from being a full pass matching the typed counts (standards of #357), and, given
+    the commit it is recorded for, from being that commit's run (head_problems)."""
     path = Path(outdir)
     if not path.is_absolute():
         path = Path(__file__).resolve().parents[1] / path      # a run's OUT is often repo-relative (runs/...)
+    heads = head_problems(path, sha) if sha is not None and path.is_dir() else []
     path = path / "summary.txt"
     if not path.is_file():
         return ["%s not found: record-acceptance reads the run's own summary" % path]
@@ -82,7 +105,7 @@ def summary_problems(outdir, passed, total):
     n = sum(l.startswith("PASS") for l in lines)
     if (passed, total) != (str(n), str(len(lines))):
         problems.append("%s/%s typed, but %s records %d/%d" % (passed, total, path, n, len(lines)))
-    return problems
+    return problems + heads
 
 
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
@@ -427,7 +450,7 @@ def main(argv):
         if not (args[3].isdigit() and args[4].isdigit()) or not full_pass(args[3], args[4]):
             sys.exit("record-acceptance: %s/%s is not a full pass of all %d stage lines; a STAGES subset is reported "
                      "as prose in Evidence, never as the gate's line" % (args[3], args[4], full_stage_count()))
-        problems = summary_problems(args[2], args[3], args[4])
+        problems = summary_problems(args[2], args[3], args[4], args[1])
         if problems:
             sys.exit("record-acceptance: " + "; ".join(problems))
         record_line(args[0], args[1], "Evidence", "- acceptance @",

@@ -99,6 +99,15 @@ mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd -P)"
 SUMMARY="$OUT/summary.txt"
 : > "$SUMMARY"
+# Which commit this run tested, and how many files differed from it (scripts/pr_format.py record-acceptance reads it).
+# Outside a git repository it says "unknown", which record-acceptance refuses.
+if [ -z "${ACC_CHILD:-}" ]; then
+  ACC_HEAD="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
+  ACC_DIRTY="$(git -C "$REPO" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+  [ "$ACC_HEAD" = unknown ] && ACC_DIRTY=unknown
+  printf '%s\n%s\n' "$ACC_HEAD" "$ACC_DIRTY" > "$OUT/head.txt"
+  case "$ACC_DIRTY" in 0) ;; *) echo "$ACC_DIRTY uncommitted changes: this run cannot be recorded" ;; esac
+fi
 FAILED=0
 
 say()  { echo "[$(date -u +%H:%M:%S)] $*"; }
@@ -211,8 +220,7 @@ if has_stage compile; then
     # overlay-sha.txt: the overlay these classes were compiled from (run_batch.py's overlay_sha), hashed before and
     # after javac (a source edited meanwhile leaves classes of either version, so the stage fails); puzzle_baselines.
     # Build runs only a build whose hash is the checkout's. Written on a pass only.
-    overlay_sha() { python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b
-print(b.overlay_sha_of_checkout(forge=sys.argv[2]))' "$REPO/eval" "$FORGE"; }
+    overlay_sha() { python3 "$REPO/eval/benchmark_version.py" --overlay-sha --forge "$FORGE"; }
     SRC_SHA_FILE="$(dirname "$CLASSES")/overlay-sha.txt"; rm -f "$SRC_SHA_FILE"
     SRC_SHA="$(overlay_sha)"
     rm -rf "$CLASSES"; mkdir -p "$CLASSES"
@@ -232,7 +240,7 @@ print(b.overlay_sha_of_checkout(forge=sys.argv[2]))' "$REPO/eval" "$FORGE"; }
     python3 "$REPO/eval/java_imports.py" "$OVERLAY" >"$OUT/java_imports.log" 2>&1; IRC=$?
     if [ $PRC -ne 0 ]; then fail compile "engine patches do not apply: $(tail -3 "$OUT/engine_patches.log" | tr '\n' ' ')"
     elif [ $RC -ne 0 ] || [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail compile "javac rc=$RC (see $OUT/javac.log)"
-    elif [ "$(overlay_sha)" != "$SRC_SHA" ]; then fail compile "overlay sources changed during the compile (was $SRC_SHA): compile again"
+    elif [ -z "$SRC_SHA" ] || [ "$(overlay_sha)" != "$SRC_SHA" ]; then fail compile "no overlay hash, or overlay sources changed during the compile (was ${SRC_SHA:-none}): compile again"
     elif [ $IRC -ne 0 ]; then fail compile "imports the Forge checkout build rejects: $(head -3 "$OUT/java_imports.log" | tr '\n' ' ')"
     else echo "$SRC_SHA" > "$SRC_SHA_FILE"
       pass compile "$NC classes from overlay sources $SRC_SHA, $(grep -c '^patched ' "$OUT/engine_patches.log") engine patches (isolated dir; checkout untouched); imports clean"; fi

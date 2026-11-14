@@ -15,7 +15,15 @@ How a patch reaches the game: `eval/engine_patches.py apply` reads each upstream
 diff with `git apply` (exact context, no fuzz) and writes the patched file under a target root. A patch that does
 not apply, or whose original is not at the pin, stops it with exit 1 and the file named, before anything is written.
 - `install.sh` copies `forge-overlay/` over the checkout, then writes the patched files into it at their own
-  paths, so the Maven build compiles them; a patch that does not apply stops the install;
+  paths, so the Maven build compiles them; a patch that does not apply stops the install, and so does a checkout
+  that is not at the pin (before anything is written; `ALLOW_PIN_MISMATCH=1` overrides, never for a score);
+- a launched game loads a patched class from its module's jar in `~/.m2` (the launcher's classpath has only
+  `forge-gui-desktop/target/classes` before the Maven classpath), which `mvn install` writes: the launcher refuses
+  a game when a `HARNESS PATCH` source in the checkout is newer than that jar, or a seat source newer than its
+  class (`forge-overlay/harness-classes-check.sh`), so a game never plays an older build under the installed
+  sources' `overlay_sha`. The `~/.m2` jar must also be this checkout's own build: the size of
+  `<module>/target/<module>-*.jar` and not older than it, so a jar another checkout's `mvn install` wrote is refused
+  (one of the same size is not caught); a checkout with no jar of its own is refused with the build command;
 - the isolated acceptance build (`eval/harness_acceptance.sh`, stage `compile`) writes them to
   `$OUT/patched-engine/` and compiles them with the overlay, its classes before the checkout's, so the patched
   class wins there too; a patch that does not apply fails the stage;

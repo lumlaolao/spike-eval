@@ -78,6 +78,10 @@ def build_parser():
                     help="passed through to run_batch.py --memory-tools for every "
                          "arm. Agent-plus-tools is a separate condition; its arms "
                          "are written to runs/<suite>-<arm>-memtools.")
+    ap.add_argument("--budget-usd", type=float, default=None, metavar="USD",
+                    help="passed to run_batch.py --budget-usd for every arm (each arm is its own directory, "
+                         "so this is a per-arm cap). Without it the printed commands carry the placeholder "
+                         "<USD>: run_batch.py refuses a paid model with no budget.")
     ap.add_argument("--json", action="store_true", help="machine-readable plan")
     return ap
 
@@ -241,11 +245,24 @@ def main():
             if ctrl_b == "llm":
                 cmd += ["--smart-b", sub(arm["smart_b"]),
                         "--fast-b", sub(arm["fast_b"])]
+            cmd += ["--budget-usd", "<USD>" if args.budget_usd is None else str(args.budget_usd)]
             entry["run"] = cmd
             entry["aggregate"] = ["python3", "eval/aggregate.py", out_dir,
                                   "--max-fallback-rate", str(mfr)]
             entry["defects"] = ["python3", "eval/defect_analyzer.py", out_dir]
         plan.append(entry)
+
+    # run_batch.py refuses a model with no price row in every mode, so the printed commands of a suite naming one (the
+    # default student, openrouter:default_model, has none) cannot run until the row is added.
+    prices = cost_report.load_prices()
+    for role, spec in (("student", args.student), ("teacher", args.teacher)):
+        if cost_report.model_id(spec) and cost_report.price_of(prices, spec) is None:
+            warnings.append(f"the {role} {spec} has no price in eval/pricing/prices.json: run_batch.py refuses it, so "
+                            f"the run commands below cannot run as printed; for a self-hosted model add a row priced "
+                            f"at $0 ({{\"prompt\": 0, \"completion\": 0}})")
+    if args.budget_usd is None and any(e["run"] for e in plan):
+        warnings.append("no --budget-usd: the run commands carry the placeholder <USD>; price an arm first "
+                        "(python3 eval/cost_report.py --plan N <a run>) and pass --budget-usd")
 
     if args.json:
         print(json.dumps({"suite": name, "valid": not errors,

@@ -196,6 +196,18 @@ def test_make_sft_data_refuses_reserved_seed():
         check("no output directory written on refusal", not out.exists())
 
 
+def test_make_sft_data_refuses_a_panel_seed_of_an_eval_only_bank():
+    """The STR-AI panels play 7800-7999 (eval/suites/panels-v1.json), in the registry's eval-only bank
+    stage3-holdout, which seed_policy does not list: a build from such games must refuse too."""
+    with tempfile.TemporaryDirectory() as d:
+        src = _write_win_source(d, 7800)
+        out = Path(d) / "out"
+        code, _out, err = run_make_sft("%s:FIX" % src, "--out-dir", str(out))
+        check("refuses on a panel seed -> exit 2", code == 2, "exit %d stderr=%s" % (code, err))
+        check("refusal names the eval-only bank", "stage3-holdout" in err, err)
+        check("no output directory written on refusal", not out.exists())
+
+
 def test_make_sft_data_allow_reserved_seeds_overrides():
     """--allow-reserved-seeds lets the same source through: loud banner,
     build proceeds, reserved_seed_override is recorded in the README."""
