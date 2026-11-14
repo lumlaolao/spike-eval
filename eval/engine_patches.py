@@ -98,10 +98,14 @@ def patched_sources(forge, repo=REPO, commit=None):
 
 
 def materialize(out, forge, repo=REPO):
-    """Write every patched file at out/<path>; all are made before any is written. Returns the paths."""
+    """Write every patched file at out/<path>; all are made before any is written, and a file already holding those
+    bytes is left alone, so its time moves only with its content (harness-classes-check.sh compares it with the
+    classes built from it). Returns the paths."""
     sources = patched_sources(forge, repo)
     for rel, data in sources.items():
         dest = Path(out, rel)
+        if dest.is_file() and dest.read_bytes() == data:
+            continue
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
     return list(sources)

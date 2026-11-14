@@ -237,7 +237,22 @@ def main(argv=None):
     ap.add_argument("--panels", help="panels file (default eval/suites/panels-v1.json)")
     ap.add_argument("--check-pool", nargs="+", metavar="REPORT",
                     help="JSON reports (panel_score.py / rating.py --json); exit 1 unless they share one version")
+    ap.add_argument("--overlay-sha", action="store_true",
+                    help="print this checkout's overlay hash (the overlay_sha run_batch.py stamps); exit 1 when it is "
+                         "'unknown' (a file unreadable, or no engine patch's original without --forge)")
+    ap.add_argument("--forge", help="with --overlay-sha: the Forge checkout the engine patches apply to")
     a = ap.parse_args(argv)
+    if a.overlay_sha:
+        try:
+            sha = overlay_sha_of_checkout(forge=a.forge)
+        except Exception as e:  # noqa: BLE001  a hash that cannot be made is never printed as one
+            print("benchmark_version: no overlay hash: %s" % e, file=sys.stderr)
+            return 1
+        if sha == "unknown":
+            print("benchmark_version: the overlay hash is unknown (a file could not be read)", file=sys.stderr)
+            return 1
+        print(sha)
+        return 0
     try:
         if a.check_pool:
             stamps = []

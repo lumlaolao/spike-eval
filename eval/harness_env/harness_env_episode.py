@@ -41,6 +41,7 @@ import harness_env_generate as hgen
 import harness_env_grade as hgrade
 import harness_env_sandbox as sb
 import harness_env_spec as hs
+import harness_env_task_grade as htg
 
 UNSCORED = "unscored: in-JVM grader, see HARNESS-ENV-FRAMEWORK.md 4.7 (pass --trust-candidate to accept the hole)"
 
@@ -225,6 +226,9 @@ def jvm_grader(classpath_file, forge, java_home=None, set_file=None, cards=None,
             raise ValueError("--cards draws a held-out set and needs $HARNESS_ENV_SEED")
     else:
         raise ValueError("an episode is graded on a generated set: pass --set <json> or --cards <cardsfolder>")
+    # Found before any candidate is graded: with no JDK the lookup raises SetupError here, where the fault is the
+    # grader's, and never scores a candidate 0 for "did not compile" (macOS /usr/bin/javac is a stub that exits 1).
+    jh = java_home or htg.java_home()
 
     def grade(submission, out):
         os.makedirs(out, exist_ok=True)
@@ -233,7 +237,6 @@ def jvm_grader(classpath_file, forge, java_home=None, set_file=None, cards=None,
         refused = hgrade.refusal(info)
         if refused:
             return dict(base, benchmark=0.0, dense=0.0, reason=refused)
-        jh = java_home or os.environ.get("JAVA_HOME", "/usr")
         env = hgrade.grader_env(jh)
         rc, classes, _, missing = hgrade.build_classes(submission, classpath_file, forge, out,
                                                        os.path.join(jh, "bin", "javac"), env)
@@ -298,7 +301,7 @@ def main(argv):
             return 2
     try:
         grade_fn = jvm_grader(cpfile, forge, set_file=set_file, cards=cards, trust_candidate=trust)
-    except ValueError as e:
+    except (ValueError, htg.SetupError) as e:
         print(e)
         return 2
     report = run_episode(spec, hgrade.REPO, agent_cmd, out, grade_fn=grade_fn, **opts)

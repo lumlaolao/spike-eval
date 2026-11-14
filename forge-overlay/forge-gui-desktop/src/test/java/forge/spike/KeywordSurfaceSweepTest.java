@@ -166,7 +166,11 @@ public class KeywordSurfaceSweepTest {
     }
 
     static Map<String, SpellAbility> menuOptions(Card c, Player me, boolean ownMain) {
-        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, ownMain, true);
+        return menuOptions(c, LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, ownMain, true));
+    }
+
+    /** {@code c}'s plays on a menu already enumerated. */
+    static Map<String, SpellAbility> menuOptions(Card c, LlmSpikeGui.PlayerControllerLLM.PlayOptions po) {
         Map<String, SpellAbility> menu = new TreeMap<>();
         for (SpellAbility sa : po.spells) if (sa.getHostCard().getId() == c.getId()) menu.put(key(sa), sa);
         for (SpellAbility sa : po.landPlays) if (sa.getHostCard().getId() == c.getId()) menu.put(key(sa), sa);
@@ -304,8 +308,7 @@ public class KeywordSurfaceSweepTest {
 
     /** The play {@code sa} names, chosen by the seat from its own menu (the fork forcer picks its index): the menu
      *  sets its X, modes and targets. Null when the menu did not hand back that play. */
-    static SpellAbility chooseFromMenu(LlmSpikeGui.PlayerControllerLLM ctrl, Player me, boolean ownMain, SpellAbility sa) {
-        List<SpellAbility> menu = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, ownMain, true).spells;
+    static SpellAbility chooseFromMenu(LlmSpikeGui.PlayerControllerLLM ctrl, Player me, List<SpellAbility> menu, SpellAbility sa) {
         String want = key(sa);
         int pick = menu.stream().map(KeywordSurfaceSweepTest::key).toList().indexOf(want);
         if (pick < 0) return null;
@@ -331,13 +334,17 @@ public class KeywordSurfaceSweepTest {
             FormatAnswerer model = new FormatAnswerer();
             LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
             Card c = card(name, me, zone);
-            SpellAbility sa = menuOptions(c, me, m.mine && m.phase.isMain()).get(optKey);
+            // One enumeration serves both the lookup of the play and the index the seat is forced to pick: nothing
+            // changes the game between them.
+            LlmSpikeGui.PlayerControllerLLM.PlayOptions po =
+                    LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, m.mine && m.phase.isMain(), true);
+            SpellAbility sa = menuOptions(c, po).get(optKey);
             if (sa == null) return bad; // a parity gap, reported there
             System.setOut(new PrintStream(log, true, StandardCharsets.UTF_8));
             int notMade = ctrl.playsNotMade();
             SpellAbility play = sa;
             if (!sa.isLandAbility()) {
-                play = chooseFromMenu(ctrl, me, m.mine && m.phase.isMain(), sa);
+                play = chooseFromMenu(ctrl, me, po.spells, sa);
                 if (play == null) {
                     bad.add("the seat's menu did not play it");
                     bad.addAll(playVerdict(ctrl, notMade, log.toString(StandardCharsets.UTF_8)));

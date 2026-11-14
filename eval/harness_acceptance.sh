@@ -6,8 +6,9 @@
 #   OUT=/path bash eval/harness_acceptance.sh        # where evidence goes (default runs/harness-acceptance/<utc>)
 #   ACCEPTANCE_JOBS=1 bash eval/harness_acceptance.sh   # every stage in one process, one after another
 #
-# A full run compiles once, then runs the later stages in four child runs side by side (OUT/part<n>, merged
-# into OUT/summary.txt) and the keyword sweep as SWEEP_SHARDS JVMs (docs/harness/ACCEPTANCE.md).
+# A full run starts the Python suite beside the build, compiles once, then feeds the later stages to a pool of child
+# runs, longest first (OUT/part-<unit>, merged into OUT/summary.txt); the Java tests run as SWEEP_SHARDS + MAIN_SHARDS
+# JVMs (docs/harness/ACCEPTANCE.md).
 #
 # Stages, cheapest first (each writes its evidence under $OUT and a PASS/FAIL line to $OUT/summary.txt):
 #   preflight  no live game JVMs, JDK 17, Forge checkout at the FORGE_COMMIT pin, decks present
@@ -23,8 +24,10 @@
 #              the model (the javatests JVM records each decision row's hooks), and every way the engine lists to
 #              play a card (AlternativeCost, OptionalCost) was played by a test; eval/surface_gaps.txt and
 #              eval/play_gaps.txt may only shrink
-#   pytests    python3 -m unittest discover -s eval/tests; eval/tests/test_script_suites.py runs the script-style files
-#              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
+#   pytests    every eval/tests/test_*.py through python3 -m unittest, in shards run side by side (PYTEST_SHARDS:
+#              each file in exactly one, or the stage fails); eval/tests/test_script_suites.py runs the script-style
+#              files (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it; fails
+#              on any failing shard, on no unittest verdict line, and on more skips (summed) than pytests.skipped_max
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and every
 #              eval/defect_analyzer.py hard invariant (docs/STANDARDS.md section 4)
@@ -100,6 +103,15 @@ mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd -P)"
 SUMMARY="$OUT/summary.txt"
 : > "$SUMMARY"
+# Which commit this run tested, and how many files differed from it (scripts/pr_format.py record-acceptance reads it).
+# Outside a git repository it says "unknown", which record-acceptance refuses.
+if [ -z "${ACC_CHILD:-}" ]; then
+  ACC_HEAD="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
+  ACC_DIRTY="$(git -C "$REPO" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+  [ "$ACC_HEAD" = unknown ] && ACC_DIRTY=unknown
+  printf '%s\n%s\n' "$ACC_HEAD" "$ACC_DIRTY" > "$OUT/head.txt"
+  case "$ACC_DIRTY" in 0) ;; *) echo "$ACC_DIRTY uncommitted changes: this run cannot be recorded" ;; esac
+fi
 FAILED=0
 
 say()  { echo "[$(date -u +%H:%M:%S)] $*"; }
@@ -173,6 +185,30 @@ if has_stage preflight; then
   fi
 fi
 
+# ---------------------------------------------------------------- early pytests
+# The Python suite reads no compiled class: in a run side by side it starts here, beside the classpath and compile
+# stages, as the first child (OUT/part-pytests/); the parallel section below collects it with the others.
+ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
+case "$ACCEPTANCE_JOBS" in ''|*[!0-9]*|0) echo "ACCEPTANCE_JOBS='$ACCEPTANCE_JOBS' must be a number >= 1" >&2; exit 2;; esac
+# Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
+# not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
+ACC_JVM=""; [ "$ACCEPTANCE_JOBS" -gt 1 ] && ACC_JVM="-XX:ActiveProcessorCount=1"; export ACC_JVM
+# A run side by side is bound by the CPU all its JVMs use, and a JVM that runs briefly spends much of it compiling
+# with C2 (a 20-decision loopback game: 19 s of CPU, 12 s with C1 only, the same outcome). ACC_C1 holds such a JVM
+# to C1: the Java tests' main shards and the short loopback games (play()). The long games (the canaries, faketool,
+# faithful, rules, nativerefuse) and the keyword sweep keep C2, which costs them less CPU (docs/harness/ACCEPTANCE.md,
+# "Timing"). A JIT flag changes no outcome; the --add-opens and -D flags stay the launchers' own.
+ACC_C1=""; [ "$ACCEPTANCE_JOBS" -gt 1 ] && ACC_C1="-XX:TieredStopAtLevel=1"; export ACC_C1
+EARLY_JOBS=""; EARLY_PIDS=""
+if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ]; then
+  rm -rf "$OUT"/part-* "$OUT"/part[0-9]*
+  if has_stage pytests; then
+    say "parallel: part-pytests runs pytests (beside the build)"
+    ACC_CHILD=1 STAGES=pytests OUT="$OUT/part-pytests" bash "$0" >"$OUT/part-pytests.log" 2>&1 &
+    EARLY_PIDS="$!"; EARLY_JOBS="$!:$OUT/part-pytests:pytests"
+  fi
+fi
+
 # ---------------------------------------------------------------- classpath
 CP_FILE="$OUT/classpath.txt"
 if has_stage classpath; then
@@ -212,8 +248,7 @@ if has_stage compile; then
     # overlay-sha.txt: the overlay these classes were compiled from (run_batch.py's overlay_sha), hashed before and
     # after javac (a source edited meanwhile leaves classes of either version, so the stage fails); puzzle_baselines.
     # Build runs only a build whose hash is the checkout's. Written on a pass only.
-    overlay_sha() { python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import benchmark_version as b
-print(b.overlay_sha_of_checkout(forge=sys.argv[2]))' "$REPO/eval" "$FORGE"; }
+    overlay_sha() { python3 "$REPO/eval/benchmark_version.py" --overlay-sha --forge "$FORGE"; }
     SRC_SHA_FILE="$(dirname "$CLASSES")/overlay-sha.txt"; rm -f "$SRC_SHA_FILE"
     SRC_SHA="$(overlay_sha)"
     rm -rf "$CLASSES"; mkdir -p "$CLASSES"
@@ -233,7 +268,7 @@ print(b.overlay_sha_of_checkout(forge=sys.argv[2]))' "$REPO/eval" "$FORGE"; }
     python3 "$REPO/eval/java_imports.py" "$OVERLAY" >"$OUT/java_imports.log" 2>&1; IRC=$?
     if [ $PRC -ne 0 ]; then fail compile "engine patches do not apply: $(tail -3 "$OUT/engine_patches.log" | tr '\n' ' ')"
     elif [ $RC -ne 0 ] || [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail compile "javac rc=$RC (see $OUT/javac.log)"
-    elif [ "$(overlay_sha)" != "$SRC_SHA" ]; then fail compile "overlay sources changed during the compile (was $SRC_SHA): compile again"
+    elif [ -z "$SRC_SHA" ] || [ "$(overlay_sha)" != "$SRC_SHA" ]; then fail compile "no overlay hash, or overlay sources changed during the compile (was ${SRC_SHA:-none}): compile again"
     elif [ $IRC -ne 0 ]; then fail compile "imports the Forge checkout build rejects: $(head -3 "$OUT/java_imports.log" | tr '\n' ' ')"
     else echo "$SRC_SHA" > "$SRC_SHA_FILE"
       pass compile "$NC classes from overlay sources $SRC_SHA, $(grep -c '^patched ' "$OUT/engine_patches.log") engine patches (isolated dir; checkout untouched); imports clean"; fi
@@ -242,27 +277,32 @@ fi
 
 # ---------------------------------------------------------------- parallel
 # Every stage after compile is independent: each writes only under its own directory, and each fake model server
-# takes a free port. So a full run spreads them over child runs of this script that share the compiled classes and
-# the classpath (timing: docs/harness/ACCEPTANCE.md). The groups are balanced by measured time, javatests the
-# longest. ACCEPTANCE_JOBS=1 runs every stage in this process, one after another.
-ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
-# Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
-# not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
-ACC_JVM=""; [ "$ACCEPTANCE_JOBS" -gt 1 ] && ACC_JVM="-XX:ActiveProcessorCount=1"; export ACC_JVM
-if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] \
-   && [ -f "$CP_FILE" ]; then
-  rm -rf "$OUT"/part[0-9]*
-  JOBS=""; i=0
-  PARALLEL_GROUPS='javatests surfaces lookahead answertool|pytests canary nativetool cacheorder|faketool nativerefuse faithful lines|rules turnchat scoring gaming'
-  OLDIFS="$IFS"; IFS='|'; set -- $PARALLEL_GROUPS; IFS="$OLDIFS"
-  for group in "$@"; do
-    picked=""; for s in $group; do has_stage "$s" && picked="$picked $s"; done
+# takes a free port. So a full run spreads them over child runs of this script (OUT/part-<unit>/) that share the
+# compiled classes and the classpath. A unit is one stage, or javatests with the surfaces stage that reads its output;
+# the Python suite, which needs no compiled class, started after preflight. The units are fed to a pool of
+# ACCEPTANCE_POOL children, longest first (timing: docs/harness/ACCEPTANCE.md), so the last to finish are short and no
+# core idles while one long stage runs alone. ACCEPTANCE_JOBS=1 runs every stage in this process, one after another.
+if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ]; then
+  # Without a build the units are not started: each stage then runs below, in this process, and fails on it.
+  POOL_UNITS=""
+  [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] && [ -f "$CP_FILE" ] && \
+    POOL_UNITS="javatests+surfaces gaming scoring canary faketool nativerefuse rules faithful lines nativetool lookahead answertool cacheorder turnchat"
+  POOL_SIZE="${ACCEPTANCE_POOL:-$ACCEPTANCE_JOBS}"
+  case "$POOL_SIZE" in ''|*[!0-9]*|0) fail parallel "ACCEPTANCE_POOL='$POOL_SIZE' must be a number >= 1"; POOL_SIZE=1;; esac
+  JOBS="$EARLY_JOBS"; RUNNING="$EARLY_PIDS"
+  for unit in $POOL_UNITS; do
+    picked=""; for s in $(echo "$unit" | tr '+' ' '); do has_stage "$s" && picked="$picked $s"; done
     [ -n "$picked" ] || continue
-    i=$((i + 1)); part="$OUT/part$i"
-    say "parallel: part$i runs$picked"
+    # bash 3.2 has no `wait -n`: poll the running children until one ends.
+    while [ "$(echo $RUNNING | wc -w)" -ge "$POOL_SIZE" ]; do
+      still=""; for pid in $RUNNING; do kill -0 "$pid" 2>/dev/null && still="$still $pid"; done
+      RUNNING="$still"; [ "$(echo $RUNNING | wc -w)" -ge "$POOL_SIZE" ] && sleep 1
+    done
+    name="$(echo "$unit" | sed 's/+.*//')"; part="$OUT/part-$name"
+    say "parallel: part-$name runs$picked"
     ACC_CHILD=1 STAGES="${picked# }" ACC_BUILD="$OUT" OUT="$part" HARNESS_CLASSPATH_FILE="$CP_FILE" \
       bash "$0" >"$part.log" 2>&1 &
-    JOBS="$JOBS $!:$part:$(echo $picked | tr ' ' ',')"
+    RUNNING="$RUNNING $!"; JOBS="$JOBS $!:$part:$(echo $picked | tr ' ' ',')"
   done
   # A child that died part way (killed, out of memory, an unset variable) has written PASS lines for the stages
   # before it and nothing for the rest: its exit status and every requested stage's line are both checked, so a
@@ -277,8 +317,8 @@ if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/for
     done
     case "$rc" in 0|1) ;; *) fail parallel "$(basename "$part") exited $rc (see $part.log)";; esac
   done
-  # Those stages ran in the children; the rest of this script runs only a stage no group names.
-  GROUPED=" $(echo "$PARALLEL_GROUPS" | tr '|' ' ') "
+  # Those stages ran in the children; the rest of this script runs only a stage no unit names.
+  GROUPED=" pytests $(echo "$POOL_UNITS" | tr '+' ' ') "
   STAGES="$(for s in $STAGES; do case "$GROUPED" in *" $s "*) ;; *) echo "$s";; esac; done | tr '\n' ' ')"
 fi
 
@@ -311,16 +351,28 @@ PYEOF
     rm -rf "$OUT"/testng-* "$OUT"/surfaces-*.tsv "$OUT"/javatests-*.log "$OUT"/keyword-sweep-*.tsv
     SWEEP=forge.spike.KeywordSurfaceSweepTest
     OTHERS="$(echo "$TCLASSES" | tr ',' '\n' | grep -vx "$SWEEP" | paste -sd, -)"
+    # The other classes run as MAIN_SHARDS JVMs too: two beside the other groups (in one JVM they were 185 s of this
+    # stage's wall, much of it tests waiting out deadlines). Classes are dealt heaviest first to the lightest shard by
+    # the seconds each took (eval/javatests_seconds.tsv; a class not listed counts 1 s). Every class must be in exactly
+    # one shard, or the stage fails.
+    MAIN_SHARDS="${MAIN_SHARDS:-$([ "$ACCEPTANCE_JOBS" -gt 1 ] && echo 2 || echo 1)}"
+    case "$MAIN_SHARDS" in ''|*[!0-9]*|0) fail javatests "MAIN_SHARDS='$MAIN_SHARDS' must be a number >= 1"; MAIN_SHARDS=1;; esac
+    MAIN_LISTS="$(python3 "$REPO/eval/javatests_shards.py" "$MAIN_SHARDS" "$OTHERS" "$REPO/eval/javatests_seconds.tsv")"
+    SHARDED="$(for l in $MAIN_LISTS; do echo "$l" | tr ',' '\n'; done | grep . | sort)"
+    if [ "$SHARDED" != "$(echo "$OTHERS" | tr ',' '\n' | grep . | sort)" ]; then
+      fail javatests "the main shards do not hold every test class exactly once (twice: $(echo "$SHARDED" | uniq -d | tr '\n' ' '))"
+      MAIN_LISTS="$OTHERS"
+    fi
     SWEEP_TESTS="$(grep -c '^[[:space:]]*@Test' "$OVERLAY/test/java/forge/spike/KeywordSurfaceSweepTest.java")"
     DECLARED=$((DECLARED + (SWEEP_SHARDS - 1) * SWEEP_TESTS))
-    testng() { # $1 name  $2 test classes  $3.. extra -D options
+    testng() { # $1 name  $2 test classes  $3.. extra JVM options
       local name="$1" classes="$2"; shift 2
-      ( cd "$FORGE/forge-gui-desktop" && env -u EVAL_OUT MEMORY_TOOLS=1 "$JAVA" $ACC_JVM -Dapple.awt.UIElement=true \
-          -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" "$@" -cp "$CLASSES:$(cat "$CP_FILE")" \
+      ( cd "$FORGE/forge-gui-desktop" && env -u EVAL_OUT MEMORY_TOOLS=1 "$JAVA" $ACC_JVM "$@" -Dapple.awt.UIElement=true \
+          -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
           org.testng.TestNG -testclass "$classes" -d "$OUT/testng-$name" ) >"$OUT/javatests-$name.log" 2>&1
     }
     TPIDS=""
-    testng main "$OTHERS" & TPIDS="$TPIDS $!"
+    k=0; for l in $MAIN_LISTS; do testng "main$k" "$l" $ACC_C1 & TPIDS="$TPIDS $!"; k=$((k + 1)); done
     k=0; while [ "$k" -lt "$SWEEP_SHARDS" ]; do
       testng "sweep$k" "$SWEEP" -Dharness.keyword.shard="$k/$SWEEP_SHARDS" -Dharness.keyword.report="$OUT/keyword-sweep-$k.tsv" &
       TPIDS="$TPIDS $!"; k=$((k + 1))
@@ -356,7 +408,9 @@ EOF
     if [ -z "$T" ]; then fail javatests "$RES"
     elif [ "$F" != 0 ] || [ "$S" != 0 ]; then fail javatests "$RES"
     elif [ "$T" != "$DECLARED" ]; then fail javatests "ran $T tests but $DECLARED @Test methods are declared (discovery gap)"
-    elif [ -n "$OWN_EXP" ] && [ "$OWN_N" != "$OWN_EXP" ]; then
+    elif [ -z "$OWN_EXP" ]; then
+      fail javatests "no ownership.silent_ai_strategic_max pin in $EXPECTED (a deleted pin must not turn the check off)"
+    elif [ "$OWN_N" != "$OWN_EXP" ]; then
       fail javatests "ownership count $OWN_N != pinned $OWN_EXP (update harness_acceptance.expected AND ControllerOwnershipTest deliberately)"
     # The jev: seat's question version, by literal value, from a loopback answer DecisionsBridgeTest drew through it.
     elif ! grep -qF "] decisions-bridge-v3 ONE -> answer" "$OUT/javatests.log"; then
@@ -385,20 +439,80 @@ if has_stage surfaces; then
 fi
 
 # ---------------------------------------------------------------- pytests
+# The suite runs as shards side by side, one python3 per shard, each over its own test files: the heaviest file alone,
+# a few heavy ones together, and REST, every other file. The shards are derived from the file list, and the stage
+# fails unless every eval/tests/test_*.py is in exactly one of them, so a new file is never left unrun.
+# PYTEST_SHARDS ('|' between shards, REST for the rest) may be set in the environment; the tests of this stage do.
 if has_stage pytests; then
-  # FORGE_HOME: the tests that read a Forge checkout (test_rollout's held-out puzzle) read this run's, never a default.
-  ( cd "$REPO" && FORGE_HOME="$FORGE" python3 -m unittest discover -s eval/tests -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC=$?
-  RAN="$(grep -o 'Ran [0-9]* tests' "$OUT/pytests.log" | tail -1)"
-  if [ $RC -eq 0 ] && [ -n "$RAN" ]; then pass pytests "$RAN OK (script-style files included)"
-  else fail pytests "unittest rc=$RC ($RAN)"; fi
+  PYTEST_SHARDS="${PYTEST_SHARDS:-test_puzzle_gen.py|test_harness_env_task_grade.py test_harness_env_episode.py test_mtg_env.py test_play_vs_llm.py test_setup.py|REST}"
+  ALL_PY="$(cd "$REPO/eval/tests" && ls test_*.py 2>/dev/null | sort)"
+  OLDIFS="$IFS"; IFS='|'; set -- $PYTEST_SHARDS; IFS="$OLDIFS"
+  NAMED=""; SHARD_PROBLEMS=""
+  for spec in "$@"; do
+    for f in $spec; do
+      [ "$f" = REST ] && continue
+      NAMED="${NAMED:+$NAMED
+}$f"
+      echo "$ALL_PY" | grep -qxF "$f" || SHARD_PROBLEMS="$SHARD_PROBLEMS $f(no such test file)"
+    done
+  done
+  REST_PY="$(echo "$ALL_PY" | grep -vxF -e "$NAMED" | grep . )"
+  i=0; JOBS_PY=""; COVERED=""
+  rm -f "$OUT"/pytests-*.log "$OUT"/pytests-*.files "$OUT"/pytests-*.rc
+  for spec in "$@"; do
+    i=$((i + 1))
+    files=""; for f in $spec; do if [ "$f" = REST ]; then files="$files $REST_PY"; else files="$files $f"; fi; done
+    files="$(echo $files)"
+    [ -n "$files" ] || continue
+    COVERED="$COVERED $files"
+    echo "$files" | tr ' ' '\n' > "$OUT/pytests-$i.files"
+    mods="$(echo "$files" | sed 's/\.py//g')"
+    # FORGE_HOME: the tests that read a Forge checkout (test_rollout's held-out puzzle) read this run's, never a default.
+    # -v writes each test's name and outcome to the log, so a skip is named there with its reason. PYTHONUNBUFFERED:
+    # a test's print during the run lands before unittest's summary, not after it where it could read as the verdict.
+    # PYTHONPATH (inherited by the processes the tests start) lets a shard import its modules by name.
+    ( cd "$REPO" && FORGE_HOME="$FORGE" PYTHONUNBUFFERED=1 PYTHONPATH="$REPO/eval/tests${PYTHONPATH:+:$PYTHONPATH}" python3 -m unittest -v $mods ) >"$OUT/pytests-$i.log" 2>&1 &
+    JOBS_PY="$JOBS_PY $!:$i"
+  done
+  for job in $JOBS_PY; do wait "${job%%:*}"; echo $? > "$OUT/pytests-${job#*:}.rc"; done
+  # Every test file in exactly one shard.
+  DIFF="$(diff <(echo $COVERED | tr ' ' '\n' | grep . | sort) <(echo "$ALL_PY" | grep .) | grep '^[<>]' | tr '\n' ' ')"
+  [ -n "$DIFF" ] && SHARD_PROBLEMS="$SHARD_PROBLEMS not in exactly one shard (< twice, > never): $DIFF"
+  N=0; SKIPPED=0; BAD=""; : > "$OUT/pytests.log"
+  for job in $JOBS_PY; do
+    n="${job#*:}"; log="$OUT/pytests-$n.log"; rc="$(cat "$OUT/pytests-$n.rc")"
+    { echo "===== pytests shard $n: $(tr '\n' ' ' < "$OUT/pytests-$n.files")"; cat "$log"; } >> "$OUT/pytests.log"
+    ran="$(grep -oE '^Ran [0-9]+ tests? in ' "$log" | tail -1 | sed 's/[^0-9]//g')"
+    # unittest's verdict is the first line after its "Ran N tests in": text written after the summary (an atexit
+    # handler, a child that outlives the run) can start with "OK", so the last OK line is not the verdict.
+    verdict="$(awk '/^Ran [0-9]+ tests? in /{r=NR; v=""; next} r && v=="" && NF {v=$0} END{print v}' "$log")"
+    rans="$(grep -cE '^Ran [0-9]+ tests? in ' "$log")"   # two such lines: something wrote text shaped like the summary
+    if [ "$rc" != 0 ] || [ "$rans" != 1 ] || ! echo "$verdict" | grep -Eq '^OK( \(.*\))?$'; then
+      BAD="$BAD shard $n (rc=$rc, ${ran:-no} tests, $rans summary lines, verdict '$verdict'; see pytests-$n.log)"
+    fi
+    N=$((N + ${ran:-0}))
+    k="$(echo "$verdict" | sed -n 's/.*skipped=\([0-9]*\).*/\1/p')"; SKIPPED=$((SKIPPED + ${k:-0}))
+  done
+  RAN="Ran $N tests"; SHARDS_N="$(echo $JOBS_PY | wc -w | tr -d ' ')"
+  SKIP_MAX="$(want pytests.skipped_max)"
+  case "$SKIP_MAX" in
+    ''|*[!0-9]*) fail pytests "pytests.skipped_max is missing, duplicated or not a number in $EXPECTED";;
+    *) if [ -n "$SHARD_PROBLEMS" ]; then fail pytests "shards do not cover eval/tests:$SHARD_PROBLEMS"
+       elif [ "$N" = 0 ]; then fail pytests "no tests ran ($SHARDS_N shards started)${BAD:+;$BAD}"
+       elif [ -n "$BAD" ]; then fail pytests "$RAN, $SKIPPED skipped; failed:$BAD"
+       elif [ "$SKIPPED" -gt "$SKIP_MAX" ]; then
+         fail pytests "$RAN, $SKIPPED skipped, more than the $SKIP_MAX allowed: $(grep -oE "skipped ('[^']*'|\"[^\"]*\")" "$OUT/pytests.log" | sort | uniq -c | sort -rn | head -6 | tr -s ' \n' ' ' | cut -c1-500)"
+       else pass pytests "$RAN OK, $SKIPPED skipped (at most $SKIP_MAX allowed; $SHARDS_N shards; script-style files included)"; fi;;
+  esac
 fi
 
 # ---------------------------------------------------------------- game runner
 play() { # $1 tag  $2 seed  $3.. extra env (VAR=value)
   local tag="$1" seed="$2"; shift 2
-  local dir="$OUT/$tag"; rm -rf "$dir"; mkdir -p "$dir"
+  local dir="$OUT/$tag" jit=""; rm -rf "$dir"; mkdir -p "$dir"
+  case "$tag" in lookahead|nativetool|answertool|cacheorder|turnchat|gaming-*) jit="$ACC_C1" ;; esac   # the short games (ACC_C1)
   ( cd "$FORGE/forge-gui-desktop" && env GAME_SEED="$seed" EVAL_OUT="$dir" DECK_A="$DECK_A_FILE" DECK_B="$DECK_B_FILE" \
-      GAME_CAP_MS="$GAME_CAP_MS" "$@" "$JAVA" $ACC_JVM $ADDOPENS -Xmx4096m -Dio.netty.tryReflectionSetAccessible=true \
+      GAME_CAP_MS="$GAME_CAP_MS" "$@" "$JAVA" $ACC_JVM $jit $ADDOPENS -Xmx4096m -Dio.netty.tryReflectionSetAccessible=true \
       -Dfile.encoding=UTF-8 -Djava.util.Arrays.useLegacyMergeSort=true -Dsun.java2d.d3d=false -Dapple.awt.UIElement=true \
       -Xlog:class+load=info:file="$dir/classload.log" -cp "$CLASSES:$(cat "$CP_FILE")" forge.spike.LlmSpikeHeadless ) >"$dir/game.log" 2>&1
   echo $? > "$dir/exit_code"
@@ -1134,9 +1248,10 @@ if has_stage turnchat; then
           SMART_BUDGET=150 FAST_BUDGET=150 GAME_CAP_MS=180000
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail turnchat "JVM did not load LlmSpikeGui from $CLASSES"; else
-        VERDICT="$(python3 - "$dir" "$sdir" <<'EOF'
+        ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+        VERDICT="$(python3 - "$dir" "$sdir" "$ARC" <<'EOF'
 import collections,glob,json,sys
-d,sdir=sys.argv[1],sys.argv[2]; problems=[]
+d,sdir,arc=sys.argv[1],sys.argv[2],int(sys.argv[3]); problems=[]
 rows=[]
 for f in glob.glob(d+"/game-*.jsonl"):
     for line in open(f):
@@ -1164,6 +1279,7 @@ if text: problems.append("%d earlier answers came back as text, not as their cal
 log=open(d+"/game.log",errors="replace").read()
 for bad in ("[FALLBACK->AI]","[TEXT-PARSE]","[TEXT-FORMAT-LEAK]"):
     if bad in log: problems.append(bad+" in the log")
+if arc!=0: problems.append("defect_analyzer rc=%d (see defects.txt)"%arc)
 facts="requests=%d carried_turn_history=%d max_assistant_msgs=%d decisions=%d"%(len(reqs),len(carried),max([r.get("assistant_messages",0) for r in reqs] or [0]),len(model))
 print(("FAIL " if problems else "PASS ")+"; ".join(problems+[facts]))
 EOF

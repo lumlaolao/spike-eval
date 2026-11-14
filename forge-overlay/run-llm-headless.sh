@@ -36,6 +36,9 @@ fi
 cp_list="$(cat "$CP_FILE")"
 case "$cp_list" in *\;*) SEP=';' ;; *) SEP=: ;; esac
 CP="target/classes$SEP$cp_list"
+# The classes that will load must be built from the sources installed for them (harness-classes-check.sh).
+. "$REPO/harness-classes-check.sh"
+harness_classes_check "$REPO" "$CP" "$SEP" || exit 4
 
 ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED \
 --add-opens java.desktop/javax.swing.border=ALL-UNNAMED \
@@ -63,12 +66,8 @@ ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED \
 # steals focus from whatever you are typing in. Matters most for batches, where
 # every game is a fresh JVM (a 12-wide batch stole focus 12 times a minute).
 #
-# Do NOT "improve" this to -Djava.awt.headless=true. Forge's desktop code
-# initializes AWT/Swing during model load even on the headless path, so
-# headless=true dies with ExceptionInInitializerError / HeadlessException before
-# the first turn (verified 2026-07-26). This flag suppresses the app's UI
-# presence while leaving AWT working; the seed-42 floor canary is unchanged
-# (identity A wins in 108 turns) with it set.
+# -Djava.awt.headless is not set: batch games, the acceptance canaries and the keyword gauntlet run these same flags
+# (eval/tests/test_launchers.py), and Java turns headless on by itself with no display.
 # ---- ALWAYS-ON MATCH MODEL (2026-10-13) -------------------------------------------------------
 # Real play runs with the viewer-aware observation and the state blocks that close the known
 # play-quality gaps: KNOWN IN HIDDEN ZONES (unsummon -> Thoughtseize), SPENT THIS TURN (legality

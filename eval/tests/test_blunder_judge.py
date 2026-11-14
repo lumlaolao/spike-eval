@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
@@ -81,6 +82,19 @@ class BlunderJudgeTest(unittest.TestCase):
             saved, bj._ORACLE = bj._ORACLE, None
             try:
                 self.assertEqual(set(bj.oracle_index(d)), {"Real Card"})
+            finally:
+                bj._ORACLE = saved
+
+    def test_the_oracle_index_expands_a_forge_home_written_with_a_variable(self):
+        # One environment sets FORGE_HOME to the literal "$HOME/forge"; read unexpanded, the index came back empty.
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "forge/forge-gui/res/cardsfolder/r/real_card.txt"
+            f.parent.mkdir(parents=True)
+            f.write_text("Name:Real Card\nOracle:Draw a card.\n")
+            saved, bj._ORACLE = bj._ORACLE, None
+            try:
+                with mock.patch.dict(os.environ, {"FORGE_HOME": "$HOME/forge", "HOME": d}):
+                    self.assertEqual(set(bj.oracle_index()), {"Real Card"})
             finally:
                 bj._ORACLE = saved
 

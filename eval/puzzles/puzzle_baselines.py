@@ -128,7 +128,8 @@ class Build:
                              "harness under this checkout's name. Build one (%s) or pass --allow-stale-build"
                              % (self.dir, recorded or "(not recorded)", self.checkout_sha, BUILD_HOW))
         self.classpath = cp_file.read_text().strip()
-        self.forge = Path(forge or os.environ.get("FORGE_HOME") or Path.home() / "code/forge")
+        env = os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "")))  # may hold "$HOME/forge"
+        self.forge = Path(forge or env or Path.home() / "code/forge")
         if not (self.forge / "forge-gui-desktop").is_dir():
             raise SystemExit("Forge checkout not found at %s (set FORGE_HOME)" % self.forge)
         self.java = java or os.environ.get("JAVA", "java")

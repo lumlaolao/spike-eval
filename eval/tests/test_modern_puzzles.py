@@ -1,6 +1,6 @@
 """Schema + integrity checks for the harvested modern-MTG puzzle corpus.
 
-Runs as part of the acceptance `pytests` stage (unittest discovery over eval/).
+Runs as part of the acceptance `pytests` stage (every eval/tests/test_*.py, in shards).
 The corpus itself lives in eval/puzzles/modern/puzzles.jsonl and is produced by
 eval/puzzles/modern/harvest.py; this file is the guard that keeps it trustworthy as
 other agents and humans extend it. Stdlib only.

@@ -7,6 +7,7 @@ expectations file, so this checks the shipped functions, not a copy. It cannot s
 stage uses the label; that is one `case` line beside the seed check. The javatests stage's `testng`
 function is run the same way, with a stub in place of java that prints its environment.
 """
+import json
 import os
 import shutil
 import subprocess
@@ -101,11 +102,11 @@ class JavatestsEnvironmentTest(unittest.TestCase):
         self.assertIn("KEEP_ME=1", out, "every other variable still reaches the JVM")
 
 
-def compile_stage():
-    """The script's compile stage, `if has_stage compile; then` through its closing `fi`."""
+def stage_text(name):
+    """The script's `name` stage, `if has_stage <name>; then` through its closing `fi`."""
     with open(SCRIPT, encoding="utf-8") as f:
         lines = f.read().splitlines()
-    start = next(i for i, l in enumerate(lines) if l.startswith("if has_stage compile; then"))
+    start = next(i for i, l in enumerate(lines) if l.startswith("if has_stage %s; then" % name))
     end = next(i for i in range(start + 1, len(lines)) if lines[i] == "fi")
     return "\n".join(lines[start:end + 1])
 
@@ -150,7 +151,7 @@ class CompileRecordsItsSourcesTest(unittest.TestCase):
             script = ('REPO="$1"; OUT="$2"; JAVAC="$3"; FORGE="$4"; CP_FILE="$2/cp.txt"; CLASSES="$2/classes"\n'
                       'OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"\n'
                       'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n'
-                      % compile_stage())
+                      % stage_text("compile"))
             res = subprocess.run(["bash", "-c", script, "x", repo, out, javac, os.path.join(d, "no-forge")], check=True,
                                  stdout=subprocess.PIPE, universal_newlines=True).stdout
             sha = os.path.join(out, "overlay-sha.txt")
@@ -179,6 +180,191 @@ class CompileRecordsItsSourcesTest(unittest.TestCase):
         self.assertIn("FAIL compile", res)
         self.assertIn("changed during the compile", res)
         self.assertIsNone(sha)
+
+
+class PytestsSkipAllowanceTest(unittest.TestCase):
+    """The pytests stage counts skips like javatests: a test that lost its prerequisite under acceptance (a broken
+    resolver, a moved rules file) fails the stage once the skips exceed pytests.skipped_max. The stage runs, as the
+    script has it, on a temporary eval/tests holding two skipping tests and one that passes; `want` is the script's
+    own. PYTEST_SHARDS names the shards here, as the stage allows."""
+
+    SUITE = ("import unittest\nclass T(unittest.TestCase):\n"
+             "    def test_a(self):\n        self.skipTest('no rules text')\n"
+             "    def test_b(self):\n        self.skipTest('no rules text')\n"
+             "    def test_c(self):\n        pass\n")
+
+    def stage(self, expected_text, suite=SUITE, env=None, files=None, shards="test_one.py|REST"):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "eval", "tests"))
+            for name, text in (files or {"test_one.py": suite}).items():
+                with open(os.path.join(d, "eval", "tests", name), "w") as f:
+                    f.write(text)
+            expected = os.path.join(d, "x.expected")
+            with open(expected, "w") as f:
+                f.write(expected_text)
+            script = ('REPO="$1"; OUT="$1"; FORGE="$1"; EXPECTED="$2"; PLATFORM=linux\n'
+                      'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n%s\n'
+                      % (functions(), stage_text("pytests")))
+            env = dict(env if env is not None else os.environ, PYTEST_SHARDS=shards)
+            return subprocess.run(["bash", "-c", script, "x", d, expected], check=True, stdout=subprocess.PIPE,
+                                  universal_newlines=True, env=env).stdout
+
+    def test_skips_over_the_allowance_fail_the_stage_and_name_the_reason(self):
+        out = self.stage("pytests.skipped_max=1\n")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("2 skipped, more than the 1 allowed", out)
+        self.assertIn("no rules text", out)
+
+    def test_skips_within_the_allowance_pass_and_are_counted_in_the_line(self):
+        out = self.stage("pytests.skipped_max=2\n")
+        self.assertIn("PASS pytests", out)
+        self.assertIn("Ran 3 tests OK, 2 skipped (at most 2 allowed", out)
+
+    def test_a_tests_own_ok_line_flushed_after_the_verdict_does_not_hide_the_skips(self):
+        # Text written after unittest's summary (here at exit) makes the last line starting "OK" a test's own.
+        suite = self.SUITE + ("    def test_d(self):\n        import atexit\n"
+                              "        atexit.register(print, 'OK 3 rows read')\n")
+        out = self.stage("pytests.skipped_max=1\n", suite=suite)
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("2 skipped, more than the 1 allowed", out)
+
+    def test_a_tests_stdout_that_mimics_unittest_does_not_replace_its_count(self):
+        # Buffered, a test's own "Ran 1 tests in" / "OK" lands after unittest's summary and was read as the verdict.
+        suite = self.SUITE + "    def test_d(self):\n        print('Ran 1 tests in 0.1s\\n\\nOK')\n"
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONUNBUFFERED"}
+        out = self.stage("pytests.skipped_max=1\n", suite=suite, env=env)
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("Ran 4 tests, 2 skipped, more than the 1 allowed", out)
+
+    def test_summary_shaped_text_written_after_the_summary_fails_the_shard(self):
+        suite = self.SUITE + ("    def test_d(self):\n        import atexit\n"
+                              "        atexit.register(print, 'Ran 1 tests in 0.1s\\n\\nOK')\n")
+        out = self.stage("pytests.skipped_max=1\n", suite=suite)
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("2 summary lines", out)
+
+    def test_a_shard_that_exits_before_unittest_reports_fails_the_stage(self):
+        files = {"test_one.py": self.SUITE,
+                 "test_two.py": "import os, unittest\nclass X(unittest.TestCase):\n"
+                                "    def test_x(self):\n        os._exit(0)\n"}
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py|REST")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("shard 2 (rc=0, no tests", out)
+
+    def test_a_suite_that_runs_nothing_fails(self):
+        empty = "import unittest\nclass E(unittest.TestCase):\n    pass\n"
+        out = self.stage("pytests.skipped_max=5\n", files={"test_one.py": empty}, shards="test_one.py|REST")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("no tests ran", out)
+        out = self.stage("pytests.skipped_max=5\n", files={"helper.py": empty}, shards="REST")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("no tests ran", out)
+
+    def test_a_skip_reason_in_double_quotes_is_named_too(self):
+        suite = self.SUITE.replace("'no rules text'", "\"the rules text isn't here\"")
+        out = self.stage("pytests.skipped_max=1\n", suite=suite)
+        self.assertIn("the rules text isn't here", out)
+
+    ONE_SKIP = "import unittest\nclass U(unittest.TestCase):\n    def test_x(self):\n        self.skipTest('no jar')\n"
+    PASSES = "import unittest\nclass V(unittest.TestCase):\n    def test_y(self):\n        pass\n"
+    FAILS = "import unittest\nclass W(unittest.TestCase):\n    def test_z(self):\n        self.fail('broken')\n"
+
+    def test_the_shards_tests_and_skips_are_summed_into_one_line(self):
+        files = {"test_one.py": self.SUITE, "test_two.py": self.ONE_SKIP, "test_three.py": self.PASSES}
+        out = self.stage("pytests.skipped_max=3\n", files=files, shards="test_one.py|test_two.py|REST")
+        self.assertIn("PASS pytests Ran 5 tests OK, 3 skipped (at most 3 allowed; 3 shards;", out)
+        out = self.stage("pytests.skipped_max=2\n", files=files, shards="test_one.py|test_two.py|REST")
+        self.assertIn("3 skipped, more than the 2 allowed", out)
+
+    def test_a_failing_shard_fails_the_stage(self):
+        files = {"test_one.py": self.SUITE, "test_two.py": self.FAILS}
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py|REST")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("shard 2 (rc=1", out)
+
+    def test_a_test_file_in_no_shard_or_a_named_file_that_is_gone_fails_the_stage(self):
+        files = {"test_one.py": self.SUITE, "test_two.py": self.PASSES}
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py")
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("> test_two.py", out)
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py|test_gone.py|REST")
+        self.assertIn("test_gone.py(no such test file)", out)
+        out = self.stage("pytests.skipped_max=5\n", files=files, shards="test_one.py|test_one.py test_two.py")
+        self.assertIn("< test_one.py", out, "a file in two shards")
+
+    def test_a_missing_allowance_fails_rather_than_allowing_any_number(self):
+        self.assertIn("FAIL pytests", self.stage("floor.seed=42\n"))
+
+
+def cut(start_text, end_text, after=None):
+    """The script's lines from the first starting with start_text (after the line holding `after`, if given) through
+    the next line holding end_text."""
+    with open(SCRIPT, encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    first = next(i for i, l in enumerate(lines) if after in l) if after else 0
+    start = next(i for i in range(first, len(lines)) if lines[i].strip().startswith(start_text))
+    end = next(i for i in range(start, len(lines)) if end_text in lines[i])
+    return "\n".join(lines[start:end + 1])
+
+
+class GateBranchTest(unittest.TestCase):
+    """Two gates added to stages that need a JVM: each branch is cut out of the script and run on a stub."""
+
+    def run_cut(self, body, d, *args):
+        script = 'pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n' % body
+        return subprocess.run(["bash", "-c", script, "x", d, *args], check=True, stdout=subprocess.PIPE,
+                              universal_newlines=True).stdout
+
+    def test_a_missing_ownership_pin_fails_javatests_instead_of_turning_the_check_off(self):
+        body = cut('OWN="$(grep', "else pass javatests")
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "javatests.log"), "w") as f:
+                f.write("[OWNERSHIP] silent strategic: 0\n] decisions-bridge-v3 ONE -> answer\n"
+                        "] claude-cli-bridge-v2 -> TOOL CALL answer\n[TRANSCRIPT] transcript-v1 byte-equal\n")
+            pre = 'OUT="$1"; EXPECTED="$2"; T=5; F=0; S=0; DECLARED=5; RES=r\n'
+            outs = {}
+            for name, text in (("absent", "floor.seed=42\n"), ("pinned", "ownership.silent_ai_strategic_max=0\n")):
+                exp = os.path.join(d, name + ".expected")
+                with open(exp, "w") as f:
+                    f.write(text)
+                outs[name] = self.run_cut(pre + body, d, exp)
+        self.assertIn("FAIL javatests", outs["absent"])
+        self.assertIn("no ownership.silent_ai_strategic_max pin", outs["absent"])
+        self.assertIn("PASS javatests", outs["pinned"])
+
+    def test_turnchat_fails_when_the_defect_analyzer_fails(self):
+        body = cut('VERDICT="$(python3 -', "pass turnchat", after="if has_stage turnchat")
+        with tempfile.TemporaryDirectory() as d:
+            sdir = os.path.join(d, "server")
+            os.makedirs(sdir)
+            rows = [{"t": "decision", "tier": "smart", "answer_via": "tool"}] * 10 + [
+                {"t": "game", "turn_chat": True, "turn_chat_version": "turn-chat-v1", "one_chat_version": "one-chat-v3"}]
+            with open(os.path.join(d, "game-42-1.jsonl"), "w") as f:
+                f.write("".join(json.dumps(r) + "\n" for r in rows))
+            with open(os.path.join(sdir, "fake_requests.jsonl"), "w") as f:
+                f.write(json.dumps({"earlier_turn_note": True, "assistant_messages": 2}) + "\n")
+            with open(os.path.join(d, "game.log"), "w") as f:
+                f.write("a clean game\n")
+            pre = 'dir="$1"; sdir="$2"; ARC="$3"\n'
+            clean = self.run_cut(pre + body, d, sdir, "0")
+            failed = self.run_cut(pre + body, d, sdir, "1")
+        self.assertIn("PASS turnchat", clean)
+        self.assertIn("FAIL turnchat", failed)
+        self.assertIn("defect_analyzer rc=1", failed)
+
+class ParallelPoolTest(unittest.TestCase):
+    """A full run feeds the stages after compile to a pool (POOL_UNITS), and starts pytests beside the build: every
+    stage in ALL_STAGES must be run by exactly one of them, the build stages, or nothing would say it was left out."""
+
+    def test_every_stage_is_in_exactly_one_unit(self):
+        import re
+        text = open(SCRIPT, encoding="utf-8").read()
+        stages = re.search(r'^ALL_STAGES="([^"]+)"', text, re.M).group(1).split()
+        units = re.search(r'POOL_UNITS="(javatests[^"]+)"', text).group(1).split()
+        pooled = [s for u in units for s in u.split("+")]
+        ran = ["preflight", "classpath", "compile", "pytests"] + pooled
+        self.assertEqual(sorted(ran), sorted(stages), "a stage in no unit, or in two")
+        self.assertEqual(units[0], "javatests+surfaces", "surfaces reads javatests' output: one unit, javatests first")
 
 
 if __name__ == "__main__":

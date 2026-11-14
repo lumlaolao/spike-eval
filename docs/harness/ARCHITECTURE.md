@@ -41,7 +41,10 @@ them and refuses to pool what is not comparable.
   (`eval/benchmark_version.py`) includes the commit, and every game line records it.
 - *Why unmodified except for listed patches:* a forked rules engine could drift from the one it claims to
   be. Everything we add lives in `forge-overlay/` and is copied in by `install.sh`. The overlay is the source of truth; files in
-  the Forge checkout get overwritten.
+  the Forge checkout get overwritten. `install.sh` refuses a checkout that is not at the pin before writing, and
+  removes a seat file (`forge/spike`) the overlay no longer has. The game launchers refuse to start when an installed
+  seat source or `HARNESS PATCH` source is newer than the class or module jar the game would load
+  (`forge-overlay/harness-classes-check.sh`): `install.sh` writes sources, only `mvn install` builds them.
 - *Engine patches (owner, 2026-10-15), only where the seat has no hook:* a unified diff against the upstream
   file at `FORGE_COMMIT`, in `engine-patches/<path>.patch` (Forge is GPL: the repository carries our changes,
   not Forge's files), every change marked `HARNESS PATCH`, the upstream original's sha256 recorded in
@@ -672,7 +675,9 @@ the engine checks it, and a rejected proposal comes back with the rule it breaks
   The puzzle runner strips every condition `run_batch.py` pins (`CONDITION_ENV_KEYS`) and `SHADOW_AI` from the
   shell, so a puzzle game runs only the condition `puzzle_solve.py` sets for it; the tournament (`tournament.py`)
   strips the same list, so a bracket game runs at the JVM's defaults (`eval/tests/test_launchers.py` lists every
-  launcher and how its games get their conditions).
+  launcher and how its games get their conditions). A tournament match runs in its own process group: a backstop
+  timeout, a Ctrl-C, a SIGTERM or SIGHUP to the tournament (`tournament.exit_on_hangup`) or any exception stops that
+  group (launcher and JVM) and no other game on the machine (`tournament.stop_group`).
 - **Combat (epoch 78, answer-tool-v16):** the attack and the blocks are proposed too, so the candidate lists (which
   creatures can attack, which can block, and what) are not shown. `answer.declare_attackers` is a list of
   `{attacker, defender}` by handle (`defender` "opponent" by default, or a planeswalker's or battle's handle; the
@@ -792,6 +797,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     budget (its copy of the table is pinned to the Java map by its test); its budgets are its own.
   - prices: `eval/pricing/prices.json` holds each model's list price, which reports use, and under `max` its dearest
     endpoint that takes tools, which `--budget-usd` checks against (latency routing may land on a priority tier).
+    Each price carries the date it was checked; `cost_report.py` warns when a priced model's list or `max` date is
+    older than 30 days (`cost_report.stale_prices`), since a provider's rise makes the budget under-count in silence.
     `puzzle_solve.py --max-price-at-list` rules that out: it sets `OPENROUTER_MAX_PRICE` to the list price, and the
     bridge adds it to its one `provider` object as `max_price`, its fields strings as OpenRouter's schema types them
     (`OpenRouterBridge.maxPriceField`). It is a condition, not mere routing: at list an open-weight model may find only
@@ -1062,7 +1069,14 @@ opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
   (`ChatSessionBridge`) must pass the bill through, or the seat falls back to last-call usage.
   - *Why:* reading the last call's usage once an ask counted a failed ask's stale tokens again and lost a retry's
     first send (pr-review of #282).
-- `run_batch.py --budget-usd` is required for paid games: it stops starting games at the budget.
+- `run_batch.py --budget-usd` is required for paid games: it stops starting games at the budget. A block naming a
+  paid `openrouter:`/`jev:` model is refused without one in every mode; free seats (ai, random, floor, the loopback
+  fake model at $0) and a `claude-cli:` seat need none, and a block with no seat that can spend (a cross panel's
+  AI-vs-AI control) does not check it. The spend is read before every game over every directory of a panel; a
+  directory whose files did not change (path, size, mtime) is not parsed again.
+- A resume sets aside, under `crashed/` (`unfinished-`), the game file a combo's log names when it holds no game line
+  (the last failed attempt, a game cut by Ctrl-C) before playing the seed again, so it is not counted as a crash
+  beside the replay.
 - The owner rule is a small block first, with the expected cost stated before it starts.
 - *Why:* small per-game costs add up unseen; `eval/cost_report.py` prices any run, and `--plan N` the next N games.
 
@@ -1133,9 +1147,23 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     `checkout_sources`; it covered two files until 2026-10-16, review H3);
   - unset `--context-profile` is the faithful seat (`v4-faithful`), as in the play scripts; the legacy
     `v1-compat` (coaching, a reasoning cap, a 25-decision turn cap) runs only as a named arm;
-  - it resumes;
+  - it resumes; a combo whose log or game file was written in the last `LIVE_WRITE_S` (twice the default model-call
+    deadline) may belong to a game in flight (a launcher killed while its JVM plays on, or a second batch on the
+    same `--out`, which nothing else prevents): this batch neither sets it aside nor plays it, lists it in the summary
+    (`held (may be live): N: <seed/swap ...>; rerun when those games have ended`) and exits 1. The next resume
+    decides it as any other: a finished game is skipped, an unfinished quiet one is set aside and played again. The
+    newer of the log and the game file decides; a file dated in the future is left out;
+  - a model spec with no row in `eval/pricing/prices.json` is refused in every mode (a self-hosted model needs a row
+    priced at $0);
   - it plays a crashed game once more and sets the failed attempt aside (`--retries`);
   - it enforces the budget;
+  - settings no flag sets that change what a seat is given (`AMBIENT_CONDITION_KEYS`: model config, loop guards,
+    deadlines, routing, prompt cache, run-mode switches): a cited batch scrubs the shell's values and refuses them
+    in `--env`; an exploratory batch keeps the shell's, may set them with `--env`, and records them in the manifest
+    (`ambient_env`), so a resume from a shell with other values is refused; the `[condition]` line names any it
+    found. The endpoint (`OPENROUTER_BASE_URL`) is not among them: it reaches every batch from the shell, is
+    stamped (`openrouter_base_url`) and splits experiments in `aggregate.py`. `--env` never sets a seat, model,
+    deck or other run-defining name;
   - it refuses an llm seat that does not name both of its models, in every mode: a seat with no controller
     is an llm seat, and an unset model fell through to the harness default (Opus), so a Luna mirror
     launched with seat B unset played Luna against Opus 5.5 with every stamp healthy (issue #234);
@@ -1143,7 +1171,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     2026-10-24); `openrouter:` games wait on the network and may run in parallel (review E3);
   - *Why pinned:* a baseline arm that silently inherited a setting would be pooled with a different
     measurement.
-- **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
+- **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition. A file with no game line
+  is a started game (0 in the strict score) only for a (seed, seat order) that holds no game line, and only in a
+  directory of one condition; in a mixed one it is counted and charged to none (`docs/eval/SCORING.md`, "Started
+  games"). **`build_report.py`** gives a suite PASS only when the holdout audit ran and every arm played its seeds'
+  games and passed every gate; an audit that did not run or a short arm is INCOMPLETE, a failed gate FAIL.
   **`defect_analyzer.py`** is the run oracle: its four hard invariants (`docs/STANDARDS.md` section 4) hold, or the
   run fails. Its crash check gives every log of the
   directory exactly one owner: the game file its `[EVAL] jsonl` line names when that file is in the directory, else
@@ -1196,6 +1228,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     `run_batch.py`'s `combo_status` / `set_aside_dead_bridge` set the game aside and play it again, `mtg_env.py`
     marks the episode invalid, and `defect_analyzer.py` fails on it (`eval_log_write_failed_total`). The game line is
     itself a row: a failure on it alone leaves a log with no game line, which is already counted invalid.
+  - A training build (`make_sft_data.py`) refuses a game on a seed of `seed_policy`'s reserved blocks or of an
+    eval-only bank of `eval/seed_registry.json` (the panels' 7800-7999), unless `--allow-reserved-seeds`.
   - The readers that take no score read it too (issue #430): `make_sft_data.py` (`load_complete_games` skips the game,
     with a warning, so no training example comes from a dead bridge's fallbacks or a cut jsonl; the same loader feeds
     `replay_match.py`, `process_metrics.py` and `puzzles/mine_puzzles.py`, which therefore skip it too), `line_compare.py`
@@ -1238,6 +1272,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     the pilot condition (profile, tiers, answer tool, tools, lookahead, chat windows, plans): `run_batch.py
     --panel` launches and `panel_score.py` scores no other. *Why:* a score is a property of one seat; two
     settings under one name would be two benchmarks.
+    The panel's verdict is `VALID` only when it is complete, seed-paired and has its random baseline
+    (`docs/eval/SCORING.md` has the rule); otherwise `INCOMPLETE` or `NO RANDOM BASELINE`. *Why:* the pool weighs
+    cells equally, so cells a budget stopped at different lengths are not the seed-paired panel, and a score
+    without its floor is not a score.
   - **STR-HELDOUT:** the same on a held-out seed band; to become the private mined puzzle split
     (`docs/eval/BENCHMARK-V1.md`, owner decision 2026-10-18).
   - **PUZ:** the puzzle suite (`docs/eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged
@@ -1390,7 +1428,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
    - an isolated compile, which records the overlay hash it compiled in `overlay-sha.txt`; the puzzle launchers
      (`puzzle_baselines.Build`) run only a build whose hash is the checkout's, unless `--allow-stale-build`, which
      the run's provenance records (`docs/eval/PUZZLES.md`);
-   - every Java and Python test, with a declared-vs-run count;
+   - every Java and Python test, with a declared-vs-run count; no Java test may skip, and Python skips may not
+     exceed the pinned `pytests.skipped_max` (the optional live-model class); the Python files run in shards side
+     by side, each file in exactly one;
    - the pinned canaries, with a class-load proof that the new build ran;
    - loopback fake-model games for tools, answers, the faithful profile, lookahead, rules and the turn chat,
      and a written puzzle line played by a script seat (`ScriptBridge`; the stage table is in
@@ -1425,7 +1465,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      553; 1996 World Champion is left out, as the script says) and Forge's twelve Forecast cards (`kw28`: Forecast is
      an ability parameter, not a keyword, so the sweep never drew one) in 29 decks (`eval/gauntlet/`), each deck's
      LLM seat on the loopback fake model (`--policy first --answer-tool`: the first option of every ask) against
-     the next deck's Forge AI, in full games. Triggers, combat, upkeep and
+     the next deck's Forge AI, in full games, on the build of a passing acceptance compile whose overlay hash is the
+     checkout's (`GAUNTLET_BUILD`, else the newest; refused otherwise) and with the launchers' JVM flags
+     (`eval/tests/test_launchers.py` keeps the launchers, the canaries and the gauntlet on one set). Triggers, combat,
+     upkeep and
      end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's
      AI made, an unreadable answer, a play that failed to pay or to target, a crash or an unfinished game. The engine's
      "failed to target" line names a card, not a player, so it is set apart (listed, not counted) only when the card is

@@ -112,7 +112,8 @@ def oracle_index(forge_home=None):
     global _ORACLE
     if _ORACLE is None:
         _ORACLE = {}
-        root = os.path.join(forge_home or os.environ.get("FORGE_HOME", os.path.expanduser("~/code/forge")),
+        home = forge_home or os.environ.get("FORGE_HOME", "~/code/forge")
+        root = os.path.join(os.path.expanduser(os.path.expandvars(home)),   # FORGE_HOME may hold "$HOME/forge"
                             "forge-gui", "res", "cardsfolder")
         for path in glob.glob(os.path.join(root, "*", "*.txt")):
             if os.path.basename(os.path.dirname(path)) == "zz_twins":   # puzzle_twin.py installs renamed cards there

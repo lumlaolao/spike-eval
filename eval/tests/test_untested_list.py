@@ -9,7 +9,7 @@ import evalpath  # noqa: E402  (every eval script folder on sys.path)
 
 TESTS = evalpath.EVAL / "tests"
 # The list only shrinks: lower this in the PR that takes a name off it, never raise it.
-MAX_UNTESTED = 3
+MAX_UNTESTED = 2
 UNTESTED = {ln.strip() for ln in (evalpath.EVAL / "UNTESTED.txt").read_text().splitlines()
             if ln.strip() and not ln.startswith("#")}
 

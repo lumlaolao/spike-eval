@@ -119,6 +119,10 @@ class PlayVsLlmTest(unittest.TestCase):
         self.assertNotIn("OPENROUTER_ALLOW_EGRESS", self.dry_env(p))
         for line in SCRIPT.read_text().splitlines():
             self.assertFalse("OPENROUTER_ALLOW_EGRESS=" in line and "export" in line and "$k" not in line, line)
+        # A jev: decision model posts the game to the same host (the Decisions API): the same consent.
+        p = self.run_script("--model", "jev:typesafe/jev-1.14")
+        self.assertEqual(p.returncode, 3, p.stderr)
+        self.assertIn("OPENROUTER_ALLOW_EGRESS=1", p.stderr)
 
     def test_consent_is_read_from_secrets_env_and_the_environment_wins(self):
         secrets = self.repo / "secrets.env"
@@ -189,6 +193,30 @@ class PlayVsLlmTest(unittest.TestCase):
         base.update(env, OPENROUTER_ALLOW_EGRESS="1", HOME=self._tmp.name)
         return subprocess.run(["bash", str(self.repo / "play-vs-llm.sh")], capture_output=True, text=True, env=base,
                               cwd=tempfile.gettempdir())
+
+    def test_only_a_game_reaching_openrouter_ai_holds_the_openrouter_key(self):
+        # A claude-cli: game (and the build and commentary beside it) has no use for the key: it is never exported. An
+        # openrouter: or jev: game posts to openrouter.ai and needs it.
+        built = Path(self._tmp.name) / "key-probe"
+        built.mkdir(exist_ok=True)
+        seen = built / "seen.txt"
+        (built / "run-llm-spike.sh").write_text('#!/bin/sh\necho "key=${OPENROUTER_API_KEY-unset}" > "%s"\n' % seen)
+        (built / "run-llm-spike.sh").chmod(0o755)
+        cp = built / "cp.txt"
+        cp.write_text("/x.jar")
+        (self.repo / "secrets.env").write_text("OPENROUTER_API_KEY=from-secrets\n")
+        for model, extra, want in (("claude-cli:opus", {"CLAUDE_CLI_SEAT": "1", "OPENROUTER_API_KEY": "from-shell"},
+                                    "key=unset"),
+                                   ("openrouter:openai/gpt-6-luna", {}, "key=from-secrets"),
+                                   ("jev:typesafe/jev-1.14", {}, "key=from-secrets")):
+            with self.subTest(model=model):
+                base = {k: v for k, v in os.environ.items() if k not in ("OPENROUTER_API_KEY", "CLAUDE_CLI_SEAT")}
+                base.update(extra, OPENROUTER_ALLOW_EGRESS="1", HOME=self._tmp.name, FORGE_HOME=str(built),
+                            FORGE_CP_FILE=str(cp))
+                p = subprocess.run(["bash", str(self.repo / "play-vs-llm.sh"), "--model", model], capture_output=True,
+                                   text=True, env=base, cwd=tempfile.gettempdir())
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertEqual(seen.read_text().strip(), want)
 
     def test_a_start_with_no_build_prints_only_why_and_where_the_path_came_from(self):
         built = Path(self._tmp.name) / "built-by-setup"
