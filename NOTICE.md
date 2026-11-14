@@ -48,7 +48,10 @@ Hasbro.
 - **Rules questions** in `eval/puzzles/modern/` are transcribed or lightly paraphrased from public rulings and judge
   answers: RulesGuru, Cranial Insertion, Ask a Magic Judge, Gatherer rulings (via Scryfall), Wizards release notes,
   Judge Foundry and EDHREC. Every item records its `source_name` and `source_url`; the credit and the copyright in
-  each answer belong to those sources and their authors.
+  each answer belong to those sources and their authors. The rules puzzles in `eval/puzzles/rules-pilot/` (and the
+  suite drawn from them, `eval/suites/puzzles-rules-sample-v1.json`) are built from the same questions: each row of
+  `eval/puzzles/rules-pilot/manifest.jsonl` names its question in `question_id` (1,053 of its 1,305 rows; the other
+  252 are `authored-`, written for this project), and the same credit applies.
 - **Puzzles derived from Forge's built-in puzzle files** (`eval/suites/puzzles-forge-builtin-v1.json`) are
   referenced by file name and hash, not copied; Forge ships them, and each entry names its original author and
   source (Possibility Storm and others).

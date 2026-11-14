@@ -1230,7 +1230,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     invalid, and `python3 eval/defect_analyzer.py runs/cv/luna-vs-ai` `bridge_down_total=355` (its game lines predate
     the fields: the log reader counts every lost ask, plan and lookup asks included; the decision rows' 280
     `(bridge-down)` fallbacks are a subset). The other recorded games: every `runs/**/game-*.jsonl` in the author's
-    five worktrees (`mtg-forge-llm-agent`, `cv-wt`, `fc-wt`, `retier`, `tvs-wt`) whose game line has a `harness_epoch`
+    five local worktrees (not in the repository) whose game line has a `harness_epoch`
     and an `openrouter:` seat that is not the loopback fake, 79 lines outside that block; `bridge_down_decisions(line,
     <its dir>)` reads 0 for every one, though 18 of their logs hold an `HTTP <n>`, `error:` or `stalled connection`
     line a retry recovered (a count of those lines would have called them dead). No threshold has data behind it.

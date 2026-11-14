@@ -1,4 +1,4 @@
-# Work plan: what is left (updated 2026-11-08)
+# Work plan: what is left (updated 2026-11-14)
 
 The living to-do list. Only open work is listed here (plus a three-line "Done since" pointer, dropped at the next
 refresh); what is done is in git history,
@@ -24,8 +24,9 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
 
 ## Facts the owner set (2026-11)
 
-- **No CI.** There are no GitHub Actions minutes: the test workflow is paused to a manual run (#401). Plan no CI work;
-  the local acceptance run is the evidence a merge needs.
+- **CI runs the Python suite only.** The test workflow (`.github/workflows/tests.yml`) runs on every PR and push to
+  main again (756c9ec, 2026-11-09; it was paused to a manual run in #401): the Python suite on the Python floor and a
+  current Python, no Forge build. The local acceptance run is the evidence a merge needs; plan no other CI work.
 - **No paid model runs for now.** Every item below that needs one waits. Model experiments use the `claude-cli:` dev
   lane (`claude -p` with Haiku or Sonnet, `CLAUDE_CLI_SEAT=1`), never a benchmark score.
 
@@ -80,8 +81,8 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   - from PR #294: a STANDARDS rule that a doc's command runs as written from the repository root;
   - from PR #301: acceptance under 5 minutes, which needs more cores or running only the stages a change can
     affect; the second changes the gate rule (STANDARDS sections 1 and 5), so it is the owner's.
-- **Repository housekeeping:** the 163 remote branches already merged into main were not deleted (it needs the
-  owner's permission; `git branch -r --merged origin/main | grep -v 'HEAD\|origin/main$' | wc -l`, 2026-11-08). Stale
+- **Repository housekeeping:** the 200 remote branches already merged into main were not deleted (it needs the
+  owner's permission; `git branch -r --merged origin/main | grep -v 'HEAD\|origin/main$' | wc -l`, 2026-11-14). Stale
   and open, for the owner to close or revive: issue #248 and PR #249 (the canary-random re-pin of 2026-10-17, long
   since overtaken), draft PR #11 (eval v1.0, the five axes of the first design), and PR #267 (its misreading
   probe is ported; see below).
@@ -104,7 +105,8 @@ by the rules (#419, #433); the RL environments are on main (`eval/rl/`, #423; ha
   Apple silicon, Linux and Windows in Git Bash: #463, #465). Three of
   #326's five pr-review LOWs remain: the ^C window between the marker and the remote add, the kept-secrets consent
   check being looser than `play-vs-llm.sh`'s, and a Maven on Java 8 reported as "Java 1".
-- **The README and the front-facing text** (condensed to a front page in #333) await the owner's review.
+- **The README and the front-facing text** (condensed to a front page in #333) are public, with the public clone
+  URL; any further pass on them is the owner's call.
 - **Owner decisions** ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md)): E4 (does the headline STR score drop
   unfinished games), E5 (freeze a measurement epoch), then E7 (the first mirror block, paid, cost first); which
   models to compare ([docs/eval/BENCHMARK-V1.md](../eval/BENCHMARK-V1.md), decision 4); the headline score.

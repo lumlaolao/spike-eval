@@ -153,33 +153,33 @@ most log questions).
   `puzzle_solve.py` and the baselines), drops it from the shell unless its own flag sets it: it strips
   every name in `run_batch.PINNED_ENV_KEYS` (`CONDITION_ENV_KEYS` and `SHADOW_AI`)
   (`test_a_puzzle_game_never_inherits_a_condition_from_the_shell` builds the same names from `CONDITION_ENV_KEYS`
-  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`; #342, #345), as does the tournament
+  and `SHADOW_AI` and checks them against `PINNED_ENV_KEYS`), as does the tournament
   (`tournament._match_env`) and the RL environment (`eval/rl/mtg_env.py`, `scrubbed_environ`, which also strips the
   `OPENROUTER`, `PZL_`, `FORK_` and `CLAUDE_` prefixes and sets its own conditions in `DECISION_ONLY`; its episodes
   are training data, never a score). The puzzle runner also strips every `OPENROUTER*` name by prefix, and
   `CLAUDE_DEADLINE_MS`, which `puzzle_solve.py` sets from `--call-timeout-minutes`
-  (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`, PR #363). A launcher that goes
+  (`test_a_puzzle_game_never_inherits_the_cli_seats_deadline_from_the_shell`). A launcher that goes
   through `run_batch.py` (`improve_loop.py`) inherits its pinning; the diagnostics that launch a game JVM directly
   (`keyword_gauntlet.sh`, `shadow_canary.sh`, `demo_compare.py --fake` and the acceptance canaries in
   `harness_acceptance.sh`) are never scored and rely on the game-line stamps; `play-vs-llm.sh`, never scored
   either, scrubs `RUN_DEFINING_KEYS` and `CITED_FORCED_KEYS` except the seed and the operator's Claude CLI
   effort and thinking settings (`test_play_vs_llm`).
   `eval/tests/test_launchers.py` classifies every file that launches a game, so a new one is named here.
-  A condition the JVM reads from the environment but never stamps pools its on- and off-games (issue
-  #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every `System.getenv` in the spike files the game reads through
+  A condition the JVM reads from the environment but never stamps pools its on- and off-games (`PLAN_EXECUTE`
+  and `TIER_FAST_TYPES` did); every `System.getenv` in the spike files the game reads through
   (`GameLineStampCoverageTest.SCANNED`; every other reader is named with its reason in `NOT_GAME_LINE`) is either
   stamped or on a named allowlist of settings that do not change the seat's decisions (the check is `eval/tests/test_experiments.py`'s
   `GameLineStampCoverageTest`). A setting that touches anything the seat reads, even as a side effect
-  (a diagnostic that registers handles early: `PROPOSE_AUDIT`, PR #342), is a condition, not an allowlist
+  (a diagnostic that registers handles early: `PROPOSE_AUDIT`), is a condition, not an allowlist
   entry; each allowlist entry carries the reason it changes nothing the seat sees (`NON_CONDITION_ENV` maps
   each name to its reason; `test_every_allowlist_entry_says_why`). Every condition the scan finds stamped or
   recorded elsewhere is also pinned by `run_batch.py`, or named in `NOT_PINNED` with why a shell value may reach a
   game, and every `NOT_PINNED` name is still a condition the scan finds (an entry that stops being one is removed;
-  `test_every_stamped_condition_is_pinned_or_says_why`; PRs #342, #344, #354, #355).
+  `test_every_stamped_condition_is_pinned_or_says_why`).
   A puzzle run's condition that must stay off the build so a run can resume (the game cap, the
-  per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`, PR #329; `call_timeout_ms`
+  per-call deadline and the token cap: `game_cap_ms`, `call_timeout_ms`, `max_tokens`; `call_timeout_ms`
   is set through the variable the seat's bridge reads, `OPENROUTER_TIMEOUT_MS` for `openrouter:` and `jev:`,
-  `CLAUDE_DEADLINE_MS` for `claude-cli:`, PR #363) may
+  `CLAUDE_DEADLINE_MS` for `claude-cli:`) may
   instead be recorded in each puzzle's `batch-manifest.json` `record`, provided
   `puzzle_score.load_rows` attaches it to every row it reads and the scorer refuses a mix. A resume
   under a lower value is refused. A resume under a higher one replays every puzzle it reaches that
@@ -206,7 +206,7 @@ most log questions).
 ## 5. Tests
 
 - A test is named for the behaviour it protects, as a sentence
-  (`aMalformedCallDoesNotSpendTheBudget`).
+  (`theBudgetIsToolsPerAskExecutedCallsAndAMalformedCallDoesNotSpendIt`).
 - **Say what would make it fail.** A test that passes against the broken implementation is
   decoration. For a new gate or canary, break the thing once and watch it go red.
 - Fixtures come from recorded games where they can (cite the run), invented cards where recall
@@ -245,6 +245,13 @@ most log questions).
   still passes (issue #380; `grep -rn 'assert.*playChosenSpellAbility\|= *ctrl.playChosenSpellAbility'
   forge-overlay` finds a site that reads it, and finds none). `playsNotMade()` does not count a cancel; a cancel is
   read from the game or the log (`KeywordSurfaceSweepTest.playVerdict`). Checked by review.
+- A test of a refusal asserts the refusal's own text (what it names and why), not only that it exited non-zero or
+  raised: a refusal for another reason (a typo in an argument, a missing file) exits the same way, and the test
+  then passes while the guard it names is gone. Checked by review.
+- Under acceptance a Python skip is a failure in waiting. The `pytests` stage fails above
+  `pytests.skipped_max` (`eval/harness_acceptance.expected`, whose comment names each allowed skip); a new skip, or
+  a test that skips under acceptance because its prerequisite went missing, is fixed or named there with its reason,
+  never absorbed by raising the number.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
   duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the

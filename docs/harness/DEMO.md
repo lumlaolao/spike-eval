@@ -94,7 +94,7 @@ CONTROLLER_A=llm CONTROLLER_B=ai GAME_SEED=4201 \
 
 Every variable in that game line matters: without the models a model seat is refused (there is no default model), and
 without the decks the launcher falls back to its own defaults (decks from ~/Downloads, the seats named after them). It is a paid game (CLAUDE.md:
-about $0.02 to $0.05, 20 to 90 minutes, with no budget cap in the GUI; stop it with Ctrl-C) and starts only with
+about $0.09 and 18 minutes on average, with no budget cap in the GUI; stop it with Ctrl-C) and starts only with
 `OPENROUTER_API_KEY` and `OPENROUTER_ALLOW_EGRESS=1` set by the owner in their own shell (without the key the seats
 are not built). For a free rehearsal, run the seat on the loopback fake model instead:
 
@@ -140,7 +140,7 @@ To watch both arms play live rather than replay them, add `--parallel`: the two 
 JVM, and the command prints the viewer line to start first (`demo_server.py --live OUT/now --live OUT/then`). Without
 it the arms play one after the other. Stopping the command stops both games.
 
-A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, split between the two arms; two one-tier games at CLAUDE.md's $0.02 to $0.05 each) needs the owner's
+A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, split between the two arms; two one-tier games at CLAUDE.md's measured mean, $0.094, each) needs the owner's
 egress consent. Two games open in watch mode: each pane is a clear board (life, library and hand counts; hand,
 battlefield and lands rows; graveyard and exile as stacks of card images) with the stack and combat on one line between
 the players and a scrollable log of the model's decisions under it. One play button runs both games to their end side by
@@ -202,7 +202,8 @@ python3 eval/demo/demo_server.py --game runs/loop/g33 --acceptance /tmp/acc-<sha
 it (the canary stages themselves fail when a pin moves), PUZ computed by `puzzle_score.score` from the recorded Luna runs in
 `eval/puzzles/rules-pilot/benchmark-v1/` (each condition's headline, 95% interval and floors, as a forest plot), and
 STR-AI and STR-HELDOUT shown as not yet run, with the mirror panel's size (16 cells, 1600 games) and its cost ($32 to
-$80, at CLAUDE.md's $0.02 to $0.05 a game). Every other number on the page is read from a scorer or a summary.
+$80, from `demo_eval.GAME_COST_USD`, the old $0.02 to $0.05 a game; at the measured mean in CLAUDE.md, $0.094, it
+is about $150). Every other number on the page is read from a scorer or a summary.
 
 ## A walkthrough (about ten minutes)
 
