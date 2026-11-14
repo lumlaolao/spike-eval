@@ -26,6 +26,7 @@ import forge.localinstance.properties.ForgePreferences.FPref;
 import forge.model.FModel;
 
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -36,6 +37,12 @@ import org.testng.annotations.Test;
  */
 public class LineFindingProbeTest {
     private static boolean initialized;
+
+    @BeforeClass
+    public void quickRetries() { QuickRetries.on(); }
+
+    @AfterClass(alwaysRun = true)
+    public void realRetries() { QuickRetries.off(); }
 
     @BeforeClass
     public void initializeModel() {

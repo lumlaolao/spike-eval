@@ -40,6 +40,7 @@ import forge.model.FModel;
 import forge.util.ITriggerEvent;
 
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -53,6 +54,12 @@ import org.testng.annotations.Test;
  */
 public class LlmSpikeTest {
     private static boolean initialized = false;
+
+    @BeforeClass
+    public void quickRetries() { QuickRetries.on(); }
+
+    @AfterClass(alwaysRun = true)
+    public void realRetries() { QuickRetries.off(); }
 
     @BeforeClass
     public void initializeModel() {

@@ -37,6 +37,7 @@ import forge.util.collect.FCollection;
 import org.testng.Assert;
 import org.testng.ITestResult;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -78,6 +79,12 @@ public class GoldenChecksTest {
     private final List<String> asked = Collections.synchronizedList(new ArrayList<>());
     /** The source every ask of the current test must name with its rules text, when it has one. */
     private String sourceName, sourceText;
+
+    @BeforeClass
+    public void quickRetries() { QuickRetries.on(); }
+
+    @AfterClass(alwaysRun = true)
+    public void realRetries() { QuickRetries.off(); }
 
     @BeforeClass
     public void init() { new LineFindingProbeTest().initializeModel(); }
