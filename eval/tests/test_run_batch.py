@@ -9,6 +9,7 @@ condition-aware resume. Nothing here launches a JVM or contacts a model.
 """
 
 import argparse
+import datetime
 import io
 import json
 import os
@@ -1430,6 +1431,22 @@ class TestBudgetRequired(unittest.TestCase):
                                                                controller_b="ai", budget_usd=5.0)))
             self.assertEqual(run_batch.block_budget(make_args(smart_a=LUNA, fast_a=LUNA, controller_b="ai",
                                                               budget_usd=5.0)), 5.0)
+
+    def test_the_budget_says_when_a_price_it_trusts_is_stale(self):
+        # cost_report.stale_prices: a price checked more than PRICE_MAX_AGE_DAYS ago; only the block's paid models.
+        prices = {"openai/gpt-6-luna": {"prompt": 1e-7, "completion": 5e-7, "checked": "2026-09-01"},
+                  "acme/fresh": {"prompt": 1e-7, "completion": 5e-7, "checked": "2026-11-10"},
+                  "acme/other": {"prompt": 1e-7, "completion": 5e-7, "checked": "2020-01-01"}}
+        today = datetime.date(2026, 11, 14)
+        with mock.patch.object(run_batch.cost_report, "load_prices", return_value=prices):
+            line = run_batch.stale_price_line(make_args(smart_a=LUNA, fast_a=LUNA, controller_b="ai"), today=today)
+            self.assertIn("openai/gpt-6-luna (checked 2026-09-01, 74 days ago)", line)
+            self.assertNotIn("acme/other", line, "a model the block does not play is not named")
+            fresh = "openrouter:acme/fresh"
+            self.assertIsNone(run_batch.stale_price_line(make_args(smart_a=fresh, fast_a=fresh, controller_b="ai"),
+                                                         today=today))
+            self.assertIsNone(run_batch.stale_price_line(make_args(controller_a="ai", smart_a=None, fast_a=None,
+                                                                   controller_b="ai"), today=today))
 
     def test_a_seat_or_model_named_through_env_is_refused_in_every_mode(self):
         # --env CONTROLLER_A=llm --env SMART_MODEL_A=<paid> would name a paid model the budget check never sees.

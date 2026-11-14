@@ -78,7 +78,21 @@ class EvalTest(unittest.TestCase):
         self.assertEqual(h["STR-AI"]["status"], "not yet run")
         plan = h["STR-AI"]["plan"]
         self.assertEqual((plan["cells"], plan["games"]), (16, 1600))
-        self.assertEqual(plan["cost_usd"], [32.0, 80.0])
+        self.assertEqual(plan["cost_usd"], 150.4)   # 1600 games at the measured mean, $0.094
+
+    def test_the_cost_of_a_game_is_the_one_claude_md_and_play_vs_llm_state(self):
+        # One measured figure in three places (STANDARDS section 4, copies): the panel plan here, CLAUDE.md's cost
+        # line and play-vs-llm.sh's start line.
+        c = demo_eval.GAME_COST_USD
+        with open(os.path.join(str(evalpath.REPO), "CLAUDE.md"), encoding="utf-8") as f:
+            claude = " ".join(f.read().split())
+        self.assertIn("mean $%.3f (median $%.3f, range $%.2f to $%.2f)" % (c["mean"], c["median"], c["min"], c["max"]),
+                      claude)
+        self.assertIn("measured on %d games" % c["games"], claude)
+        with open(os.path.join(str(evalpath.REPO), "play-vs-llm.sh"), encoding="utf-8") as f:
+            launcher = f.read()
+        self.assertIn("mean \\$%.3f, median \\$%.3f, \\$%.2f to \\$%.2f over %d games"
+                      % (c["mean"], c["median"], c["min"], c["max"], c["games"]), launcher)
         self.assertIsNone(demo_eval.report()["acceptance"])
 
 

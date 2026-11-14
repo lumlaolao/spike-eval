@@ -47,7 +47,8 @@ ARMS = ("text-strict", "text-lenient", "native", "native-answer")
 TOOLS_PER_ASK = 16         # ContextMemory.TOOLS_PER_ASK
 PAGE_CHARS = 20000         # ContextMemory.PAGE_CHARS
 SEARCH_PAGE = 50           # ContextMemory.SEARCH_PAGE
-REQUEST_CHARS = 2100       # ContextMemory.REQUEST_CHARS
+NOTE_CHARS = 2000          # ContextMemory.NOTE_CHARS
+REQUEST_CHARS = NOTE_CHARS + 100   # ContextMemory.REQUEST_CHARS
 TOOLS_PER_GAME = 1000      # ContextMemory.TOOLS_PER_GAME
 SNIPPET = 240              # ContextMemory.snippet
 
@@ -268,8 +269,8 @@ class Seat:
                 return "M%d (%s) chars %d..%d/%d next=%s\n%s" % (
                     value, e["kind"], off, end, len(e["text"]), end if end < len(e["text"]) else "END", e["text"][off:end])
             if parts[1] == "NOTE":
-                if len(parts[3]) > 500:
-                    return "ERROR: note exceeds 500 characters."
+                if len(parts[3]) > NOTE_CHARS:
+                    return "ERROR: note exceeds %d characters." % NOTE_CHARS
                 if e["kind"] == "agent hypothesis":
                     return "ERROR: cite an observation or reveal, not a hypothesis."
                 note = "[source M%d] %s" % (value, parts[3])
