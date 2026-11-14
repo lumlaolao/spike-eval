@@ -28,6 +28,9 @@ STAMPS = (
      "its answer is carried out. Results pool only within one epoch."),
     ("SeatObservation.java", "VERSION", "observation_version",
      "the faithful state the seat reads: the blocks, their labels and their order."),
+    ("SeatObservation.java", "CACHE_VERSION", "(`observation_version` under `CONTEXT_PROFILE=v5-cache`: `VERSION+CACHE_VERSION`)",
+     "the cache order of that state: the append-only record it opens with (finished turns, card text when first seen), "
+     "where the archive lines go, reveals printed once, and the guide's words for them."),
     ("AnswerTool.java", "VERSION", "answer_tool_version", "the `answer` and `set_plan` functions and their validation."),
     ("NativeTools.java", "VERSION", "native_tools_version", "the lookup tools' definitions (inspect, search, read, simulate)."),
     ("ContextMemory.java", "VERSION", "memory_tools_version", "what the evidence lookups return."),

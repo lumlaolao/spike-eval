@@ -53,6 +53,9 @@
 #              by calling `answer` (schema built from its legal values), lookups and `set_plan` share the
 #              conversation, one out-of-range answer is corrected in the same conversation; no decision
 #              read from text, none lost, tool_choice always auto, the game line stamps answer_tool
+#   cacheorder the answertool game under CONTEXT_PROFILE=v5-cache: each first-round message opens with an append-only
+#              record that is a byte prefix of the seat's next message (eval/prefix_stability.py), the archive lines
+#              after it, no REVEALS TO YOU block, the cache order's observation version stamped and announced
 #   lookahead  a loopback game with LOOKAHEAD=1 and the fake server in --policy simulate: the real
 #              PlayerLookahead.previewCast path runs (preview + re-ask), at least one targeting preview is
 #              produced, and no AI fallback occurs
@@ -88,7 +91,7 @@ JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 export JAVA_HOME JAVA
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-ALL_STAGES="preflight classpath compile javatests surfaces pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool turnchat rules lines scoring"
+ALL_STAGES="preflight classpath compile javatests surfaces pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool cacheorder turnchat rules lines scoring"
 STAGES="${STAGES:-$ALL_STAGES}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
@@ -285,7 +288,7 @@ if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ]; then
   # Without a build the units are not started: each stage then runs below, in this process, and fails on it.
   POOL_UNITS=""
   [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] && [ -f "$CP_FILE" ] && \
-    POOL_UNITS="javatests+surfaces gaming scoring canary faketool nativerefuse rules faithful lines nativetool lookahead answertool turnchat"
+    POOL_UNITS="javatests+surfaces gaming scoring canary faketool nativerefuse rules faithful lines nativetool lookahead answertool cacheorder turnchat"
   POOL_SIZE="${ACCEPTANCE_POOL:-$ACCEPTANCE_JOBS}"
   case "$POOL_SIZE" in ''|*[!0-9]*|0) fail parallel "ACCEPTANCE_POOL='$POOL_SIZE' must be a number >= 1"; POOL_SIZE=1;; esac
   JOBS="$EARLY_JOBS"; RUNNING="$EARLY_PIDS"
@@ -520,7 +523,7 @@ fi
 play() { # $1 tag  $2 seed  $3.. extra env (VAR=value)
   local tag="$1" seed="$2"; shift 2
   local dir="$OUT/$tag" jit=""; rm -rf "$dir"; mkdir -p "$dir"
-  case "$tag" in lookahead|nativetool|answertool|turnchat|gaming-*) jit="$ACC_C1" ;; esac   # the short games (ACC_C1)
+  case "$tag" in lookahead|nativetool|answertool|cacheorder|turnchat|gaming-*) jit="$ACC_C1" ;; esac   # the short games (ACC_C1)
   ( cd "$FORGE/forge-gui-desktop" && env GAME_SEED="$seed" EVAL_OUT="$dir" DECK_A="$DECK_A_FILE" DECK_B="$DECK_B_FILE" \
       GAME_CAP_MS="$GAME_CAP_MS" "$@" "$JAVA" $ACC_JVM $jit $ADDOPENS -Xmx4096m -Dio.netty.tryReflectionSetAccessible=true \
       -Dfile.encoding=UTF-8 -Djava.util.Arrays.useLegacyMergeSort=true -Dsun.java2d.d3d=false -Dapple.awt.UIElement=true \
@@ -1008,6 +1011,76 @@ print(("FAIL "+"; ".join(problems)+" | "+facts) if problems else "PASS "+facts)
 EOF
 )"
         case "$VERDICT" in PASS*) pass answertool "${VERDICT#PASS }";; *) fail answertool "${VERDICT#FAIL }";; esac
+      fi
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------- cacheorder
+# The answertool game under CONTEXT_PROFILE=v5-cache (2026-11-13): the state opens with the append-only record
+# (finished turns, card text when first seen), so each first-round message starts with the previous one's record and
+# the provider's prompt cache reads it. It would fail if a record line were rewritten or something were put before it
+# (a counter, a turn stamp, the archive lines), if a REVEALS TO YOU block came back, if the record stayed empty, or if
+# the profile or its observation version were not stamped.
+if has_stage cacheorder; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail cacheorder "no compiled classes"; else
+    dir="$OUT/cacheorder"; sdir="$OUT/cacheorder-server"; mkdir -p "$dir" "$sdir"
+    : > "$sdir/fake_requests.jsonl"
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy first --answer-tool \
+        --log "$sdir/fake_requests.jsonl" >"$sdir/fake_server.out" 2>&1 &
+    FAKE_PID=$!
+    PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+    if [ -z "$PORT" ]; then fail cacheorder "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
+      say "cacheorder: LLM seat A on loopback fake model answering by calls, ANSWER_TOOL=1 MEMORY_TOOLS=1 under v5-cache"
+      play cacheorder 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" ANSWER_TOOL=1 MEMORY_TOOLS=1 CONTEXT_PROFILE=v5-cache \
+          MULLIGAN_HEURISTIC=0 SMART_BUDGET=150 FAST_BUDGET=150 GAME_CAP_MS=180000
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+      if ! check_build_loaded "$dir"; then fail cacheorder "JVM did not load LlmSpikeGui from $CLASSES"; else
+        ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+        ( cd "$REPO" && python3 eval/prefix_stability.py "$dir" --json ) >"$dir/prefix.json" 2>"$dir/prefix.err"
+        VERDICT="$(cd "$REPO/eval" && python3 - "$dir" "$ARC" <<'EOF'
+import glob,json,sys
+d,arc=sys.argv[1],int(sys.argv[2]); problems=[]
+rows=[]
+for f in glob.glob(d+"/game-*.jsonl"):
+    for line in open(f):
+        try: rows.append(json.loads(line))
+        except Exception: pass
+game=next((r for r in rows if r.get("t")=="game"),None)
+if not game: problems.append("no game line")
+else:
+    if game.get("context_profile")!="v5-cache": problems.append("context_profile=%r"%game.get("context_profile"))
+    if game.get("observation_version")!="observation-faithful-v46+cache-v2":
+        problems.append("observation_version=%r (move this pin WITH SeatObservation.VERSION/CACHE_VERSION)"%game.get("observation_version"))
+model=[r for r in rows if r.get("t")=="decision" and r.get("tier") in ("smart","fast")]
+if len(model)<10: problems.append("only %d model decisions"%len(model))
+if any(r.get("t")=="decision" and r.get("tier")=="ai" for r in rows): problems.append("a decision fell back to the Forge AI")
+try: rep=json.load(open(d+"/prefix.json"))
+except Exception as e: rep={"seats":[],"problems":["prefix_stability.py gave no report: %s"%e]}
+problems+=rep["problems"]
+seats=rep["seats"]
+if not seats: problems.append("no first-round model messages")
+for s in seats:
+    if not s["cache_ordered"]: problems.append("%s: no message opens with the record"%s["seat"])
+    if not s["median_record_share"]: problems.append("%s: the record is empty in the median message"%s["seat"])
+asks=[r.get("prompt") or "" for r in rows if r.get("t")=="context_call" and r.get("round")==0]
+late=[p for p in asks if p.startswith("THE GAME SO FAR (") and "\n<archive>\n" not in p]
+if late: problems.append("%d messages with a record lack the archive lines after it"%len(late))
+early=[p for p in asks if "<archive>\n" in p and "== Turn " not in p.split("<archive>\n")[0]]
+if early: problems.append("%d messages put the archive lines before the state"%len(early))
+log=open(d+"/game.log",errors="replace").read()
+if "[OBSERVATION] observation-faithful-v46+cache-v2 " not in log: problems.append("observer never announced the cache order in the log")
+if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
+if "[TEXT-PARSE]" in log: problems.append("[TEXT-PARSE] in log")
+if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
+facts="model_decisions=%d "%len(model)+" ".join("%s:messages=%d,median_chars=%d,shared=%s,record=%s,rounds=%s"%(
+    s["seat"],s["decisions"],s["median_message_chars"],s["median_shared_prefix_share"],s["median_record_share"],
+    s["rounds_per_decision"]) for s in seats)
+print(("FAIL "+"; ".join(problems)+" | "+facts) if problems else "PASS "+facts)
+EOF
+)"
+        case "$VERDICT" in PASS*) pass cacheorder "${VERDICT#PASS }";; *) fail cacheorder "${VERDICT#FAIL }";; esac
       fi
     fi
   fi
