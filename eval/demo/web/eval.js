@@ -24,7 +24,7 @@ function headCard(h) {
     <p class="what">${esc(h.what)}</p>
     <div class="big">&mdash;</div>
     ${p ? `<p class="what">plan: ${esc(p.panel)} panel, ${esc(p.cells)} cells, ${esc(p.games)} games (seeds ${esc(p.seeds)}, both seat orders)</p>
-    <p class="what">expected cost $${esc(p.cost_usd[0])} to $${esc(p.cost_usd[1])} at $${esc(p.game_cost_usd[0])} to $${esc(p.game_cost_usd[1])} a Luna game</p>` : ""}
+    <p class="what">expected cost about $${esc(p.cost_usd)} at the measured $${esc(p.game_cost_usd.mean)} a Luna game (median $${esc(p.game_cost_usd.median)}, $${esc(p.game_cost_usd.min)} to $${esc(p.game_cost_usd.max)} over ${esc(p.game_cost_usd.games)} games)</p>` : ""}
     <p class="floor">floor: ${esc(h.floor)}</p></div>`;
 }
 

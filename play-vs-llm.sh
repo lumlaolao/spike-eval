@@ -128,7 +128,7 @@ fi
 echo "play-vs-llm: you on $(basename "$deck_a" .txt), $model on $(basename "$deck_b" .txt), $games game(s)"
 echo "play-vs-llm: the model's decisions and replies -> $out"
 echo "play-vs-llm: a model may think up to a few minutes on one decision; the screen waits for it"
-case "$model" in openrouter:*openai/gpt-6-luna) echo "play-vs-llm: expected cost about \$0.02-0.05 a game" ;; esac
+case "$model" in openrouter:*openai/gpt-6-luna) echo "play-vs-llm: expected cost about \$0.09 a game (mean \$0.094, median \$0.067, \$0.02 to \$0.38 over 32 games)" ;; esac
 feed=(python3 "$REPO/eval/play_commentary.py" "$out" --follow)
 if [ "$why" = 1 ]; then feed+=(--why); fi
 if [ "$dry" = 1 ]; then
