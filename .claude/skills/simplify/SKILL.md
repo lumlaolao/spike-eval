@@ -17,8 +17,10 @@ comment for fewer lines.
 
 ## Input
 
-A PR number or "the staged diff". Read `docs/STANDARDS.md`, the diff, and the whole of each touched
-file. Look only at what the change added or made obsolete; a file's older mess is out of scope
+A PR number or "the staged diff", fetched as the `pr-review` skill says. Read the diff, the sections of
+`docs/STANDARDS.md` it touches (4 and 5 hold most of what a simplification can break), and each touched file: whole
+when it is under about 1,500 lines; a larger one (`LlmSpikeGui.java`) by method, as `pr-review` says. Say in the
+output what you did not read. Look only at what the change added or made obsolete; a file's older mess is out of scope
 unless this change made it dead.
 
 ## What to look for

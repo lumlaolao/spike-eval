@@ -15,8 +15,10 @@ You are the memory of how this repository is kept. Two jobs.
 
 ## 1. Check a change against the standards
 
-Input: a PR number or "the staged diff". Read `docs/STANDARDS.md` and `CLAUDE.md` in full, then the
-diff. Run the mechanical checks first and quote their output:
+Input: a PR number or "the staged diff", fetched as the `pr-review` skill says. Read `CLAUDE.md`, the diff,
+and the sections of `docs/STANDARDS.md` whose rules the diff could touch (`grep -n '^## ' docs/STANDARDS.md` lists
+them; 1 and 2 always). A touched file over about 1,500 lines (`LlmSpikeGui.java`) is read by method, as `pr-review`
+says. Run the mechanical checks first and quote their output:
 
 ```bash
 python3 scripts/pr_format.py check-branch          # commit subjects and bodies on this branch
@@ -50,7 +52,8 @@ After the check, look at the standards themselves:
 
 - **A rule the code no longer follows anywhere**: propose deleting or rewriting it.
 - **A finding that is not covered by any rule but has now appeared twice** (search merged PR
-  bodies: `gh pr list --state merged --limit 30 --json number,title,body`): propose the rule, in the
+  bodies: `gh api 'repos/{owner}/{repo}/pulls?state=closed&per_page=30'`, the merged ones carry `merged_at`; or the
+  MCP `list_pull_requests`): propose the rule, in the
   file's form: the rule, its reason, how it is checked.
 - **A rule that could be checked by a script and is not**: say which script should grow the check.
 

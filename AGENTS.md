@@ -1,8 +1,8 @@
 # Agent instructions
 
 The instructions for every coding agent working in this repository are in [CLAUDE.md](CLAUDE.md);
-how to change the code is in [docs/STANDARDS.md](docs/STANDARDS.md). Read both first. This file
-only points at them and repeats what is never optional.
+how to change the code is in [docs/STANDARDS.md](docs/STANDARDS.md). Read CLAUDE.md first and STANDARDS.md's
+sections as they apply (1-2 before a PR). This file only points at them and repeats what is never optional.
 
 ## Always
 
@@ -26,8 +26,13 @@ only points at them and repeats what is never optional.
   a text command parsed out of the reply.
 - `forge-overlay/` is the source of truth; never edit the Forge checkout.
 - **Path-scoped rules** live in `.claude/rules/` (Claude Code loads them by path; other runtimes do not): before
-  touching `forge-overlay/` read `forge-overlay.md`, `eval/` or `runs/` read `eval.md`, the seat's prompts or
+  touching `forge-overlay/` read `forge-overlay.md`, `eval/`, `runs/` or `datasets/` read `eval.md`, the seat's prompts or
   tools read `seat-prompts.md`.
 - Never fall back to Forge's AI for strategy.
-- Run `bash eval/harness_acceptance.sh` before claiming a harness change works.
+- **Game model:** GPT-6 Luna for every seat and tier unless the owner names another; never Opus (CLAUDE.md,
+  "Owner rules", for the one local-development exception).
+- **Egress:** never set `OPENROUTER_ALLOW_EGRESS` yourself; that consent is the user's. Any paid run passes
+  `run_batch.py --budget-usd`, and its expected cost is said before it starts.
+- Run `FORGE_HOME=/root/forge bash eval/harness_acceptance.sh` (the Forge checkout; `~/code/forge` is the default)
+  before claiming a harness change works.
 - Never `git add -A` at the repository root; `runs/` and `datasets/` are generated.

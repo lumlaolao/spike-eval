@@ -1,6 +1,6 @@
 ---
 name: defect-fix
-description: Stage two of the defect backlog for spike-eval. Claim ONE open harness-defect issue, prove it still happens on main with a failing test, fix it in forge-overlay, show the test turn green, and take it through acceptance, the three review skills and a PR that closes the issue.
+description: Stage two of the defect backlog for spike-eval. Claim ONE open harness-defect issue, prove it still happens on main with a failing test, fix it in forge-overlay, show the test turn green, and take it through acceptance, the three review skills and a PR that closes the issue. Use when asked to fix a filed harness-defect issue.
 ---
 
 # Defect fix: one issue, proven, fixed, one PR
@@ -17,6 +17,9 @@ harness fix is made here) before you start. Everything there applies; this file 
 the verification and the hand-off.
 
 ## 1. Pick one issue
+
+Where `gh` is refused (a cloud session), the GitHub MCP tools do each step: the `pr-format` skill, "Where `gh` is
+refused".
 
 ```bash
 gh issue list --label harness-defect --state open --limit 100 \
@@ -107,7 +110,8 @@ deterministic legal option and logs it. Also:
 1. The test from step 4 now passes, and the rest of its class still does.
 2. If you reproduced on rung b or c, rerun the same command on the fixed build and show the
    **Fixed when** result in the new row or log line. Quote it.
-3. `bash eval/harness_acceptance.sh` (under the lock). It runs again on the merged head in step 7;
+3. `FORGE_HOME=/root/forge bash eval/harness_acceptance.sh` (under the lock; the Forge checkout, `~/code/forge` by
+   default). It runs again on the merged head in step 7;
    this first run finds your own breakage early. A canary that moved because the fix
    changed an automatic path on purpose is re-pinned with a dated reason naming the issue. Canaries
    are pinned per OS (`docs/STANDARDS.md` section 5): re-pin the OS you ran on, and name the OS you

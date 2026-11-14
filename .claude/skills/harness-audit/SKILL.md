@@ -1,6 +1,6 @@
 ---
 name: harness-audit
-description: Audit recorded Magic games (any decks, any model) for defects. Separates what the HARNESS did wrong (the model asked and was not heard, was not shown something, was not asked) from what the MODEL did wrong (it had what it needed and chose badly), and turns the model findings into puzzle candidates. Use when asked to review game logs, find harness defects, find play mistakes, or mine puzzles from a run directory.
+description: Audit recorded Magic games (any decks, any model) for defects. Separates what the HARNESS did wrong (the model asked and was not heard, was not shown something, was not asked) from what the MODEL did wrong (it had what it needed and chose badly), and turns the model findings into puzzle candidates. Use when asked to review existing game logs, find harness defects or play mistakes in recorded games, or mine puzzles from a run directory; it plays no game.
 ---
 
 # Harness audit
@@ -17,7 +17,7 @@ anything.
 
 ```bash
 RUN="runs/<arm> [more arms]"
-python3 eval/defect_analyzer.py $RUN          # the four hard invariants (docs/STANDARDS.md section 4), fallbacks, truncation
+python3 eval/defect_analyzer.py $RUN          # the hard invariants (docs/STANDARDS.md section 4), fallbacks, truncation
 python3 eval/tool_audit.py $RUN               # every tool request: served / REFUSED / FAILED / empty / bad-args / exhausted
 python3 eval/plan_audit.py $RUN               # plays that contradict the seat's own stated plan
 python3 eval/line_report.py $RUN              # sacrifices, optional triggers, activations, casts from outside the hand
@@ -86,6 +86,6 @@ model still chose badly. Add its `src` to the candidates from `mine_puzzles.py`.
 unverified: they become puzzles only after the fork verifier replays the position
 (`docs/eval/EVAL-DESIGN.md` section 3). Do not write an answer key by hand.
 
-A HARNESS finding is never a puzzle. It is a ticket: add it to
-`docs/harness/history/ARCHITECTURE-REVIEW.md` with its evidence, or fix it and add the test that would have
-caught it.
+A HARNESS finding is never a puzzle. It is a ticket where the fixers look: a `harness-defect` issue filed as the
+`defect-hunt` skill's step 5 says, or an OPEN line in `docs/harness/GAME-LOOP-LOG.md`, each with its evidence; or fix
+it and add the test that would have caught it.

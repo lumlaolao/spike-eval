@@ -1,6 +1,6 @@
 ---
 name: defect-hunt
-description: Stage one of the defect backlog for spike-eval. Play one game at a time, read it decision by decision, and file each harness defect as a self-contained GitHub issue that another agent can verify and fix without the game. Never fixes anything itself.
+description: Stage one of the defect backlog for spike-eval. Play one game at a time, read it decision by decision, and file each harness defect as a self-contained GitHub issue that another agent can verify and fix without the game. Never fixes anything itself. Use only when the owner asks to fill the defect backlog, since it plays paid games.
 ---
 
 # Defect hunt: play, read, file. Never fix.
@@ -68,10 +68,8 @@ gh label create cannot-reproduce --color EEEEEE
 
 Then make sure one open issue titled `Defect hunt: game log` with the label `hunt-log` exists
 (create it if not, and pin it). Each game gets one comment there (step 6).
-In a cloud session `gh` may be refused (no token, or GraphQL blocked). Use the GitHub MCP tools
-there (`list_issues`, `search_issues`, `issue_read`, `issue_write`, `add_issue_comment`); a label
-applied to an issue that does not exist yet is created by GitHub, so check it afterwards with
-`get_label`. The same holds for every `gh` command in this skill and in `defect-fix`.
+In a cloud session `gh` may be refused (no token, or GraphQL blocked): use the GitHub MCP tools as the `pr-format`
+skill says ("Where `gh` is refused"), for every `gh` command in this skill.
 
 ## 1. Before each game
 
