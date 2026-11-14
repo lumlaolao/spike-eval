@@ -471,24 +471,29 @@ class SetupTest(unittest.TestCase):
                         for rel in stale:
                             self.assertIn(rel, p.stderr)
                         self.assertIn("mvn -q -pl forge-gui-desktop -am install", p.stderr)
-            # The ~/.m2 jar is newer than the patched source but not this checkout's own build: another size, older
-            # than the checkout's jar, or no jar in the checkout at all.
-            for case in ("size", "older", "none"):
+            # The ~/.m2 jar is newer than the patched source but not this checkout's own build: other bytes of the
+            # same size, or no jar in the checkout at all.
+            for case in ("bytes", "none"):
                 with self.subTest(launcher=launcher, jar=case):
-                    own.write_text("jj" if case == "size" else "j")
+                    own.write_text("k")
                     for f in (seat_src, patch_src):
                         os.utime(f, (old, old))
                     for f in (seat_cls, jar, own):
                         os.utime(f, (old + 60, old + 60))
-                    if case == "older":
-                        os.utime(own, (new, new))
                     if case == "none":
                         own.unlink()
                     p = launch()
                     self.assertEqual(p.returncode, 4, p.stderr)
                     self.assertIn("the ~/.m2 jar of forge-ai is not this checkout's own build", p.stderr)
                     self.assertFalse(self.log.exists(), "no JVM started")
-            own.write_text("j")
+            # mvn install writes the ~/.m2 copy's time to the millisecond, so the checkout's own jar is a fraction
+            # of a second newer than its copy after every build: the same bytes are the same build, whatever the times.
+            with self.subTest(launcher=launcher, jar="own, a moment newer than its copy"):
+                own.write_text("j")
+                os.utime(jar, (old + 60, old + 60))
+                os.utime(own, (old + 60.0004, old + 60.0004))
+                self.assertEqual(launch().returncode, 0)
+                self.log.unlink()
             # A patched module no classpath entry names is said to be unchecked, not judged.
             (forge / "cp.txt").write_text("/m2/other.jar")
             p = launch()
