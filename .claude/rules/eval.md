@@ -26,7 +26,8 @@ training corpora (`--cap-per-source`).
 - Conditions never pool: native vs text tools, answer tool vs text, one tier vs two, each profile, each epoch.
   `aggregate.py` and `rating.check_conditions` refuse mixed conditions; a setting of the llm seat belongs in
   `rating.PLAYER_FIELDS`, not the environment.
-- `eval/defect_analyzer.py` is the run oracle (`ai_tier_count=0`, `silent_drop_total=0`); never weaken it to pass a run.
+- `eval/defect_analyzer.py` is the run oracle (the hard invariants: `docs/STANDARDS.md` section 4); never weaken it to
+  pass a run.
 - Seed governance (`eval/seed_policy.py`, `eval/seed_registry.json`): 501-525, 20000-29999 and 30000-30099 are
   eval-only and never training data, as is every eval-only bank of `eval/seed_registry.json` (the panels'
   7800-7999). `make_sft_data.py` refuses both; `run_batch.py` warns on the reserved blocks.
@@ -39,7 +40,7 @@ training corpora (`--cap-per-source`).
 
 ## Free checks before a paid game
 
-`bash eval/keyword_gauntlet.sh` (564 cards, 29 fake-model games), with `GAUNTLET_POLICY=random`, `GAUNTLET_SEED=<salt>`
+`FORGE_HOME=/root/forge bash eval/keyword_gauntlet.sh` (564 cards, 29 fake-model games; `FORGE_HOME` is the checkout), with `GAUNTLET_POLICY=random`, `GAUNTLET_SEED=<salt>`
 and `GAUNTLET_TOOLS=1`; `python3 eval/gauntlet_scan.py <run>` fails on any defect. Never edit the script while it runs.
-After a game: `match_review.py` (TAKEN / LOST / SKIP / TOOL / TIME), `tool_audit.py`, `plan_audit.py`,
+After a game: `match_review.py` (its labels: the table in the `game-loop` skill), `tool_audit.py`, `plan_audit.py`,
 `defect_analyzer.py`, `cost_report.py`.

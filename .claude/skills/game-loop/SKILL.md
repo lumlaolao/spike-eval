@@ -1,6 +1,6 @@
 ---
 name: game-loop
-description: Play ONE game, watch it, notice everything the harness did wrong, fix the harness, then play the next. Use when asked to play games, test the harness, find harness defects, improve how the model plays, or "run some games". This is the default way games are played in this repository; a batch of many games is not.
+description: Play ONE game, watch it, notice everything the harness did wrong, fix the harness, then play the next. Use when asked to play a game or "run some games" (a paid game, so say its cost first). Not for testing the harness without a game (acceptance and the gauntlet are free) or for reviewing existing logs (harness-audit). This is the default way games are played in this repository; a batch of many games is not.
 ---
 
 # The game loop: one match, read it, fix the harness, next match
@@ -53,8 +53,8 @@ python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.40
 Vary the deck and the seating between games (`--deck-a/--deck-b`, add `--pairs` only when you want
 both seatings of one seed): a defect usually belongs to a card type, and one deck shows few. The game
 model is GPT-6 Luna (owner, 2026-10-15). Play through `run_batch.py`, not a hand-rolled launcher: it
-stamps provenance (`overlay_sha`, `run_discipline`, `seed_bank`) that a direct JVM launch leaves
-`unknown` (independent review 2026-10-16, H3).
+stamps provenance that a direct JVM launch leaves unset: `overlay_sha` reads `unknown`, `discipline` `unspecified`
+and `seed_bank` `unregistered` (independent review 2026-10-16, H3).
 
 The defaults are the condition: the faithful profile (`v4-faithful`), one tier with reasoning on every
 decision, the mulligan and every priority window with something usable asked of the seat (no
@@ -66,10 +66,10 @@ switches are measurement arms only, each its own condition.
 ## 2. The sheet (mechanical, never skip)
 
 ```bash
-python3 eval/match_review.py runs/loop/g$N        # TAKEN / LOST / TOOL / SLOW / LOG / TIME, with JSONL lines
+python3 eval/match_review.py runs/loop/g$N        # the labels in the table below, then TIME, with JSONL lines
 python3 eval/tool_audit.py   runs/loop/g$N
 python3 eval/plan_audit.py   runs/loop/g$N
-python3 eval/defect_analyzer.py runs/loop/g$N | tail -5      # ai_tier_count=0, silent_drop_total=0
+python3 eval/defect_analyzer.py runs/loop/g$N | tail -5      # the hard invariants (docs/STANDARDS.md section 4)
 python3 eval/cost_report.py  runs/loop/g$N
 ```
 
@@ -82,6 +82,10 @@ python3 eval/cost_report.py  runs/loop/g$N
 | `TOOL empty` / `bad-args` | the lookup found nothing or named something not there | when what it asked for exists under other words, or it is something the model reasonably wants (a land drop previewed, a token inspected) |
 | `SLOW`, `truncated reply` | retries, cut-off replies | when it repeats: it costs time and money and often precedes a `LOST` |
 | `LOG` | an AI fallback, an exception, a failed payment | always |
+| `LEAK` | the prompt showed an engine id, a placeholder or the engine's filter syntax | always |
+| `REPORT` | the seat said a question was broken (`report_unclear_decision`) | when the report is true (read every one); a false one is a model mistake |
+| `PROPOSAL` | under `PROPOSE_ACTIONS`, all four proposals refused by the engine | never a harness defect by itself (the model's error); read it when they repeat |
+| `LINE` | the seat passed priority with mana it made still floating | when the menu lacked the option the line needed; otherwise the model lost its line |
 
 ## 3. Watch the game (the part a script cannot do)
 
@@ -118,10 +122,11 @@ One defect at a time, smallest first:
    bump the version that covers it (`docs/STANDARDS.md` section 4).
 3. If a script missed it, teach the script: `match_review.py`, `tool_audit.py`, or an acceptance
    stage. The loop gets faster every time the sheet catches what you had to read for.
-4. With no game running (`$FORGE_HOME` is the Forge checkout: `/root/forge` in the cloud, `~/code/forge` on
-   the Mac): `FORGE_HOME=$FORGE_HOME bash install.sh`, then
-   `cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o -DskipTests -DskipLaunch4j` (check its exit
-   code), then `bash eval/harness_acceptance.sh`. A canary that moved because an automatic path
+4. With no game running, and with the Forge checkout named (`/root/forge` in the cloud sessions, whose own
+   `FORGE_HOME` may be the unexpanded text `$HOME/forge`; `~/code/forge`, the default, on the Mac):
+   `FORGE_HOME=/root/forge bash install.sh`, then
+   `(cd /root/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests -DskipLaunch4j)` (check its exit
+   code), then `FORGE_HOME=/root/forge bash eval/harness_acceptance.sh`. A canary that moved because an automatic path
    changed on purpose is re-pinned with a dated reason; never to make a run pass.
 5. Commit with `pr-format`. Land the batch of fixes through a PR and the gate when a natural stop
    comes (a few games, or one large fix), not after every line.

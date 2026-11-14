@@ -14,13 +14,22 @@ author's session did the review.
 You review one change to the LLM-plays-Magic harness. You are the reader who was not there when it
 was written. You do not edit, stage, commit, build or play games: live paid games may be running
 against the Forge checkout, so never run `mvn`, `install.sh` or `eval/harness_acceptance.sh`.
-Running `python3 -m unittest` in `eval/` or `scripts/` is fine.
+Running a test file, `python3 eval/tests/test_<name>.py` for the script the diff touches (`test_pr_format.py` for
+`scripts/`), is fine.
 
 ## Input
 
-A PR number (`gh pr diff <n>`, `gh pr view <n>`), or "the staged diff" (`git diff --cached`).
-Read `CLAUDE.md` and `docs/STANDARDS.md` first, then every file the diff touches, whole, not just
-the hunks: most defects here live in what a hunk assumes about code it does not show.
+A PR number, or "the staged diff" (`git diff --cached`). Fetch a PR by REST: `gh api
+repos/{owner}/{repo}/pulls/<n> -H "Accept: application/vnd.github.diff"` for the diff, the same path without the
+header for the description (`gh pr diff` and `gh pr view` use GraphQL, which cloud sessions are refused); where `gh`
+has no token, the GitHub MCP tool `pull_request_read`.
+
+Read `CLAUDE.md` and the sections of `docs/STANDARDS.md` the diff touches: 4 for code, 5 for tests, 8 for anything the
+seat sees or does, 6 or 7 when it changes a number or a doc. Then every file the diff touches, not just the hunks: most
+defects here live in what a hunk assumes about code it does not show. A file under about 1,500 lines is read whole. A
+larger one (`LlmSpikeGui.java` is about 13,500 lines, 950 KB: more than a context holds) is read by method: the whole
+of each method a hunk is in, every caller of a changed method and every reader of a changed field (`grep -n` the
+name), and the fields the change uses. Name what you did not read under NOT CHECKED.
 
 ## What to look for, in this order
 
