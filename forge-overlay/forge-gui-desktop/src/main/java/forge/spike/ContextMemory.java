@@ -22,7 +22,8 @@ final class ContextMemory {
     // first (runs/loop/g08: "Doomsday pile selected" found nothing).
     // v5 (2026-11-14, audit B3): a search result whose match lies past the entry's first 240 characters shows the 240
     // around it (an archived prompt's head is the same turn and life header in every state).
-    static final String VERSION = "evidence-tools-v5";
+    // v6 (2026-11-14, audit B3): within one match quality a search lists reveals and notes before the archived states.
+    static final String VERSION = "evidence-tools-v6";
     static final int TOOLS_PER_ASK = 16;
     static final int TOOLS_PER_GAME = 1000;
     static final int PAGE_CHARS = 20000;
@@ -432,9 +433,11 @@ final class ContextMemory {
                 for (String w : words) if (in.contains(w)) n++;
                 if (n > 0) { held.put(i, n); matches.add(i); }
             }
-            matches.sort((x, y) -> held.get(y).equals(held.get(x)) ? Integer.compare(y, x) : Integer.compare(held.get(y), held.get(x)));
+            matches.sort((x, y) -> !held.get(y).equals(held.get(x)) ? Integer.compare(held.get(y), held.get(x))
+                    : stateLast(x) != stateLast(y) ? Integer.compare(stateLast(x), stateLast(y)) : Integer.compare(y, x));
             ranked = !matches.isEmpty();
         }
+        if (!ranked) matches.sort(java.util.Comparator.comparingInt(this::stateLast));
         if (offset > matches.size()) return "ERROR: offset outside search results.";
         int end = offset + Math.min(SEARCH_PAGE, matches.size() - offset);
         StringBuilder out = new StringBuilder("Matches=" + matches.size() + " next="
@@ -448,6 +451,10 @@ final class ContextMemory {
         }
         return out.toString();
     }
+
+    /** 1 for an archived state (each decision's whole prompt), 0 for a reveal or a note: within one match quality the
+     *  short entries come first, since every state that showed a card matches its name (audit B3). */
+    private int stateLast(int index) { return "observation".equals(entries.get(index).kind) ? 1 : 0; }
 
     /** Words too common to rank an entry by. */
     private static final java.util.Set<String> STOP_WORDS = java.util.Set.of("the", "a", "an", "of", "to", "in", "on",

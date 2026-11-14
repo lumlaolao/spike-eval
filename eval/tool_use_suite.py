@@ -54,7 +54,7 @@ SNIPPET = 240              # ContextMemory.snippet
 # Verbatim from ContextMemory.instructions() and SeatObservation.inspectInstructions(); the unit
 # test compares both against the Java sources so the text arm cannot drift from the shipped grammar.
 MEMORY_INSTRUCTIONS = (
-    "MEMORY TOOLS evidence-tools-v5: instead of an action, you may reply with exactly ONE line: "
+    "MEMORY TOOLS evidence-tools-v6: instead of an action, you may reply with exactly ONE line: "
     "MEMORY SEARCH <offset> <literal text> (50 matching evidence snippets per page), "
     "MEMORY READ <evidence id> <character offset> (20000 characters per page), or "
     "MEMORY NOTE <evidence id> <hypothesis or plan, max 2000 characters>. "
@@ -289,6 +289,8 @@ class Seat:
             want = words(needle)
             matches = [i for i, e in older if want and set(want) <= set(words(e["text"].lower()))]
             by_words = bool(matches)
+        # evidence-tools-v6: reveals and notes before archived states, each kind in its order (a stable sort).
+        matches.sort(key=lambda i: self.entries[i]["kind"] == "observation")
         if offset > len(matches):
             return "ERROR: offset outside search results."
         end = offset + min(SEARCH_PAGE, len(matches) - offset)

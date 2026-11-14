@@ -1,6 +1,7 @@
 package forge.spike;
 
 import com.sun.net.httpserver.HttpExchange;
+import com.google.gson.JsonArray;
 import com.sun.net.httpserver.HttpServer;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -66,6 +67,9 @@ public class OpenRouterTimeoutTest {
     private static final AtomicInteger completionCalls = new AtomicInteger();
     private static final AtomicInteger billedCalls = new AtomicInteger();
     private static final AtomicInteger truncatedCalls = new AtomicInteger();
+    private static final AtomicInteger rateLimitCalls = new AtomicInteger();
+    private static final AtomicInteger lengthChoiceCalls = new AtomicInteger();
+    private String unauthorizedBase, rateLimitBase, rateLimitLongBase, lengthChoiceBase;
     private static final AtomicInteger handlersOpened = new AtomicInteger();
     private static final AtomicInteger handlersReleased = new AtomicInteger();
 
@@ -159,6 +163,35 @@ public class OpenRouterTimeoutTest {
             else ex.close();
         });
         server.createContext("/nohead/chat/completions", ex -> { drain(ex); sleep(5000); respond(ex, "{\"late\":true}"); });
+        // A key the provider refuses (401) and a rate limit (429): the first asks again after Retry-After 1 s, the second
+        // after 30 s, past any test deadline. Each answers "CHOICE: 1" once the limit is waited out.
+        server.createContext("/unauthorized/chat/completions", ex -> {
+            drain(ex);
+            try { ex.sendResponseHeaders(401, -1); ex.close(); } catch (Exception ignore) { }
+        });
+        server.createContext("/ratelimit/chat/completions", ex -> {
+            drain(ex);
+            if (rateLimitCalls.incrementAndGet() % 2 == 1) {
+                try { ex.getResponseHeaders().add("Retry-After", "1"); ex.sendResponseHeaders(429, -1); ex.close(); }
+                catch (Exception ignore) { }
+            } else respond(ex, "{\"choices\":[{\"message\":{\"content\":\"CHOICE: 1\"},\"finish_reason\":\"stop\"}]}");
+        });
+        server.createContext("/ratelimitlong/chat/completions", ex -> {
+            drain(ex);
+            rateLimitCalls.incrementAndGet();
+            try { ex.getResponseHeaders().add("Retry-After", "30"); ex.sendResponseHeaders(429, -1); ex.close(); }
+            catch (Exception ignore) { }
+        });
+        // A tool ask cut off by max_tokens while its prose says "choice" and a number, then a call on the retry.
+        server.createContext("/lengthchoice/chat/completions", ex -> {
+            drain(ex);
+            if (lengthChoiceCalls.incrementAndGet() % 2 == 1)
+                respond(ex, "{\"choices\":[{\"message\":{\"content\":\"My choice is 2 lands, so first I\"},"
+                        + "\"finish_reason\":\"length\"}]}");
+            else respond(ex, "{\"choices\":[{\"message\":{\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":"
+                        + "\"function\",\"function\":{\"name\":\"answer\",\"arguments\":\"{\\\"option\\\":2}\"}}]},"
+                        + "\"finish_reason\":\"tool_calls\"}]}");
+        });
         server.createContext("/empty/chat/completions", ex -> {
             drain(ex);
             respond(ex, "{\"choices\":[{\"message\":{\"content\":\"\"},\"finish_reason\":\"stop\"}]}");
@@ -175,6 +208,10 @@ public class OpenRouterTimeoutTest {
         truncatedResetBase = base + "/truncatedreset";
         slowBase = base + "/slow";
         billedBase = base + "/billed";
+        unauthorizedBase = base + "/unauthorized";
+        rateLimitBase = base + "/ratelimit";
+        rateLimitLongBase = base + "/ratelimitlong";
+        lengthChoiceBase = base + "/lengthchoice";
     }
 
     @AfterClass(alwaysRun = true)
@@ -477,6 +514,70 @@ public class OpenRouterTimeoutTest {
         Assert.assertTrue(failing.lastFailureWasTransport(), "a 500 is the transport failing");
         Assert.assertNull(credits.ask("and now?"));
         Assert.assertTrue(credits.lastFailureWasTransport());
+    }
+
+    /** Audit B9: a refused key (401) or no credits (402) cannot be helped by asking again, so the bridge says its
+     *  failure is final and the seat's retries are skipped (LlmSpikeTest checks that side); a 500 or a timeout may pass
+     *  and is not final. Each is still a transport failure: the decision is counted as lost to the bridge. */
+    @Test
+    public void aRefusedKeyOrNoCreditsIsAFinalFailureAndA500IsNot() {
+        for (String base : new String[] {creditsBase, unauthorizedBase}) {
+            LlmSpikeGui.OpenRouterBridge b = new LlmSpikeGui.OpenRouterBridge(
+                    "test/smart", "deepseek/deepseek-v4-flash", null, base, BUDGET_MS);
+            Assert.assertNull(b.ask("what is the play?"));
+            Assert.assertTrue(b.lastFailureWasTransport(), base);
+            Assert.assertTrue(b.lastFailureIsFinal(), base);
+            Assert.assertEquals(b.lastSendCount(), 1, base);
+        }
+        billedCalls.set(2);
+        LlmSpikeGui.OpenRouterBridge failing = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, billedBase, BUDGET_MS);
+        Assert.assertNull(failing.ask("again?"));
+        Assert.assertTrue(failing.lastFailureWasTransport(), "a 500 is the transport failing");
+        Assert.assertFalse(failing.lastFailureIsFinal(), "a 500 may pass");
+    }
+
+    /** Audit B9: a 429 names when to ask again (Retry-After, in seconds); the bridge waits that long and sends again when
+     *  it fits in the call's own deadline, and does not wait out one that would not. */
+    @Test
+    public void aRateLimitIsWaitedOutWithinTheCallsDeadlineAndNotBeyondIt() {
+        rateLimitCalls.set(0);
+        LlmSpikeGui.OpenRouterBridge b = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, rateLimitBase, 3000);
+        long t0 = System.currentTimeMillis();
+        Assert.assertEquals(b.ask("what is the play?"), "CHOICE: 1");
+        long took = System.currentTimeMillis() - t0;
+        Assert.assertEquals(b.lastSendCount(), 2, "sent again after the Retry-After");
+        Assert.assertTrue(took >= 1000 && took < 3000, "waited the second it named, within the deadline: " + took);
+        rateLimitCalls.set(0);
+        LlmSpikeGui.OpenRouterBridge late = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, rateLimitLongBase, BUDGET_MS);
+        t0 = System.currentTimeMillis();
+        Assert.assertNull(late.ask("what is the play?"));
+        Assert.assertTrue(System.currentTimeMillis() - t0 < 1000, "a Retry-After past the deadline is not waited");
+        Assert.assertEquals(late.lastSendCount(), 1);
+        Assert.assertTrue(late.lastFailureWasTransport());
+        Assert.assertFalse(late.lastFailureIsFinal(), "a rate limit passes");
+    }
+
+    /** Audit B5: on a tool ask text is never the answer, so a reply cut off by max_tokens with no call is retried even
+     *  when its prose holds "choice" and a number; on a text ask that tag still means the answer made it out. */
+    @Test
+    public void aCutOffToolTurnIsRetriedWhateverItsProseSays() {
+        lengthChoiceCalls.set(0);
+        LlmSpikeGui.OpenRouterBridge b = new LlmSpikeGui.OpenRouterBridge(
+                "test/smart", "deepseek/deepseek-v4-flash", null, lengthChoiceBase, BUDGET_MS);
+        String tools = new AnswerTool.Ask(AnswerTool.Spec.one(3), false).definitions().toString();
+        JsonArray msgs = new JsonArray();
+        msgs.add(NativeTools.message("user", "DECISION: choose one"));
+        NativeTools.Turn t = b.chat(msgs.toString(), tools, true);
+        Assert.assertEquals(b.lastSendCount(), 2, "the cut-off tool turn was retried");
+        Assert.assertNotNull(t);
+        Assert.assertEquals(t.calls.size(), 1);
+        Assert.assertEquals(t.calls.get(0).name, AnswerTool.NAME);
+        lengthChoiceCalls.set(0);
+        Assert.assertEquals(b.ask("DECISION: choose one"), "My choice is 2 lands, so first I");
+        Assert.assertEquals(b.lastSendCount(), 1, "a text ask whose tag made it out is not retried (unchanged)");
     }
 
     /** The model's own empty, length-truncated answer is kept when the truncation retry fails in transport: the ask

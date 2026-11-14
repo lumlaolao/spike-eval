@@ -74,6 +74,8 @@ final class ChatSessionBridge implements LLMBridge {
     ChatSessionBridge(MessagesBridge inner, boolean turnScoped) { this.inner = inner; this.turnScoped = turnScoped; }
     @Override public Integer getRoutingRefusals() { return inner.getRoutingRefusals(); }
     @Override public boolean lastFailureWasTransport() { return inner.lastFailureWasTransport(); }
+    @Override public boolean lastFailureIsFinal() { return inner.lastFailureIsFinal(); }
+    @Override public int lastFailureStatus() { return inner.lastFailureStatus(); }
 
     /** Under TURN_CHAT the conversation starts over when the game turn changes. */
     void atTurn(int gameTurn) {
