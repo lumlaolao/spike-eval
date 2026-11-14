@@ -295,6 +295,78 @@ class PytestsSkipAllowanceTest(unittest.TestCase):
     def test_a_missing_allowance_fails_rather_than_allowing_any_number(self):
         self.assertIn("FAIL pytests", self.stage("floor.seed=42\n"))
 
+    def test_a_temp_file_a_test_leaves_behind_fails_the_stage_by_name(self):
+        # The disk filled with the tests' leftovers (2026-11-14): the stage's TMPDIR is its own, and must end empty.
+        leaky = ("import tempfile, unittest\nclass L(unittest.TestCase):\n"
+                 "    def test_l(self):\n        tempfile.mkdtemp(prefix='left-behind-')\n")
+        out = self.stage("pytests.skipped_max=5\n", files={"test_one.py": self.PASSES, "test_two.py": leaky})
+        self.assertIn("FAIL pytests", out)
+        self.assertIn("left 1 entries in their TMPDIR", out)
+        self.assertIn("left-behind-", out)
+        tidy = leaky.replace("tempfile.mkdtemp(prefix='left-behind-')",
+                             "import shutil; shutil.rmtree(tempfile.mkdtemp(prefix='left-behind-'))")
+        out = self.stage("pytests.skipped_max=5\n", files={"test_one.py": self.PASSES, "test_two.py": tidy})
+        self.assertIn("PASS pytests", out)
+
+
+class JavatestsTmpGuardTest(unittest.TestCase):
+    """The javatests stage gives its JVMs a java.io.tmpdir of the run's own and fails, naming them, on the entries
+    left in it. The stage runs as the script has it, on a stub `java` that writes TestNG's results and the log lines
+    the stage pins, and leaves a file in its java.io.tmpdir when asked to."""
+
+    JAVA = r"""#!/bin/bash
+tmp=""; out=""; prev=""
+for a in "$@"; do
+  case "$a" in -Djava.io.tmpdir=*) tmp="${a#-Djava.io.tmpdir=}";; esac
+  [ "$prev" = "-d" ] && out="$a"; prev="$a"
+done
+mkdir -p "$out"
+echo '<testng-results ignored="0" total="1" passed="1" failed="0" skipped="0">' > "$out/testng-results.xml"
+echo '[OWNERSHIP] silent Forge-AI hooks: 0'
+echo '[JEV] decisions-bridge-v3 ONE -> answer'
+echo '[CLAUDE-CLI] claude-cli-bridge-v2 -> TOOL CALL answer'
+echo '[TRANSCRIPT] transcript-v1 byte-equal'
+[ -n "$LEAK" ] && touch "$tmp/left-behind-$RANDOM"
+exit 0
+"""
+
+    def stage(self, leak):
+        with tempfile.TemporaryDirectory() as d:
+            spike = os.path.join(d, "overlay", "test", "java", "forge", "spike")
+            os.makedirs(spike)
+            for name in ("ATest", "KeywordSurfaceSweepTest"):
+                with open(os.path.join(spike, name + ".java"), "w") as f:
+                    f.write("class %s {\n    @Test\n    public void t() { }\n}\n" % name)
+            os.makedirs(os.path.join(d, "classes", "forge", "spike"))
+            open(os.path.join(d, "classes", "forge", "spike", "LlmSpikeGui.class"), "w").close()
+            os.makedirs(os.path.join(d, "forge", "forge-gui-desktop"))
+            java = os.path.join(d, "java")
+            with open(java, "w") as f:
+                f.write(self.JAVA)
+            os.chmod(java, 0o755)
+            with open(os.path.join(d, "x.expected"), "w") as f:
+                f.write("ownership.silent_ai_strategic_max=0\n")
+            open(os.path.join(d, "cp.txt"), "w").close()
+            out = os.path.join(d, "out")
+            os.makedirs(out)
+            script = ('D="$1"; REPO="$D"; OUT="$D/out"; FORGE="$D/forge"; OVERLAY="$D/overlay"; CLASSES="$D/classes"\n'
+                      'JAVA="$D/java"; CP_FILE="$D/cp.txt"; EXPECTED="$D/x.expected"; LEDGER=x; ACC_JVM=""\n'
+                      'ACCEPTANCE_JOBS=1; SWEEP_SHARDS=1\n'
+                      'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n'
+                      % stage_text("javatests"))
+            env = dict(os.environ, LEAK="1" if leak else "")
+            return subprocess.run(["bash", "-c", script, "x", d], check=True, stdout=subprocess.PIPE,
+                                  universal_newlines=True, env=env).stdout
+
+    def test_a_file_a_test_jvm_leaves_in_its_tmpdir_fails_the_stage_by_name(self):
+        out = self.stage(leak=True)
+        self.assertIn("FAIL javatests", out)
+        self.assertIn("entries in their java.io.tmpdir", out)
+        self.assertIn("left-behind-", out)
+
+    def test_a_clean_run_passes(self):
+        self.assertIn("PASS javatests 2/2 declared tests passed", self.stage(leak=False))
+
 
 def cut(start_text, end_text, after=None):
     """The script's lines from the first starting with start_text (after the line holding `after`, if given) through
