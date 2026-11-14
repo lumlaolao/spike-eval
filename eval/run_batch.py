@@ -1879,6 +1879,9 @@ def run_block(args):
         log("[budget] %s may spend up to $%.2f (already $%.2f); a game is not started past that, "
             "so the overshoot is at most the %d games in flight"
             % ("this panel" if budget_root else "this directory", budget, spent(), args.jobs))
+        stale = stale_price_line(args)
+        if stale:
+            log("[budget] " + stale)
 
     def over_budget(seed, swap):
         # Checked when a worker picks the game up, not when it is queued, and before every retry.
@@ -1970,6 +1973,15 @@ def block_budget(args):
         log("[budget] no paid seat in this block: the budget is not checked here")
         return None
     return budget
+
+
+def stale_price_line(a, prices=None, today=None):
+    """The warning for this block's paid models whose price or budget bound was last checked too long ago
+    (cost_report.stale_prices), or None: the budget trusts the price table, and a rise since it was checked is
+    under-counted in silence."""
+    prices = cost_report.load_prices() if prices is None else prices
+    return cost_report.stale_warning(cost_report.stale_prices(
+        prices, [cost_report.model_id(s) for s in paid_api_specs(a)], today=today))
 
 
 def unpriced_api_specs(a):
