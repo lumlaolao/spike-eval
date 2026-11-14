@@ -347,6 +347,9 @@ exit 0
             with open(os.path.join(d, "x.expected"), "w") as f:
                 f.write("ownership.silent_ai_strategic_max=0\n")
             open(os.path.join(d, "cp.txt"), "w").close()
+            os.makedirs(os.path.join(d, "eval"))   # the stage deals its classes into shards with the real script
+            for name in ("javatests_shards.py", "javatests_seconds.tsv"):
+                shutil.copy(os.path.join(str(evalpath.EVAL), name), os.path.join(d, "eval"))
             out = os.path.join(d, "out")
             os.makedirs(out)
             script = ('D="$1"; REPO="$D"; OUT="$D/out"; FORGE="$D/forge"; OVERLAY="$D/overlay"; CLASSES="$D/classes"\n'
@@ -360,12 +363,14 @@ exit 0
 
     def test_a_file_a_test_jvm_leaves_in_its_tmpdir_fails_the_stage_by_name(self):
         out = self.stage(leak=True)
-        self.assertIn("FAIL javatests", out)
+        self.assertEqual(out.count("FAIL"), 1, out)
         self.assertIn("entries in their java.io.tmpdir", out)
         self.assertIn("left-behind-", out)
 
     def test_a_clean_run_passes(self):
-        self.assertIn("PASS javatests 2/2 declared tests passed", self.stage(leak=False))
+        out = self.stage(leak=False)
+        self.assertIn("PASS javatests 2/2 declared tests passed", out)
+        self.assertNotIn("FAIL", out)
 
 
 def cut(start_text, end_text, after=None):
@@ -423,6 +428,21 @@ class GateBranchTest(unittest.TestCase):
         self.assertIn("PASS turnchat", clean)
         self.assertIn("FAIL turnchat", failed)
         self.assertIn("defect_analyzer rc=1", failed)
+
+class ParallelPoolTest(unittest.TestCase):
+    """A full run feeds the stages after compile to a pool (POOL_UNITS), and starts pytests beside the build: every
+    stage in ALL_STAGES must be run by exactly one of them, the build stages, or nothing would say it was left out."""
+
+    def test_every_stage_is_in_exactly_one_unit(self):
+        import re
+        text = open(SCRIPT, encoding="utf-8").read()
+        stages = re.search(r'^ALL_STAGES="([^"]+)"', text, re.M).group(1).split()
+        units = re.search(r'POOL_UNITS="(javatests[^"]+)"', text).group(1).split()
+        pooled = [s for u in units for s in u.split("+")]
+        ran = ["preflight", "classpath", "compile", "pytests"] + pooled
+        self.assertEqual(sorted(ran), sorted(stages), "a stage in no unit, or in two")
+        self.assertEqual(units[0], "javatests+surfaces", "surfaces reads javatests' output: one unit, javatests first")
+
 
 if __name__ == "__main__":
     unittest.main()

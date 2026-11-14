@@ -6,8 +6,9 @@
 #   OUT=/path bash eval/harness_acceptance.sh        # where evidence goes (default runs/harness-acceptance/<utc>)
 #   ACCEPTANCE_JOBS=1 bash eval/harness_acceptance.sh   # every stage in one process, one after another
 #
-# A full run compiles once, then runs the later stages in four child runs side by side (OUT/part<n>, merged
-# into OUT/summary.txt) and the keyword sweep as SWEEP_SHARDS JVMs (docs/harness/ACCEPTANCE.md).
+# A full run starts the Python suite beside the build, compiles once, then feeds the later stages to a pool of child
+# runs, longest first (OUT/part-<unit>, merged into OUT/summary.txt); the Java tests run as SWEEP_SHARDS + MAIN_SHARDS
+# JVMs (docs/harness/ACCEPTANCE.md).
 #
 # Stages, cheapest first (each writes its evidence under $OUT and a PASS/FAIL line to $OUT/summary.txt):
 #   preflight  no live game JVMs, JDK 17, Forge checkout at the FORGE_COMMIT pin, decks present
@@ -183,6 +184,30 @@ if has_stage preflight; then
   fi
 fi
 
+# ---------------------------------------------------------------- early pytests
+# The Python suite reads no compiled class: in a run side by side it starts here, beside the classpath and compile
+# stages, as the first child (OUT/part-pytests/); the parallel section below collects it with the others.
+ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
+case "$ACCEPTANCE_JOBS" in ''|*[!0-9]*|0) echo "ACCEPTANCE_JOBS='$ACCEPTANCE_JOBS' must be a number >= 1" >&2; exit 2;; esac
+# Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
+# not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
+ACC_JVM=""; [ "$ACCEPTANCE_JOBS" -gt 1 ] && ACC_JVM="-XX:ActiveProcessorCount=1"; export ACC_JVM
+# A run side by side is bound by the CPU all its JVMs use, and a JVM that runs briefly spends much of it compiling
+# with C2 (a 20-decision loopback game: 19 s of CPU, 12 s with C1 only, the same outcome). ACC_C1 holds such a JVM
+# to C1: the Java tests' main shards and the short loopback games (play()). The long games (the canaries, faketool,
+# faithful, rules, nativerefuse) and the keyword sweep keep C2, which costs them less CPU (docs/harness/ACCEPTANCE.md,
+# "Timing"). A JIT flag changes no outcome; the --add-opens and -D flags stay the launchers' own.
+ACC_C1=""; [ "$ACCEPTANCE_JOBS" -gt 1 ] && ACC_C1="-XX:TieredStopAtLevel=1"; export ACC_C1
+EARLY_JOBS=""; EARLY_PIDS=""
+if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ]; then
+  rm -rf "$OUT"/part-* "$OUT"/part[0-9]*
+  if has_stage pytests; then
+    say "parallel: part-pytests runs pytests (beside the build)"
+    ACC_CHILD=1 STAGES=pytests OUT="$OUT/part-pytests" bash "$0" >"$OUT/part-pytests.log" 2>&1 &
+    EARLY_PIDS="$!"; EARLY_JOBS="$!:$OUT/part-pytests:pytests"
+  fi
+fi
+
 # ---------------------------------------------------------------- classpath
 CP_FILE="$OUT/classpath.txt"
 if has_stage classpath; then
@@ -251,28 +276,32 @@ fi
 
 # ---------------------------------------------------------------- parallel
 # Every stage after compile is independent: each writes only under its own directory, and each fake model server
-# takes a free port. So a full run spreads them over child runs of this script that share the compiled classes and
-# the classpath (timing: docs/harness/ACCEPTANCE.md). The groups are balanced by measured time: the Python suite
-# (pytests, itself in shards side by side) runs alone, so no game stage waits behind it. ACCEPTANCE_JOBS=1 runs every
-# stage in this process, one after another.
-ACCEPTANCE_JOBS="${ACCEPTANCE_JOBS:-4}"
-# Run side by side, each JVM is held to one core's worth of GC and compiler threads: four games then take 69 s,
-# not 78, and the games replay identically (seed 42 floor mirror: A in 108 either way).
-ACC_JVM=""; [ "$ACCEPTANCE_JOBS" -gt 1 ] && ACC_JVM="-XX:ActiveProcessorCount=1"; export ACC_JVM
-if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] \
-   && [ -f "$CP_FILE" ]; then
-  rm -rf "$OUT"/part[0-9]*
-  JOBS=""; i=0
-  PARALLEL_GROUPS='javatests surfaces lookahead answertool canary|pytests|faketool nativerefuse faithful lines nativetool|rules turnchat scoring gaming'
-  OLDIFS="$IFS"; IFS='|'; set -- $PARALLEL_GROUPS; IFS="$OLDIFS"
-  for group in "$@"; do
-    picked=""; for s in $group; do has_stage "$s" && picked="$picked $s"; done
+# takes a free port. So a full run spreads them over child runs of this script (OUT/part-<unit>/) that share the
+# compiled classes and the classpath. A unit is one stage, or javatests with the surfaces stage that reads its output;
+# the Python suite, which needs no compiled class, started after preflight. The units are fed to a pool of
+# ACCEPTANCE_POOL children, longest first (timing: docs/harness/ACCEPTANCE.md), so the last to finish are short and no
+# core idles while one long stage runs alone. ACCEPTANCE_JOBS=1 runs every stage in this process, one after another.
+if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ]; then
+  # Without a build the units are not started: each stage then runs below, in this process, and fails on it.
+  POOL_UNITS=""
+  [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] && [ -f "$CP_FILE" ] && \
+    POOL_UNITS="javatests+surfaces gaming scoring canary faketool nativerefuse rules faithful lines nativetool lookahead answertool turnchat"
+  POOL_SIZE="${ACCEPTANCE_POOL:-$ACCEPTANCE_JOBS}"
+  case "$POOL_SIZE" in ''|*[!0-9]*|0) fail parallel "ACCEPTANCE_POOL='$POOL_SIZE' must be a number >= 1"; POOL_SIZE=1;; esac
+  JOBS="$EARLY_JOBS"; RUNNING="$EARLY_PIDS"
+  for unit in $POOL_UNITS; do
+    picked=""; for s in $(echo "$unit" | tr '+' ' '); do has_stage "$s" && picked="$picked $s"; done
     [ -n "$picked" ] || continue
-    i=$((i + 1)); part="$OUT/part$i"
-    say "parallel: part$i runs$picked"
+    # bash 3.2 has no `wait -n`: poll the running children until one ends.
+    while [ "$(echo $RUNNING | wc -w)" -ge "$POOL_SIZE" ]; do
+      still=""; for pid in $RUNNING; do kill -0 "$pid" 2>/dev/null && still="$still $pid"; done
+      RUNNING="$still"; [ "$(echo $RUNNING | wc -w)" -ge "$POOL_SIZE" ] && sleep 1
+    done
+    name="$(echo "$unit" | sed 's/+.*//')"; part="$OUT/part-$name"
+    say "parallel: part-$name runs$picked"
     ACC_CHILD=1 STAGES="${picked# }" ACC_BUILD="$OUT" OUT="$part" HARNESS_CLASSPATH_FILE="$CP_FILE" \
       bash "$0" >"$part.log" 2>&1 &
-    JOBS="$JOBS $!:$part:$(echo $picked | tr ' ' ',')"
+    RUNNING="$RUNNING $!"; JOBS="$JOBS $!:$part:$(echo $picked | tr ' ' ',')"
   done
   # A child that died part way (killed, out of memory, an unset variable) has written PASS lines for the stages
   # before it and nothing for the rest: its exit status and every requested stage's line are both checked, so a
@@ -287,8 +316,8 @@ if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ] && [ -f "$CLASSES/for
     done
     case "$rc" in 0|1) ;; *) fail parallel "$(basename "$part") exited $rc (see $part.log)";; esac
   done
-  # Those stages ran in the children; the rest of this script runs only a stage no group names.
-  GROUPED=" $(echo "$PARALLEL_GROUPS" | tr '|' ' ') "
+  # Those stages ran in the children; the rest of this script runs only a stage no unit names.
+  GROUPED=" pytests $(echo "$POOL_UNITS" | tr '+' ' ') "
   STAGES="$(for s in $STAGES; do case "$GROUPED" in *" $s "*) ;; *) echo "$s";; esac; done | tr '\n' ' ')"
 fi
 
@@ -321,19 +350,31 @@ PYEOF
     rm -rf "$OUT"/testng-* "$OUT"/surfaces-*.tsv "$OUT"/javatests-*.log "$OUT"/keyword-sweep-*.tsv
     SWEEP=forge.spike.KeywordSurfaceSweepTest
     OTHERS="$(echo "$TCLASSES" | tr ',' '\n' | grep -vx "$SWEEP" | paste -sd, -)"
+    # The other classes run as MAIN_SHARDS JVMs too: two beside the other groups (in one JVM they were 185 s of this
+    # stage's wall, much of it tests waiting out deadlines). Classes are dealt heaviest first to the lightest shard by
+    # the seconds each took (eval/javatests_seconds.tsv; a class not listed counts 1 s). Every class must be in exactly
+    # one shard, or the stage fails.
+    MAIN_SHARDS="${MAIN_SHARDS:-$([ "$ACCEPTANCE_JOBS" -gt 1 ] && echo 2 || echo 1)}"
+    case "$MAIN_SHARDS" in ''|*[!0-9]*|0) fail javatests "MAIN_SHARDS='$MAIN_SHARDS' must be a number >= 1"; MAIN_SHARDS=1;; esac
+    MAIN_LISTS="$(python3 "$REPO/eval/javatests_shards.py" "$MAIN_SHARDS" "$OTHERS" "$REPO/eval/javatests_seconds.tsv")"
+    SHARDED="$(for l in $MAIN_LISTS; do echo "$l" | tr ',' '\n'; done | grep . | sort)"
+    if [ "$SHARDED" != "$(echo "$OTHERS" | tr ',' '\n' | grep . | sort)" ]; then
+      fail javatests "the main shards do not hold every test class exactly once (twice: $(echo "$SHARDED" | uniq -d | tr '\n' ' '))"
+      MAIN_LISTS="$OTHERS"
+    fi
     SWEEP_TESTS="$(grep -c '^[[:space:]]*@Test' "$OVERLAY/test/java/forge/spike/KeywordSurfaceSweepTest.java")"
     DECLARED=$((DECLARED + (SWEEP_SHARDS - 1) * SWEEP_TESTS))
     # The JVMs' java.io.tmpdir (and the TMPDIR of what they start) is a fresh directory of this run's: whatever is left
     # in it when they end is a leak, and fails the stage by name.
     JTMP="$OUT/javatests-tmp"; rm -rf "$JTMP"; mkdir -p "$JTMP"
-    testng() { # $1 name  $2 test classes  $3.. extra -D options
+    testng() { # $1 name  $2 test classes  $3.. extra JVM options
       local name="$1" classes="$2"; shift 2
-      ( cd "$FORGE/forge-gui-desktop" && env -u EVAL_OUT TMPDIR="$JTMP" MEMORY_TOOLS=1 "$JAVA" $ACC_JVM -Djava.io.tmpdir="$JTMP" -Dapple.awt.UIElement=true \
-          -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" "$@" -cp "$CLASSES:$(cat "$CP_FILE")" \
+      ( cd "$FORGE/forge-gui-desktop" && env -u EVAL_OUT TMPDIR="$JTMP" MEMORY_TOOLS=1 "$JAVA" $ACC_JVM "$@" -Djava.io.tmpdir="$JTMP" -Dapple.awt.UIElement=true \
+          -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
           org.testng.TestNG -testclass "$classes" -d "$OUT/testng-$name" ) >"$OUT/javatests-$name.log" 2>&1
     }
     TPIDS=""
-    testng main "$OTHERS" & TPIDS="$TPIDS $!"
+    k=0; for l in $MAIN_LISTS; do testng "main$k" "$l" $ACC_C1 & TPIDS="$TPIDS $!"; k=$((k + 1)); done
     k=0; while [ "$k" -lt "$SWEEP_SHARDS" ]; do
       testng "sweep$k" "$SWEEP" -Dharness.keyword.shard="$k/$SWEEP_SHARDS" -Dharness.keyword.report="$OUT/keyword-sweep-$k.tsv" &
       TPIDS="$TPIDS $!"; k=$((k + 1))
@@ -478,9 +519,10 @@ fi
 # ---------------------------------------------------------------- game runner
 play() { # $1 tag  $2 seed  $3.. extra env (VAR=value)
   local tag="$1" seed="$2"; shift 2
-  local dir="$OUT/$tag"; rm -rf "$dir"; mkdir -p "$dir"
+  local dir="$OUT/$tag" jit=""; rm -rf "$dir"; mkdir -p "$dir"
+  case "$tag" in lookahead|nativetool|answertool|turnchat|gaming-*) jit="$ACC_C1" ;; esac   # the short games (ACC_C1)
   ( cd "$FORGE/forge-gui-desktop" && env GAME_SEED="$seed" EVAL_OUT="$dir" DECK_A="$DECK_A_FILE" DECK_B="$DECK_B_FILE" \
-      GAME_CAP_MS="$GAME_CAP_MS" "$@" "$JAVA" $ACC_JVM $ADDOPENS -Xmx4096m -Dio.netty.tryReflectionSetAccessible=true \
+      GAME_CAP_MS="$GAME_CAP_MS" "$@" "$JAVA" $ACC_JVM $jit $ADDOPENS -Xmx4096m -Dio.netty.tryReflectionSetAccessible=true \
       -Dfile.encoding=UTF-8 -Djava.util.Arrays.useLegacyMergeSort=true -Dsun.java2d.d3d=false -Dapple.awt.UIElement=true \
       -Xlog:class+load=info:file="$dir/classload.log" -cp "$CLASSES:$(cat "$CP_FILE")" forge.spike.LlmSpikeHeadless ) >"$dir/game.log" 2>&1
   echo $? > "$dir/exit_code"
