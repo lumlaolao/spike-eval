@@ -69,8 +69,11 @@ final class AnswerTool {
      *  earlier rules refusals that the seat was told, every one, and the preamble says so.
      *  Unchanged off the arm.
      *  v19 (2026-11-06, #399): the yield says when the seat is still asked, as the play loop does it: its own main phase
-     *  once the stack is empty, and end-of-turn through this turn's end step. */
-    static final String VERSION = "answer-tool-v19";
+     *  once the stack is empty, and end-of-turn through this turn's end step.
+     *  v20 (2026-11-14, audit B8/B10): a set_plan `goal` or `next` longer than its schema's maxLength is refused, by
+     *  field and length (it was kept and carried in every later prompt); a tool call written as text while lookups are
+     *  open is told it must be a function call (it was told no lookups were left). */
+    static final String VERSION = "answer-tool-v20";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -725,8 +728,8 @@ final class AnswerTool {
     /** `set_plan`: the seat's plan as a goal and the next steps; not a lookup and not the answer. */
     static JsonObject setPlanDefinition() {
         JsonObject props = new JsonObject();
-        props.add("goal", text("What you are working toward.", 300));
-        props.add("next", text("The steps you intend, in order (e.g. a land, cast a card, hold a card for their turn).", 500));
+        props.add("goal", text("What you are working toward.", PLAN_GOAL_CHARS));
+        props.add("next", text("The steps you intend, in order (e.g. a land, cast a card, hold a card for their turn).", PLAN_NEXT_CHARS));
         JsonObject params = new JsonObject();
         params.addProperty("type", "object");
         params.add("properties", props);
@@ -1259,6 +1262,10 @@ final class AnswerTool {
             JsonObject a = NativeTools.arguments(c.arguments);
             String goal = a == null ? null : str(a, "goal"), next = a == null ? null : str(a, "next");
             if (goal == null || next == null) return "ERROR: set_plan needs `goal` and `next`.";
+            // The schema's maxLength is advisory on a non-strict tool, and a plan is carried in every later prompt:
+            // an over-long one is refused, never cut (the harness does not cut the model's words).
+            if (goal.length() > PLAN_GOAL_CHARS) return planTooLong("goal", PLAN_GOAL_CHARS, goal.length());
+            if (next.length() > PLAN_NEXT_CHARS) return planTooLong("next", PLAN_NEXT_CHARS, next.length());
             planSink.accept("GOAL: " + goal + " NEXT: " + next);
             return "Plan recorded. It does not answer the decision: call `answer`.";
         }
@@ -1301,6 +1308,16 @@ final class AnswerTool {
     }
 
     static final String CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`.";
+    /** The longest `goal` and `next` of a set_plan call: the schema states them, and a longer one is refused. */
+    static final int PLAN_GOAL_CHARS = 300, PLAN_NEXT_CHARS = 500;
+    /** For a reply that wrote a tool call as text while its lookups were still open (CALL_ANSWER would be false). */
+    static final String CALL_AS_FUNCTION = "A tool request must be a function call: the one written in your reply was "
+            + "not run. Call the tool, or answer this decision by calling `answer`.";
+
+    private static String planTooLong(String field, int max, int got) {
+        return "ERROR: `" + field + "` is at most " + max + " characters; yours is " + got
+                + ". The plan was not recorded: call set_plan again with a shorter one.";
+    }
     /** Reminders for replies that call nothing, before the decision is lost. Text is never read as an answer on
      *  a tool ask (owner, 2026-10-15: every decision goes through the tool call). */
     static final int MAX_NUDGES = 2;
@@ -1342,7 +1359,7 @@ final class AnswerTool {
                     audit.accept(turn.content, "ERROR: a tool request must be a function call; no tool executed.");
                     if (pressed) return null;
                     pressed = true;
-                    messages.add(NativeTools.message("user", CALL_ANSWER));
+                    messages.add(NativeTools.message("user", open ? CALL_AS_FUNCTION : CALL_ANSWER));
                     continue;
                 }
                 // A reply that explains its choice but calls nothing ("I choose option 5") is asked, in this

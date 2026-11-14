@@ -185,6 +185,9 @@ public class NativeToolsTest {
         Assert.assertTrue(NativeTools.command("rules_lookup", "{\"query\":\"702.34\"}").startsWith("ERROR: rules_lookup needs `action`"));
         Assert.assertTrue(NativeTools.command("rules_lookup", "{\"action\":\"read\",\"query\":\"two words\"}").startsWith("ERROR:"));
         Assert.assertTrue(NativeTools.command("rules_lookup", "{\"action\":\"term\"}").startsWith("ERROR:"));
+        // A Glossary term may be several words (318 of 741): the whole query is the term.
+        Assert.assertEquals(NativeTools.command("rules_lookup", "{\"action\":\"term\",\"query\":\"first strike\"}"),
+                "RULES TERM first strike 0");
         // Malformed calls are refused before the executor sees them.
         Assert.assertTrue(NativeTools.command("inspect", "{}").startsWith("ERROR:"));
         Assert.assertTrue(NativeTools.command("inspect", "{not json").startsWith("ERROR:"));
@@ -253,6 +256,30 @@ public class NativeToolsTest {
         Assert.assertTrue(NativeTools.command("memory_read", "{\"evidence_id\":0}").startsWith("ERROR:"));
         Assert.assertTrue(results.get(0).startsWith("ERROR: tool arguments"));
         Assert.assertTrue(results.get(ContextMemory.TOOLS_PER_ASK + 1).startsWith("ERROR: tool budget exhausted"));
+    }
+
+    /** A note longer than the schema's 2000 characters (advisory on a non-strict tool) reached the text executor:
+     *  it spent a lookup and was answered with the text grammar's error ("use exactly one MEMORY/INSPECT/RULES command
+     *  line"), a grammar the native seat never saw. It is refused by name and length before the budget, as is any
+     *  argument too long for the executor. */
+    @Test
+    public void anOverLongNoteIsRefusedByNameAndSpendsNoLookup() {
+        ContextMemory memory = new ContextMemory();
+        memory.observe("Opponent cast Brainstorm");
+        String longNote = "n".repeat(2500);
+        List<String> results = new ArrayList<>();
+        memory.askNative("DECISION", (user, messages, tools, allow, round) -> round == 0
+                ? turn(null, call("n", "memory_note", "{\"evidence_id\":1,\"note\":\"" + longNote + "\"}"),
+                             call("s", "memory_search", "{\"query\":\"" + "q".repeat(2200) + "\"}"))
+                : turn("CHOICE: 1"), null, (request, result) -> results.add(result));
+        Assert.assertEquals(results.get(0), "ERROR: `note` is at most 2000 characters; yours is 2500. Nothing was saved "
+                + "and no lookup was spent: shorten it and call memory_note again.");
+        Assert.assertTrue(results.get(1).startsWith("ERROR: memory_search's arguments are too long"), results.get(1));
+        Assert.assertFalse(results.get(1).contains("MEMORY/INSPECT/RULES"), results.get(1));
+        Assert.assertEquals(memory.lookupsUsed(), 0);
+        // A note of exactly the limit is saved.
+        Assert.assertTrue(NativeTools.command("memory_note", "{\"evidence_id\":1,\"note\":\"" + "n".repeat(2000) + "\"}")
+                .startsWith("MEMORY NOTE 1 nnn"));
     }
 
     /** The seat can say a question is broken; it is recorded and logged, the decision is still
@@ -504,7 +531,8 @@ public class NativeToolsTest {
         List<String> results = new ArrayList<>();
         String[] calls = {
             "{\"action\":\"search\",\"query\":\"declare blockers\"}", "{\"action\":\"read\",\"query\":\"509.1a\"}",
-            "{\"action\":\"section\",\"query\":\"509\"}", "{\"action\":\"term\",\"query\":\"Flashback\"}", "{\"action\":\"toc\"}" };
+            "{\"action\":\"section\",\"query\":\"509\"}", "{\"action\":\"term\",\"query\":\"Flashback\"}", "{\"action\":\"toc\"}",
+            "{\"action\":\"term\",\"query\":\"first strike\"}", "{\"action\":\"term\",\"query\":\"state-based actions\",\"offset\":0}" };
         for (String args : calls) {
             memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
                 Assert.assertTrue(tools.contains("\"rules_lookup\""));
@@ -515,6 +543,8 @@ public class NativeToolsTest {
         for (int i = 0; i < calls.length; i++)
             Assert.assertFalse(results.get(i).startsWith("ERROR"), calls[i] + " -> " + results.get(i));
         Assert.assertTrue(results.get(1).contains("509.1a"), results.get(1));
+        Assert.assertTrue(results.get(5).contains("First Strike:"), results.get(5));
+        Assert.assertTrue(results.get(6).contains("State-Based Actions:"), results.get(6));
     }
 
     @Test

@@ -40,6 +40,9 @@ public class RulesToolTest {
                 "Ability",
                 "Text on an object. See rule 100.1.",
                 NB,
+                "First Strike",
+                "A keyword ability that changes how a creature deals combat damage.",
+                NB,
                 "Credits",
                 "");
     }
@@ -51,7 +54,7 @@ public class RulesToolTest {
         RulesTool t = tool();
         Assert.assertTrue(t.available());
         Assert.assertEquals(t.ruleCount(), 4);
-        Assert.assertEquals(t.glossaryCount(), 1);
+        Assert.assertEquals(t.glossaryCount(), 2);
         Assert.assertEquals(t.effectiveDate(), "Testuary 1, 2026");
     }
 
@@ -92,6 +95,20 @@ public class RulesToolTest {
         String term = t.lookup("RULES TERM Ability");
         Assert.assertTrue(term.contains("Text on an object"), term);
         Assert.assertTrue(t.lookup("RULES TERM nonsense").startsWith("ERROR"));
+    }
+
+    /** 318 of the real Glossary's 741 terms are more than one word ("First Strike", "Mana Value"); TERM took one
+     *  word and read the second as the offset ("ERROR: offset must be an integer"). A trailing integer is still the
+     *  offset: no Glossary term ends in a number. */
+    @Test
+    public void aGlossaryTermOfSeveralWordsIsDefinedAndATrailingNumberIsItsOffset() {
+        RulesTool t = tool();
+        String def = t.lookup("RULES TERM first strike");
+        Assert.assertTrue(def.contains("changes how a creature deals combat damage"), def);
+        Assert.assertEquals(t.lookup("RULES TERM First Strike 0"), def);
+        Assert.assertEquals(t.lookup("RULES TERM Ability 0"), t.lookup("RULES TERM Ability"));
+        String none = t.lookup("RULES TERM first trike");
+        Assert.assertTrue(none.startsWith("ERROR: no Glossary term 'first trike'"), none);
     }
 
     @Test

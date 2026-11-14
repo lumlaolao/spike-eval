@@ -1,5 +1,5 @@
 {
-  "version": "seat-tools-v11",
+  "version": "seat-tools-v12",
   "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead), and report_unclear_decision is a complaint about the question, not a lookup; the tool-use suite has no fixture for them and does not offer them. The decision answer (`answer`, AnswerTool.java) is built per decision from its legal values, so it is not listed here: the suite's native-answer arm builds it from each scenario's numbered options, the way the seat does.",
   "tools": [
     {
@@ -115,7 +115,7 @@
           "properties": {
             "action": {
               "type": "string",
-              "description": "search: find rules by words. read: one rule in full (query = its number, e.g. \"509.1a\"). section: a digest of a section (query = its number, e.g. \"509\"). term: a glossary definition (query = the word). toc: list the chapters (no query).",
+              "description": "search: find rules by words. read: one rule in full (query = its number, e.g. \"509.1a\"). section: a digest of a section (query = its number, e.g. \"509\"). term: a glossary definition (query = the term, e.g. \"first strike\"). toc: list the chapters (no query).",
               "enum": [
                 "search",
                 "read",
@@ -126,7 +126,7 @@
             },
             "query": {
               "type": "string",
-              "description": "Words, a rule or section number, or a glossary word; omit for toc."
+              "description": "Words, a rule or section number, or a glossary term; omit for toc."
             },
             "offset": {
               "type": "integer",

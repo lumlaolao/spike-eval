@@ -34,7 +34,7 @@ other channels are seat-private.
 | `RULES SEARCH <offset> <words>` | compact hits: rule id + one short line each |
 | `RULES READ <rule> [offset]` | **one rule's full text** (+ the rule numbers it cites) |
 | `RULES SECTION <number> [offset]` | a bounded **digest** of a whole section/chapter (id + one line per rule) |
-| `RULES TERM <word>` | a Glossary definition |
+| `RULES TERM <term> [offset]` | a Glossary definition; a term may be several words ("first strike"), and a trailing number is the offset (rules-tool-v2) |
 | `RULES TOC [offset]` | chapter headings, to find a rule number |
 
 ## Context management (managed, never a dump)

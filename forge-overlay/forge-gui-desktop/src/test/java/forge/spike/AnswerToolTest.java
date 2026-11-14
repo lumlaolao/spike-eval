@@ -274,6 +274,59 @@ public class AnswerToolTest {
         Assert.assertEquals(AnswerTool.toolChoiceFor("deepseek/deepseek-v4.1-flash"), "auto");
     }
 
+    /** set_plan's schema says `goal` is at most 300 characters and `next` at most 500, but a non-strict tool's
+     *  maxLength is advisory and nothing enforced it: a long plan was carried in every later prompt of the game. The
+     *  harness does not cut the model's words, so an over-long plan is refused, by field and length, and the call
+     *  may be made again; one at the limit is kept whole. */
+    @Test
+    public void aPlanLongerThanItsSchemaSaysIsRefusedByFieldAndNotRecorded() {
+        AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(3), false);
+        List<String> plans = new ArrayList<>();
+        ask.planSink = plans::add;
+        String longNext = "cast a card ".repeat(170).trim();
+        String refused = ask.note(new NativeTools.Call("p", "set_plan",
+                "{\"goal\":\"win\",\"next\":\"" + longNext + "\"}"));
+        Assert.assertEquals(refused, "ERROR: `next` is at most 500 characters; yours is " + longNext.length()
+                + ". The plan was not recorded: call set_plan again with a shorter one.");
+        Assert.assertTrue(ask.note(new NativeTools.Call("p", "set_plan", "{\"goal\":\"" + "g".repeat(301)
+                + "\",\"next\":\"attack\"}")).startsWith("ERROR: `goal` is at most 300 characters; yours is 301."));
+        Assert.assertTrue(plans.isEmpty(), "nothing recorded: " + plans);
+        String atLimit = "n".repeat(500);
+        Assert.assertTrue(ask.note(new NativeTools.Call("p", "set_plan", "{\"goal\":\"" + "g".repeat(300)
+                + "\",\"next\":\"" + atLimit + "\"}")).startsWith("Plan recorded."));
+        Assert.assertEquals(plans, List.of("GOAL: " + "g".repeat(300) + " NEXT: " + atLimit));
+        // The schema's numbers are the ones enforced.
+        JsonObject props = AnswerTool.setPlanDefinition().getAsJsonObject("function")
+                .getAsJsonObject("parameters").getAsJsonObject("properties");
+        Assert.assertEquals(props.getAsJsonObject("goal").get("maxLength").getAsInt(), AnswerTool.PLAN_GOAL_CHARS);
+        Assert.assertEquals(props.getAsJsonObject("next").get("maxLength").getAsInt(), AnswerTool.PLAN_NEXT_CHARS);
+    }
+
+    /** A reply that writes a call as text on a round whose lookups are open was told "No lookups are available
+     *  for this decision any more" (CALL_ANSWER), which was false; it is told why nothing ran. With the lookups
+     *  closed, CALL_ANSWER is still what it hears. */
+    @Test
+    public void aCallWrittenAsTextIsToldItMustBeAFunctionCallNotThatLookupsAreGone() {
+        String markup = "<tool_call>{\"name\":\"simulate\",\"arguments\":{\"option\":1}}</tool_call>";
+        JsonObject said = new JsonObject();
+        said.addProperty("role", "assistant");
+        said.addProperty("content", markup);
+        NativeTools.Turn asText = new NativeTools.Turn(markup, said.toString(), java.util.Collections.emptyList());
+        for (boolean open : new boolean[] {true, false}) {
+            AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(3), false);
+            ask.planSink = p -> { };
+            List<String> lastUser = new ArrayList<>();
+            String reply = AnswerTool.converse("DECISION", ask, (user, messages, tools, allow, r) -> {
+                JsonArray m = JsonParser.parseString(messages).getAsJsonArray();
+                lastUser.add(m.get(m.size() - 1).getAsJsonObject().get("content").getAsString());
+                return r == 0 ? asText : calls(new NativeTools.Call("c", "answer", "{\"option\":2}"));
+            }, AnswerTool.previewOnly(open ? args -> "preview" : null), (req, res) -> { });
+            Assert.assertEquals(reply, "CHOICE: 2");
+            Assert.assertEquals(lastUser.get(1), open ? AnswerTool.CALL_AS_FUNCTION : AnswerTool.CALL_ANSWER);
+        }
+        Assert.assertFalse(AnswerTool.CALL_AS_FUNCTION.contains("No lookups"), AnswerTool.CALL_AS_FUNCTION);
+    }
+
     /** A seat with the lookahead preview declares `simulate` on every ask, so a decision without a play
      *  menu has the same tools as one with; a preview there is refused with the reason. */
     @Test

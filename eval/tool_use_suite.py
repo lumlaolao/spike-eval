@@ -54,7 +54,7 @@ SNIPPET = 240              # ContextMemory.snippet
 # Verbatim from ContextMemory.instructions() and SeatObservation.inspectInstructions(); the unit
 # test compares both against the Java sources so the text arm cannot drift from the shipped grammar.
 MEMORY_INSTRUCTIONS = (
-    "MEMORY TOOLS evidence-tools-v4: instead of an action, you may reply with exactly ONE line: "
+    "MEMORY TOOLS evidence-tools-v5: instead of an action, you may reply with exactly ONE line: "
     "MEMORY SEARCH <offset> <literal text> (50 matching evidence snippets per page), "
     "MEMORY READ <evidence id> <character offset> (20000 characters per page), or "
     "MEMORY NOTE <evidence id> <hypothesis or plan, max 2000 characters>. "
@@ -178,6 +178,23 @@ def snippet(text):
     return short + (" ... [READ for full text]" if len(text) > SNIPPET else "")
 
 
+def search_snippet(text, needle, query_words):
+    """ContextMemory.snippet(text, needle, words): the head, or 240 characters around a match past it (evidence-tools-v5)."""
+    lower = text.lower()
+    at, size = lower.find(needle), len(needle)
+    if at < 0:
+        for w in query_words:
+            i = lower.find(w)
+            if i >= 0 and (at < 0 or i < at):
+                at, size = i, len(w)
+    if at < 0 or at + size <= SNIPPET:
+        return snippet(text)
+    start = max(0, at - 100)
+    end = min(len(text), start + SNIPPET)
+    return ("... " + text[start:end].replace("\n", " ").replace("\r", " ")
+            + (" ... [READ for full text]" if end < len(text) else ""))
+
+
 class Seat:
     def __init__(self, scenario, decision_text):
         self.entries = [dict(e) for e in scenario.get("archive", [])]
@@ -278,7 +295,8 @@ class Seat:
         out = "Matches=%d next=%s%s\n" % (len(matches), end if end < len(matches) else "END",
                                          " (no literal match; entries holding every word)" if by_words else "")
         for i in matches[offset:end]:
-            out += "M%d (%s): %s\n" % (i + 1, self.entries[i]["kind"], snippet(self.entries[i]["text"]))
+            out += "M%d (%s): %s\n" % (i + 1, self.entries[i]["kind"],
+                                       search_snippet(self.entries[i]["text"], needle, words(needle)))
         return out
 
 

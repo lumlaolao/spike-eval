@@ -30,14 +30,16 @@ import java.util.regex.Pattern;
  *   RULES SEARCH &lt;offset&gt; &lt;words&gt;       compact hits: rule id + one short line
  *   RULES READ &lt;rule&gt; [offset]        ONE rule's full text (e.g. 509.1a)
  *   RULES SECTION &lt;number&gt; [offset]   a bounded DIGEST of a whole section (e.g. 509)
- *   RULES TERM &lt;word&gt;                 a Glossary definition
+ *   RULES TERM &lt;term&gt; [offset]       a Glossary definition; a term may be several words
  *   RULES TOC [offset]                 list chapters to find a rule number
  * </pre>
  * Offsets are character offsets into the result, like MEMORY READ; each page is ~1200 chars and
  * ends with {@code next=}. The intended flow is digest-first, then READ only the rules in question.
  */
 final class RulesTool {
-    static final String VERSION = "rules-tool-v1";
+    /** v2 (2026-11-14, audit B1): TERM takes a term of several words, with a trailing number as its offset; the
+     *  second word was read as the offset and refused. */
+    static final String VERSION = "rules-tool-v2";
     /** Deliberately tighter than MEMORY's page: a rule lookup must never dump a wall of text into the
      *  prompt. Every reply is bounded, self-describing (chars a..b/N, next=), and paginated. */
     private static final int PAGE_CHARS = 1200;
@@ -212,10 +214,16 @@ final class RulesTool {
                 return section(key, p[2], off);
             }
             if ("TERM".equals(sub)) {
-                if (p.length < 3) return "ERROR: RULES TERM <word>.";
-                int off = p.length >= 4 ? offset(p[3]) : 0;
-                if (off < 0) return offsetErr();
-                return term(p[2], off);
+                // A Glossary term may be several words ("First Strike": 318 of the 741 terms); a trailing number is
+                // the offset, since no term ends in one.
+                if (p.length < 3) return "ERROR: RULES TERM <term> [offset].";
+                String words = (p.length >= 4 ? p[2] + " " + p[3] : p[2]).trim().replaceAll("\\s+", " ");
+                int off = 0, sp = words.lastIndexOf(' ');
+                if (sp > 0 && words.substring(sp + 1).matches("\\d{1,9}")) {
+                    off = Integer.parseInt(words.substring(sp + 1));
+                    words = words.substring(0, sp);
+                }
+                return term(words, off);
             }
             if ("TOC".equals(sub)) {
                 int off = p.length >= 3 ? offset(p[2]) : 0;

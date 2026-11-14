@@ -433,8 +433,11 @@ public final class LlmSpikeGui {
      *  Epoch 97 (2026-11-08, #432): a harness seat pays by the rules in five more places, the same engine patch
      *  (HARNESS_SEAT_PAYS_BY_RULES, once ..._MAY_TAKE_LETHAL_TAP_DAMAGE; ENGINE-PATCHES.md, audit table); each is a
      *  play that was refused and is now on the menu or in the preview (lookahead-preview-v18).
+     *  Epoch 98 (2026-11-14, audit B1/B3/B7/B8/B10): multi-word Glossary terms, search snippets around the match,
+     *  over-long notes and plans refused by name, and the true reason for a call written as text
+     *  (seat-tools-v12, evidence-tools-v5, rules-tool-v2, answer-tool-v20).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-97";
+    static final String HARNESS_EPOCH = "harness-epoch-98";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

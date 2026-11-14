@@ -811,10 +811,10 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v11": problems.append("native_tools_version=%r (expected seat-tools-v11; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("native_tools_version")!="seat-tools-v12": problems.append("native_tools_version=%r (expected seat-tools-v12; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     for k in ("decisions_bridge_version_a", "decisions_bridge_version_b", "claude_cli_bridge_version_a", "claude_cli_bridge_version_b", "claude_cli_thinking_tokens_a", "claude_cli_thinking_tokens_b", "dev_lane"):
         if k in game: problems.append("%s=%r on a game with no jev: or claude-cli: seat (it is stamped only where one plays)"%(k, game.get(k)))
-    if game.get("memory_tools_version")!="evidence-tools-v4": problems.append("memory_tools_version=%r (expected evidence-tools-v4; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
+    if game.get("memory_tools_version")!="evidence-tools-v5": problems.append("memory_tools_version=%r (expected evidence-tools-v5; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v18" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v18; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
 calls=[r for r in rows if r.get("t")=="context_call"]
@@ -961,9 +961,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
-    if game.get("answer_tool_version")!="answer-tool-v19": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
+    if game.get("answer_tool_version")!="answer-tool-v20": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-97": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-98": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -1126,7 +1126,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-97": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-98": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -1209,7 +1209,7 @@ for line in open(files[0]):
 if game is None: problems.append("no game row")
 else:
     if game.get("rules_tool") is not True: problems.append("rules_tool not stamped true (%s)"%game.get("rules_tool"))
-    if game.get("rules_tool_version")!="rules-tool-v1": problems.append("rules_tool_version=%s"%game.get("rules_tool_version"))
+    if game.get("rules_tool_version")!="rules-tool-v2": problems.append("rules_tool_version=%s"%game.get("rules_tool_version"))
     if game.get("rules_effective")!="September 25, 2026": problems.append("rules_effective=%s"%game.get("rules_effective"))
     facts.append("winner=%s turns=%s rules_effective=%s"%(game.get("winner"),game.get("turns"),game.get("rules_effective")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
@@ -1223,10 +1223,10 @@ else:
     big=[x for x in ok if len(str(x.get("result","")))>1500]
     if big: problems.append("%d RULES results exceed the page cap (<1500 chars)"%len(big))
     facts.append("rules_tool_rows=%d/%d first_result=%d_chars"%(len(ok),len(rtools),len(res)))
-offered=sum(1 for r in calls if "RULES TOOL rules-tool-v1" in (r.get("prompt") or ""))
+offered=sum(1 for r in calls if "RULES TOOL rules-tool-v2" in (r.get("prompt") or ""))
 if calls and offered<len(calls): problems.append("%d/%d prompts lack the RULES grammar line"%(len(calls)-offered,len(calls)))
 log=open(d+"/game.log",errors="replace").read()
-if "[RULES] rules-tool-v1 wired" not in log: problems.append("the tool never announced itself in the log")
+if "[RULES] rules-tool-v2 wired" not in log: problems.append("the tool never announced itself in the log")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
 facts.append("context_calls=%d rules_prompts=%d/%d"%(len(calls),offered,len(calls)))
@@ -1330,7 +1330,7 @@ except Exception as e:
     print("no result rows: %s" % e); sys.exit()
 r = rows[-1] if rows and isinstance(rows[-1], dict) else {}
 p = []
-if r.get("harness_epoch") != "harness-epoch-97": p.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)" % r.get("harness_epoch"))
+if r.get("harness_epoch") != "harness-epoch-98": p.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)" % r.get("harness_epoch"))
 for k in ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups"):
     if not isinstance(r.get(k), int): p.append("%s=%r" % (k, r.get(k)))
 if isinstance(r.get("model_calls"), int) and r["model_calls"] < 1: p.append("model_calls=0 for a played line")
