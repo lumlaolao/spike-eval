@@ -352,5 +352,20 @@ class GateBranchTest(unittest.TestCase):
         self.assertIn("FAIL turnchat", failed)
         self.assertIn("defect_analyzer rc=1", failed)
 
+class ParallelPoolTest(unittest.TestCase):
+    """A full run feeds the stages after compile to a pool (POOL_UNITS), and starts pytests beside the build: every
+    stage in ALL_STAGES must be run by exactly one of them, the build stages, or nothing would say it was left out."""
+
+    def test_every_stage_is_in_exactly_one_unit(self):
+        import re
+        text = open(SCRIPT, encoding="utf-8").read()
+        stages = re.search(r'^ALL_STAGES="([^"]+)"', text, re.M).group(1).split()
+        units = re.search(r'POOL_UNITS="(javatests[^"]+)"', text).group(1).split()
+        pooled = [s for u in units for s in u.split("+")]
+        ran = ["preflight", "classpath", "compile", "pytests"] + pooled
+        self.assertEqual(sorted(ran), sorted(stages), "a stage in no unit, or in two")
+        self.assertEqual(units[0], "javatests+surfaces", "surfaces reads javatests' output: one unit, javatests first")
+
+
 if __name__ == "__main__":
     unittest.main()

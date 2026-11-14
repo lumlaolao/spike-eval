@@ -3476,7 +3476,10 @@ def token_search(start, plan=None):
         return ([T] if b[T] else [V] if b[V] else []) + [i for i in (M, S, G) if b[i]] + ([K] if b[K] and not kr
                                                                                           else [])
 
+    @lru_cache(maxsize=None)
     def sacs(b, k, tremors, kr):
+        """Every way to sacrifice k Goblins to Skirk Prospector from b: a tuple of (bodies, damage, victims). Pure,
+        and asked again for the same board by many branches of the search, so it is kept."""
         out = {(b, 0): ()}
         for _ in range(k):
             nxt = {}
@@ -3487,7 +3490,7 @@ def token_search(start, plan=None):
                     bs2, d2 = sacrifice(bs, v, tremors)
                     nxt.setdefault((bs2, d + d2), vs + (name_of[v],))
             out = nxt
-        return [(bs, d, vs) for (bs, d), vs in sorted(out.items())]
+        return tuple((bs, d, vs) for (bs, d), vs in sorted(out.items()))
 
     def sweep(b, tremors):
         d, vs = 0, []

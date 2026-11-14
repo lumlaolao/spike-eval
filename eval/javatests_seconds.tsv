@@ -1,0 +1,18 @@
+# Seconds each Java test class took in acceptance (javatests main JVM, /tmp/acc5-merged0, 2026-11-14), the
+# weights eval/javatests_shards.py deals the classes by. A class not listed counts 1 s.
+LlmSpikeTest	59
+StepRegretTest	32
+OpenRouterTimeoutTest	29
+GoldenChecksTest	29
+AiProfileSwitchTest	26
+GoldenChecksToolTest	24
+TwinCardsTest	16
+HumanSeatTest	11
+ClaudeCliBridgeTest	11
+ReplayBridgeTest	7
+DemoFeedTest	7
+DecisionsBridgeTest	7
+LineFindingProbeTest	6
+TranscriptTest	5
+ChatSessionTest	3
+OpenRouterRequestTest	2

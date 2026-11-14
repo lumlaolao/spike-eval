@@ -86,9 +86,17 @@ public class LineFindingProbeTest {
         return game;
     }
 
+    /** The database's card for a name, looked up once: CardDb.getCard scans every edition (a fifth of the keyword
+     *  sweep's time, which builds ~45 cards per board several thousand times). */
+    private static final java.util.Map<String, IPaperCard> PAPER = new java.util.concurrent.ConcurrentHashMap<>();
+
     static Card card(String name, Player p, ZoneType zone) {
-        IPaperCard pc = FModel.getMagicDb().getCommonCards().getCard(name);
-        if (pc == null) { StaticData.instance().attemptToLoadCard(name); pc = FModel.getMagicDb().getCommonCards().getCard(name); }
+        IPaperCard pc = PAPER.get(name);
+        if (pc == null) {
+            pc = FModel.getMagicDb().getCommonCards().getCard(name);
+            if (pc == null) { StaticData.instance().attemptToLoadCard(name); pc = FModel.getMagicDb().getCommonCards().getCard(name); }
+            if (pc != null) PAPER.put(name, pc);
+        }
         Assert.assertNotNull(pc, "card not in the engine DB: " + name);
         Card c = Card.fromPaperCard(pc, p);
         c.setGameTimestamp(p.getGame().getNextTimestamp());
