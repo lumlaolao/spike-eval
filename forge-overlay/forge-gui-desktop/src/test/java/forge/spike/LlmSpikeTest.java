@@ -1406,7 +1406,7 @@ public class LlmSpikeTest {
 
     @Test(timeOut = 60000)
     public void closingTheLogWhileWritersRunNeverLeavesACutRow() throws Exception {
-        java.io.File dir = java.nio.file.Files.createTempDirectory("evallog-close").toFile();
+        java.io.File dir = TestTmp.dir("evallog-close").toFile();
         LlmSpikeGui.EvalLog.closeForTest();
         LlmSpikeGui.EvalLog.initToDir(dir.getAbsolutePath(), 7L);
         java.io.File file = LlmSpikeGui.EvalLog.currentFile();
@@ -1444,7 +1444,7 @@ public class LlmSpikeTest {
 
     @Test(timeOut = 280000) // above the 180 s + 60 s of stopGameThread, so its message is what a slow run shows
     public void aiLogging_fullGame_everyEnumerableAiTeacherRowIsValid() throws Exception {
-        java.io.File dir = java.nio.file.Files.createTempDirectory("ai-log-test").toFile();
+        java.io.File dir = TestTmp.dir("ai-log-test").toFile();
         long seed = 4242L;
         forge.util.MyRandom.setRandom(new java.util.Random(seed));
         LlmSpikeGui.EvalLog.closeForTest();
@@ -1472,8 +1472,6 @@ public class LlmSpikeTest {
         }
 
         java.io.File[] files = dir.listFiles((d, n) -> n.endsWith(".jsonl"));
-        dir.deleteOnExit(); // registered first, so it is deleted last, after the files inside it
-        if (files != null) for (java.io.File f : files) f.deleteOnExit();
         Assert.assertNotNull(files, "no jsonl produced");
         Assert.assertTrue(files.length >= 1, "expected a per-game jsonl file");
 
@@ -1565,7 +1563,7 @@ public class LlmSpikeTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
                 game, player, new LobbyPlayerAi("memory-test", null), "memory-test", "",
                 new DeadBridge("test/smart"), bridge, "llm");
-        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("context-controller-test");
+        java.nio.file.Path dir = TestTmp.dir("context-controller-test");
         LlmSpikeGui.EvalLog.closeForTest();
         LlmSpikeGui.EvalLog.initToDir(dir.toString(), 42);
         java.io.File file = LlmSpikeGui.EvalLog.currentFile();

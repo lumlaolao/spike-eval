@@ -1490,7 +1490,7 @@ public class GoldenChecksTest {
     @Test
     public void aCancelledTapCostTapsNothing() throws Exception {
         boolean mine = !LlmSpikeGui.EvalLog.on();   // GoldenChecksToolTest keeps the log on for every check
-        if (mine) LlmSpikeGui.EvalLog.initToDir(java.nio.file.Files.createTempDirectory("cancel-log").toString(), 7);
+        if (mine) LlmSpikeGui.EvalLog.initToDir(TestTmp.dir("cancel-log").toString(), 7);
         try { cancelledTapCost(); } finally { if (mine) LlmSpikeGui.EvalLog.closeForTest(); }
     }
 
@@ -3953,7 +3953,7 @@ public class GoldenChecksTest {
     public void aCappedGameLineSaysItWasCapped() throws Exception {
         for (boolean capped : new boolean[] {true, false}) {
             Game g = bareGame(PhaseType.MAIN1);
-            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("capped-line");
+            java.nio.file.Path dir = TestTmp.dir("capped-line");
             LlmSpikeGui.EvalLog.closeForTest();
             LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
             java.io.File file = LlmSpikeGui.EvalLog.currentFile();

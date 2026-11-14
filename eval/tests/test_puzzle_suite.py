@@ -11,11 +11,16 @@ from pathlib import Path
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import module_tmp  # noqa: E402
 import puzzle_baselines as pb  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
 
 STATE = "turn=3\nactiveplayer=p0\nactivephase=MAIN1\np0life=20\np1life=3\np0battlefield=Grizzly Bears\n"
+
+
+def setUpModule():
+    module_tmp.isolate(__name__)
 
 
 def pzl(goal="Win", turns=3, name="Test"):

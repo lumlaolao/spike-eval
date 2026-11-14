@@ -9,12 +9,17 @@ import unittest
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import module_tmp  # noqa: E402
 import fetch_comp_rules
 
 import harness_env_spec as hs
 
 REPO = str(evalpath.REPO)
 SHIPPED = os.path.join(REPO, "eval", "harness_env", "episode-v0.json")
+
+
+def setUpModule():
+    module_tmp.isolate(__name__)
 
 
 def shipped():

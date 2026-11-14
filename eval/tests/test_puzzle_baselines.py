@@ -2,7 +2,6 @@
 condition, and the commands that write a record's difficulty and v2 tier (prove, retier, run --baselines-only)."""
 import json
 import os
-import shutil
 import sys
 import tempfile
 import unittest
@@ -11,15 +10,13 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import module_tmp  # noqa: E402
 import puzzle_baselines as pb  # noqa: E402
 import run_batch  # noqa: E402
 
 
 def setUpModule():
-    """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
-    saved, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_baselines-")
-    unittest.addModuleCleanup(shutil.rmtree, tempfile.tempdir, True)
-    unittest.addModuleCleanup(setattr, tempfile, "tempdir", saved)
+    module_tmp.isolate(__name__)
 
 
 class WrittenLineTest(unittest.TestCase):
@@ -156,6 +153,26 @@ class VerifySearchLineTest(unittest.TestCase):
             v = self.verify(row)
             self.assertEqual(v["status"], "failed", row)
             self.assertNotIn("replay_line", v, row)
+
+
+class VerifyTapeLineTest(unittest.TestCase):
+    """A rollout line is replayed from its draw tape, written to a temp file the replay reads and removed after it."""
+
+    def test_the_tape_reaches_the_replay_and_is_removed_after_it_even_when_the_replay_fails(self):
+        rec = {"id": "p1", "pzl": "eval/puzzles/x.pzl", "reference_line": {"seed": 4, "tape": "0 1 2"}}
+        seen = {}
+
+        def replay(build, pzl, arm, seeds, out, env):
+            seen["tape"] = Path(env["PZL_TAPE"])
+            seen["text"] = seen["tape"].read_text()
+            raise RuntimeError("the JVM died")
+
+        with mock.patch.object(pb, "run_arm", side_effect=replay), \
+                mock.patch.object(pb.pf, "pzl_path", return_value=Path("eval/puzzles/x.pzl")):
+            with self.assertRaises(RuntimeError):
+                pb.verify_puzzle(None, rec, tempfile.mkdtemp())
+        self.assertEqual(seen["text"], "0 1 2")
+        self.assertFalse(seen["tape"].parent.exists(), "the tape's directory outlived the replay")
 
 
 class MinimalityTest(unittest.TestCase):

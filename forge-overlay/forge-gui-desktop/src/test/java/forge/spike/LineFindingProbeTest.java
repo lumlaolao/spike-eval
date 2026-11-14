@@ -519,7 +519,7 @@ public class LineFindingProbeTest {
         boolean was = LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR;
         LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = true;
         try {
-            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("window-rows");
+            java.nio.file.Path dir = TestTmp.dir("window-rows");
             LlmSpikeGui.EvalLog.closeForTest();
             LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
             try {
@@ -550,7 +550,7 @@ public class LineFindingProbeTest {
      *  seat's decision: no fallback on its row. */
     @Test
     public void anOptionalTargetTheSeatDeclinesIsItsDecisionNotAFallback() throws Exception {
-        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("decline-rows");
+        java.nio.file.Path dir = TestTmp.dir("decline-rows");
         LlmSpikeGui.EvalLog.closeForTest();
         LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
         try {

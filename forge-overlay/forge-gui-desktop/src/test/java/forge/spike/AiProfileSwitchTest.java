@@ -29,7 +29,7 @@ public class AiProfileSwitchTest {
      *  shipped profile and no compiled default has), then put the real table back. */
     private static void withProbeProfile(Runnable body) throws Exception {
         new LineFindingProbeTest().initializeModel();
-        File dir = Files.createTempDirectory("ai-profiles").toFile();
+        File dir = TestTmp.dir("ai-profiles").toFile();
         File f = new File(dir, PROBE + ".ai");
         Files.write(f.toPath(), Arrays.asList("# probe", "MULLIGAN_THRESHOLD=9"));
         try {

@@ -144,7 +144,7 @@ public class RulesProbeLabelTest {
      *  naming it, and a closing summary with the drop counts (the numbers the note cites come from it). */
     @Test
     public void theExportWritesStatesItemsAndASummary() throws Exception {
-        File dir = Files.createTempDirectory("rules-probe-label").toFile();
+        File dir = TestTmp.dir("rules-probe-label").toFile();
         File pzl = new File(dir, "probe-check.pzl");
         Files.write(pzl.toPath(), SMALL_BOARD.getBytes(StandardCharsets.UTF_8));
         StringWriter w = new StringWriter();
@@ -190,7 +190,7 @@ public class RulesProbeLabelTest {
         Assert.assertEquals(RulesProbeLabelExport.forgeRoot("/x/forge", "/y/forge/forge-gui-desktop"), new File("/x/forge"));
         Assert.assertEquals(RulesProbeLabelExport.forgeRoot("", "/y/forge/forge-gui-desktop"), new File("/y/forge"));
         Assert.assertEquals(RulesProbeLabelExport.forgeRoot(null, "/y/forge/forge-gui-desktop"), new File("/y/forge"));
-        File dir = Files.createTempDirectory("rules-probe-guard").toFile().getCanonicalFile();
+        File dir = TestTmp.dir("rules-probe-guard").toFile().getCanonicalFile();
         File repo = new File(dir, "repo"), forge = new File(dir, "forge");
         Assert.assertTrue(new File(repo, "runs").mkdirs() && new File(repo, "eval").mkdirs() && forge.mkdirs());
         File link = new File(dir, "link");

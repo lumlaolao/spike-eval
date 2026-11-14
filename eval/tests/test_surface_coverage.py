@@ -6,6 +6,7 @@ import unittest
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import module_tmp  # noqa: E402
 import surface_coverage as sc
 
 LEDGER = ("signature\timpl\tkind\townership\tlegacy_reach\tnotes\n"
@@ -13,6 +14,10 @@ LEDGER = ("signature\timpl\tkind\townership\tlegacy_reach\tnotes\n"
           "orderBlocker[x]\tLLM\tstrategic\tmodel\trare\tn\n"
           "reveal[x]\tLLM\tinformation\tmodel\tcore\tn\n"
           "applyManaToCost[x]\tAI\tpayment\tai-inherited\tnone\tn\n")
+
+
+def setUpModule():
+    module_tmp.isolate(__name__)
 
 
 def write(text):

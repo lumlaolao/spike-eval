@@ -117,7 +117,7 @@ public class TranscriptTest {
         received.clear(); sent.clear(); onDiskAtRequest.clear();
         status = 200;
         reply = CHAT_REPLY;
-        dir = Files.createTempDirectory("transcript-test").toFile();
+        dir = TestTmp.dir("transcript-test").toFile();
         Transcript.openForTest(dir, KEY);
     }
 

@@ -80,7 +80,7 @@ public class DemoFeedTest {
 
     @Test
     public void theFeedShowsBothHandsAndTheSeatsHandles() throws Exception {
-        Path dir = Files.createTempDirectory("demo-feed");
+        Path dir = TestTmp.dir("demo-feed");
         play(true, dir);
         Path feed = null;
         for (Path p : Files.newDirectoryStream(dir)) if (p.getFileName().toString().startsWith("feed-")) feed = p;
@@ -106,8 +106,8 @@ public class DemoFeedTest {
 
     @Test
     public void theSeatsPromptsAreByteIdenticalWithTheFeedOnAndOff() throws Exception {
-        List<String> off = play(false, Files.createTempDirectory("demo-feed-off"));
-        List<String> on = play(true, Files.createTempDirectory("demo-feed-on"));
+        List<String> off = play(false, TestTmp.dir("demo-feed-off"));
+        List<String> on = play(true, TestTmp.dir("demo-feed-on"));
         Assert.assertEquals(off.size(), 2, "the seat was asked twice: " + off);
         Assert.assertEquals(on, off, "the feed changed what the seat was shown");
     }

@@ -54,7 +54,7 @@ public class ClaudeCliBridgeTest {
 
     @BeforeMethod
     public void fakeCli() throws IOException {
-        dir = Files.createTempDirectory("fake-claude-");
+        dir = TestTmp.dir("fake-claude-");
         Path bin = dir.resolve("claude");
         Files.write(bin, FAKE.getBytes(StandardCharsets.UTF_8));
         Assert.assertTrue(bin.toFile().setExecutable(true));
