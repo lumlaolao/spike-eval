@@ -14,10 +14,15 @@ from unittest import mock
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import module_tmp  # noqa: E402
 import demo_compare as dc
 
 OBS = "class SeatObservation {\n" + dc.OBS_ANCHOR + "}\n"
 GUI = "class LlmSpikeGui {\n" + dc.CTRL_ANCHOR + dc.WRITE_ANCHOR + "}\n"
+
+
+def setUpModule():
+    module_tmp.isolate(__name__)
 
 
 def pair_args(d, *extra):

@@ -66,7 +66,7 @@ public class EvalLogWriteFailureTest {
 
     @Test
     public void aNewLogOnDiskOrDiscardedStartsCleanAfterAFailedOne() throws Exception {
-        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("evallog-reset");
+        java.nio.file.Path dir = TestTmp.dir("evallog-reset");
         LlmSpikeGui.EvalLog.closeForTest();
         try {
             LlmSpikeGui.EvalLog.initToWriter(new FullDisk(), "bad.jsonl");

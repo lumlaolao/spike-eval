@@ -201,27 +201,6 @@ def goal_is_bounded(turns, start_turn, start_phase):
     return turns + (1 if (start_phase or "").upper() == "CLEANUP" else 0) >= start_turn
 
 
-_PLAYER_REF = re.compile(r"\b(Owner|PhasedOut|EnchantingPlayer):P([01])\b")
-
-
-def swap_seats(state_text):
-    """Swap players 0 and 1 in a GameState dump (p0life= <-> p1life=, activeplayer, Owner:P0, ...).
-
-    Forge's puzzle runner seats the solver as player 0; a position dumped from a game where the
-    deciding seat was player 1 is swapped so that seat becomes the solver. Card ids are kept."""
-    out = []
-    for line in state_text.splitlines():
-        m = re.match(r"^p([01])(\w+=.*)$", line)
-        if m:
-            line = "p%d%s" % (1 - int(m.group(1)), m.group(2))
-        m = re.match(r"^activeplayer=p([01])$", line.strip())
-        if m:
-            line = "activeplayer=p%d" % (1 - int(m.group(1)))
-        line = _PLAYER_REF.sub(lambda mm: "%s:P%d" % (mm.group(1), 1 - int(mm.group(2))), line)
-        out.append(line)
-    return "\n".join(out)
-
-
 def build_pzl(name, goal, turns, state_text, description, difficulty="Mined"):
     """A Forge .pzl. `state_text` is a GameState dump (the [state] body)."""
     if goal.strip().lower() not in ENFORCED_GOALS:

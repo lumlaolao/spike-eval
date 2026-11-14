@@ -19,7 +19,8 @@
 #              (puzzle_baselines.Build refuses another)
 #   javatests  every *Test.java in the overlay via TestNG, MEMORY_TOOLS=1 and EVAL_OUT unset; fails on any
 #              failure OR skip, and when the number of tests RUN differs from the number DECLARED (a runner that
-#              matches no tests reports a green nothing -- that happened once with `make jtest`)
+#              matches no tests reports a green nothing -- that happened once with `make jtest`), and when anything
+#              is left in the JVMs' java.io.tmpdir ($OUT/javatests-tmp) at the end (forge/spike/TestTmp.java)
 #   surfaces   every engine hook the seat answers (ledger kind strategic/payment) was reached by a test that asked
 #              the model (the javatests JVM records each decision row's hooks), and every way the engine lists to
 #              play a card (AlternativeCost, OptionalCost) was played by a test; eval/surface_gaps.txt and
@@ -27,7 +28,8 @@
 #   pytests    every eval/tests/test_*.py through python3 -m unittest, in shards run side by side (PYTEST_SHARDS:
 #              each file in exactly one, or the stage fails); eval/tests/test_script_suites.py runs the script-style
 #              files (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it; fails
-#              on any failing shard, on no unittest verdict line, and on more skips (summed) than pytests.skipped_max
+#              on any failing shard, on no unittest verdict line, on more skips (summed) than pytests.skipped_max,
+#              and when anything is left in the tests' TMPDIR ($OUT/pytests-tmp) at the end (eval/tests/module_tmp.py)
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and every
 #              eval/defect_analyzer.py hard invariant (docs/STANDARDS.md section 4)
@@ -362,9 +364,12 @@ PYEOF
     fi
     SWEEP_TESTS="$(grep -c '^[[:space:]]*@Test' "$OVERLAY/test/java/forge/spike/KeywordSurfaceSweepTest.java")"
     DECLARED=$((DECLARED + (SWEEP_SHARDS - 1) * SWEEP_TESTS))
+    # The JVMs' java.io.tmpdir (and the TMPDIR of what they start) is a fresh directory of this run's: whatever is left
+    # in it when they end is a leak, and fails the stage by name.
+    JTMP="$OUT/javatests-tmp"; rm -rf "$JTMP"; mkdir -p "$JTMP"
     testng() { # $1 name  $2 test classes  $3.. extra JVM options
       local name="$1" classes="$2"; shift 2
-      ( cd "$FORGE/forge-gui-desktop" && env -u EVAL_OUT MEMORY_TOOLS=1 "$JAVA" $ACC_JVM "$@" -Dapple.awt.UIElement=true \
+      ( cd "$FORGE/forge-gui-desktop" && env -u EVAL_OUT TMPDIR="$JTMP" MEMORY_TOOLS=1 "$JAVA" $ACC_JVM "$@" -Djava.io.tmpdir="$JTMP" -Dapple.awt.UIElement=true \
           -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
           org.testng.TestNG -testclass "$classes" -d "$OUT/testng-$name" ) >"$OUT/javatests-$name.log" 2>&1
     }
@@ -405,6 +410,8 @@ EOF
     if [ -z "$T" ]; then fail javatests "$RES"
     elif [ "$F" != 0 ] || [ "$S" != 0 ]; then fail javatests "$RES"
     elif [ "$T" != "$DECLARED" ]; then fail javatests "ran $T tests but $DECLARED @Test methods are declared (discovery gap)"
+    elif [ "$(ls -A "$JTMP" | wc -l | tr -d ' ')" != 0 ]; then
+      fail javatests "the tests left $(ls -A "$JTMP" | wc -l | tr -d ' ') entries in their java.io.tmpdir ($JTMP): $(ls -A "$JTMP" | head -8 | tr '\n' ' ')(a test takes its temp paths from forge/spike/TestTmp.java)"
     elif [ -z "$OWN_EXP" ]; then
       fail javatests "no ownership.silent_ai_strategic_max pin in $EXPECTED (a deleted pin must not turn the check off)"
     elif [ "$OWN_N" != "$OWN_EXP" ]; then
@@ -456,6 +463,9 @@ if has_stage pytests; then
   REST_PY="$(echo "$ALL_PY" | grep -vxF -e "$NAMED" | grep . )"
   i=0; JOBS_PY=""; COVERED=""
   rm -f "$OUT"/pytests-*.log "$OUT"/pytests-*.files "$OUT"/pytests-*.rc
+  # The tests' TMPDIR is a fresh directory of this run's: whatever is left in it when they end is a leak, and fails
+  # the stage by name (before this, every run left a few hundred entries in /tmp, and the disk filled).
+  PYTMP="$OUT/pytests-tmp"; rm -rf "$PYTMP"; mkdir -p "$PYTMP"
   for spec in "$@"; do
     i=$((i + 1))
     files=""; for f in $spec; do if [ "$f" = REST ]; then files="$files $REST_PY"; else files="$files $f"; fi; done
@@ -468,7 +478,7 @@ if has_stage pytests; then
     # -v writes each test's name and outcome to the log, so a skip is named there with its reason. PYTHONUNBUFFERED:
     # a test's print during the run lands before unittest's summary, not after it where it could read as the verdict.
     # PYTHONPATH (inherited by the processes the tests start) lets a shard import its modules by name.
-    ( cd "$REPO" && FORGE_HOME="$FORGE" PYTHONUNBUFFERED=1 PYTHONPATH="$REPO/eval/tests${PYTHONPATH:+:$PYTHONPATH}" python3 -m unittest -v $mods ) >"$OUT/pytests-$i.log" 2>&1 &
+    ( cd "$REPO" && TMPDIR="$PYTMP" FORGE_HOME="$FORGE" PYTHONUNBUFFERED=1 PYTHONPATH="$REPO/eval/tests${PYTHONPATH:+:$PYTHONPATH}" python3 -m unittest -v $mods ) >"$OUT/pytests-$i.log" 2>&1 &
     JOBS_PY="$JOBS_PY $!:$i"
   done
   for job in $JOBS_PY; do wait "${job%%:*}"; echo $? > "$OUT/pytests-${job#*:}.rc"; done
@@ -491,12 +501,15 @@ if has_stage pytests; then
     k="$(echo "$verdict" | sed -n 's/.*skipped=\([0-9]*\).*/\1/p')"; SKIPPED=$((SKIPPED + ${k:-0}))
   done
   RAN="Ran $N tests"; SHARDS_N="$(echo $JOBS_PY | wc -w | tr -d ' ')"
+  NLEFT="$(ls -A "$PYTMP" | wc -l | tr -d ' ')"
   SKIP_MAX="$(want pytests.skipped_max)"
   case "$SKIP_MAX" in
     ''|*[!0-9]*) fail pytests "pytests.skipped_max is missing, duplicated or not a number in $EXPECTED";;
     *) if [ -n "$SHARD_PROBLEMS" ]; then fail pytests "shards do not cover eval/tests:$SHARD_PROBLEMS"
        elif [ "$N" = 0 ]; then fail pytests "no tests ran ($SHARDS_N shards started)${BAD:+;$BAD}"
        elif [ -n "$BAD" ]; then fail pytests "$RAN, $SKIPPED skipped; failed:$BAD"
+       elif [ "$NLEFT" != 0 ]; then
+         fail pytests "$RAN, but the tests left $NLEFT entries in their TMPDIR ($PYTMP): $(ls -A "$PYTMP" | head -8 | tr '\n' ' ')(a test file takes its temp files from eval/tests/module_tmp.py; a script removes its own)"
        elif [ "$SKIPPED" -gt "$SKIP_MAX" ]; then
          fail pytests "$RAN, $SKIPPED skipped, more than the $SKIP_MAX allowed: $(grep -oE "skipped ('[^']*'|\"[^\"]*\")" "$OUT/pytests.log" | sort | uniq -c | sort -rn | head -6 | tr -s ' \n' ' ' | cut -c1-500)"
        else pass pytests "$RAN OK, $SKIPPED skipped (at most $SKIP_MAX allowed; $SHARDS_N shards; script-style files included)"; fi;;

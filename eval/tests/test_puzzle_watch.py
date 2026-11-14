@@ -5,7 +5,6 @@ of the call (jev-test-1: 15 rows, $0.002322)."""
 import io
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,6 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import module_tmp  # noqa: E402
 import cost_report  # noqa: E402
 import puzzle_solve  # noqa: E402
 import puzzle_watch  # noqa: E402
@@ -26,10 +26,7 @@ TALLY = "[Solver] [TALLY] smart=%d fast=0 auto=0 ai=%d textParses=%d"
 
 
 def setUpModule():
-    """Every tempfile.mkdtemp in this file lands in one directory, removed when the file's tests end."""
-    saved, tempfile.tempdir = tempfile.tempdir, tempfile.mkdtemp(prefix="test_puzzle_watch-")
-    unittest.addModuleCleanup(shutil.rmtree, tempfile.tempdir, True)
-    unittest.addModuleCleanup(setattr, tempfile, "tempdir", saved)
+    module_tmp.isolate(__name__)
 
 
 def no_second_look(seconds):

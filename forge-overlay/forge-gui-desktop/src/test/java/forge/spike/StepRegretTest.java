@@ -65,8 +65,7 @@ public class StepRegretTest {
 
     /** A game of the written {@code script} played by the model seat with the game log on: the recording. */
     private static File record(String script, String expectStatus) throws Exception {
-        File dir = Files.createTempDirectory("step-regret-rec").toFile();
-        dir.deleteOnExit();
+        File dir = TestTmp.dir("step-regret-rec").toFile();
         LlmSpikeGui.EvalLog.closeForTest();
         LlmSpikeGui.EvalLog.initToDir(dir.getPath(), SEED);
         MyRandom.setRandom(new java.util.Random(SEED));
@@ -92,8 +91,7 @@ public class StepRegretTest {
         int bolt = out.indexOf("cast Lightning Bolt");
         Assert.assertEquals(out.get(bolt + 1), "opponent", "the written line aims its Bolt at the opponent");
         out.set(bolt + 1, "you");
-        File f = Files.createTempFile("bolt-at-self", ".txt").toFile();
-        f.deleteOnExit();
+        File f = TestTmp.file("bolt-at-self", ".txt").toFile();
         Files.write(f.toPath(), out, StandardCharsets.UTF_8);
         return f;
     }
@@ -206,9 +204,7 @@ public class StepRegretTest {
             }
             out.add(l);
         }
-        File f = new File(Files.createTempDirectory("step-regret-changed").toFile(), log.getName());
-        f.getParentFile().deleteOnExit();
-        f.deleteOnExit();
+        File f = new File(TestTmp.dir("step-regret-changed").toFile(), log.getName());
         Files.write(f.toPath(), out, StandardCharsets.UTF_8);
         return f;
     }

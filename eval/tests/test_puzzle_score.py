@@ -10,9 +10,14 @@ from pathlib import Path
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # eval/
 import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
+import module_tmp  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
 from test_puzzle_suite import rec, result, suite  # noqa: E402
+
+
+def setUpModule():
+    module_tmp.isolate(__name__)
 
 
 class PairedTest(unittest.TestCase):

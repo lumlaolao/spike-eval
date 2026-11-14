@@ -91,8 +91,7 @@ public class ReplayBridgeTest {
     }
 
     private static File tempDir(String name) throws Exception {
-        File d = Files.createTempDirectory("replay-" + name).toFile();
-        d.deleteOnExit();
+        File d = TestTmp.dir("replay-" + name).toFile();
         return d;
     }
 
@@ -235,7 +234,6 @@ public class ReplayBridgeTest {
     /** A game log in a directory of its own: a result row beside it would be read as the attempt's (readResult). */
     private static File recording(String... rows) throws Exception {
         File f = new File(tempDir("log"), "game-1-100.jsonl");
-        f.deleteOnExit();
         Files.write(f.toPath(), String.join("\n", rows).getBytes(StandardCharsets.UTF_8));
         return f;
     }

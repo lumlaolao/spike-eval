@@ -26,6 +26,7 @@ import forge.localinstance.properties.ForgePreferences.FPref;
 import forge.model.FModel;
 
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -36,6 +37,12 @@ import org.testng.annotations.Test;
  */
 public class LineFindingProbeTest {
     private static boolean initialized;
+
+    @BeforeClass
+    public void quickRetries() { QuickRetries.on(); }
+
+    @AfterClass(alwaysRun = true)
+    public void realRetries() { QuickRetries.off(); }
 
     @BeforeClass
     public void initializeModel() {
@@ -527,7 +534,7 @@ public class LineFindingProbeTest {
         boolean was = LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR;
         LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = true;
         try {
-            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("window-rows");
+            java.nio.file.Path dir = TestTmp.dir("window-rows");
             LlmSpikeGui.EvalLog.closeForTest();
             LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
             try {
@@ -558,7 +565,7 @@ public class LineFindingProbeTest {
      *  seat's decision: no fallback on its row. */
     @Test
     public void anOptionalTargetTheSeatDeclinesIsItsDecisionNotAFallback() throws Exception {
-        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("decline-rows");
+        java.nio.file.Path dir = TestTmp.dir("decline-rows");
         LlmSpikeGui.EvalLog.closeForTest();
         LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
         try {

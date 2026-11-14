@@ -77,7 +77,7 @@ public class LlmSpikePuzzleTest {
      *  Luna result to its puzzle (/tmp pilot, 2026-10-16). */
     @Test
     public void aResultHashesThePuzzleFileItsBytes() throws Exception {
-        java.nio.file.Path f = java.nio.file.Files.createTempFile("pzl", ".pzl");
+        java.nio.file.Path f = TestTmp.file("pzl", ".pzl");
         byte[] bytes = "[metadata]\r\nName:x\r\nGoal:Win\r\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         java.nio.file.Files.write(f, bytes);
         byte[] d = java.security.MessageDigest.getInstance("SHA-256").digest(bytes);
@@ -271,7 +271,7 @@ public class LlmSpikePuzzleTest {
     /** An EVAL_OUT that is not a directory (a FileWriter cannot open under it): the open failure is the same one line. */
     @Test
     public void aRowWhoseFileCannotBeOpenedIsSaidOnStdout() throws IOException {
-        File notADir = File.createTempFile("pzl-notadir", ".txt");
+        File notADir = TestTmp.file("pzl-notadir", ".txt").toFile();
         try {
             boolean[] ok = new boolean[1];
             String out = stdoutOf(() -> ok[0] = LlmSpikePuzzle.appendTo(notADir, "puzzle-results.jsonl", "{\"a\":1}"));

@@ -23,7 +23,7 @@ public class GoldenChecksToolTest extends GoldenChecksTest {
     @BeforeClass
     public void toolMode() throws java.io.IOException {
         LineFindingProbeTest.TOOL_MODE = true;
-        LlmSpikeGui.EvalLog.initToDir(java.nio.file.Files.createTempDirectory("golden-tool-log").toString(), 7);
+        LlmSpikeGui.EvalLog.initToDir(TestTmp.dir("golden-tool-log").toString(), 7);
     }
 
     @AfterClass(alwaysRun = true)

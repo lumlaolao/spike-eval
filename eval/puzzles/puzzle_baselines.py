@@ -49,6 +49,7 @@ import datetime
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -276,10 +277,6 @@ def expand_seeds(spec):
     return out
 
 
-def seed_count(spec):
-    return len(expand_seeds(spec))
-
-
 # ------------------------------------------------------------------ pure decisions
 
 def summarize(rows, seeds_spec):
@@ -501,9 +498,13 @@ def verify_puzzle(build, rec, out_root):
         rows = run_arm(build, pf.pzl_path(rec), "written", str(line["seed"]), out, line_env(pf.pzl_path(rec), "ai"))
         check = check_written_replay
     else:
-        tape = Path(tempfile.mkdtemp(prefix="pzl-tape-")) / "tape.txt"
-        tape.write_text(line["tape"])
-        rows = run_arm(build, pf.pzl_path(rec), "script", str(line["seed"]), out, {"PZL_TAPE": str(tape)})
+        tape_dir = tempfile.mkdtemp(prefix="pzl-tape-")
+        try:
+            tape = Path(tape_dir) / "tape.txt"
+            tape.write_text(line["tape"])
+            rows = run_arm(build, pf.pzl_path(rec), "script", str(line["seed"]), out, {"PZL_TAPE": str(tape)})
+        finally:
+            shutil.rmtree(tape_dir, ignore_errors=True)
     row = rows[0] if rows else None
     problems = check(line, row)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
