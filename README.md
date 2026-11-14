@@ -104,8 +104,8 @@ Never ask me to paste the key into this chat.
 
 `play-vs-llm.sh` opens Forge's window, so it needs a display. On start Forge prints a page of warnings in the
 terminal (cards "not assigned to any set", a missing skins directory); they are harmless. Forge fetches each card's
-picture from the internet the first time the card is shown. A game costs about $0.02 to $0.05 with the default
-model, GPT-6 Luna, and the model may think for minutes on a hard decision. Games against a person are never scored.
+picture from the internet the first time the card is shown. A game costs about $0.09 on average (median $0.07) with
+the default model, GPT-6 Luna, and the model may think for minutes on a hard decision. Games against a person are never scored.
 
 ### Decks
 
@@ -136,7 +136,7 @@ python3 eval/match_review.py runs/loop/g01        # what the harness decided, lo
 ```
 
 An `openrouter:` model sends the game state to openrouter.ai. Nothing is sent unless `OPENROUTER_API_KEY` and your
-own consent, `OPENROUTER_ALLOW_EGRESS=1`, are set. A game takes 20 to 90 minutes. `run_batch.py` stops at
+own consent, `OPENROUTER_ALLOW_EGRESS=1`, are set. A game takes about 18 minutes on average (5 to 90). `run_batch.py` stops at
 `--budget-usd`, and `eval/cost_report.py` prices any run. Every setting is in `docs/harness/SETTINGS.md`. Your runs land
 in `runs/`; the run directories the documents cite for their numbers are not part of this repository.
 

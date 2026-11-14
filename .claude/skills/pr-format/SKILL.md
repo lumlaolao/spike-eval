@@ -32,6 +32,17 @@ gh api -X POST repos/{owner}/{repo}/pulls -f head=<branch> -f base=main -f title
 python3 scripts/pr_format.py check-pr <n>
 ```
 
+## Where `gh` is refused
+
+Every GitHub call here and in the other skills is REST (`gh api`); `gh pr ...` and `gh issue ...` subcommands that
+use GraphQL are refused in Claude cloud sessions. Where `gh` itself has no token, use the GitHub MCP tools: for pull
+requests `create_pull_request`, `pull_request_read`, `update_pull_request`, `list_pull_requests`; for issues
+`list_issues`, `search_issues`, `issue_read`, `issue_write`, `add_issue_comment` (a label applied to an issue is
+created if it does not exist: check it with `get_label`). The gate's own steps (`pr_format.py check-pr`,
+`record-review`, `record-acceptance`, `scripts/pr_merge.sh`) read and write the PR through `gh api` and have no MCP
+form: where `gh api` is refused, run the local checks (`check-commit`, `check-branch`) and push, and ask the owner
+how the gate is to be run there before merging.
+
 ## Review, then merge
 
 Run all three skills on the PR's current head, in this order, and record each verdict:

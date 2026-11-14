@@ -109,7 +109,7 @@ Three headline scores, each with its 95% interval and the floor it has to beat (
 
 | Score | What | Floor | Status |
 |---|---|---|---|
-| STR-AI | win rate against Forge's AI on the frozen panels (`eval/suites/panels-v1.json`): deck d against Forge's AI on deck d, 16 cells, 50 seeds, both seat orders, 1,600 games | the `floor` (always pass) and `random` (uniform legal option) arms on the same cells; the Forge-AI mirror is 50% by symmetry | not run: $32 to $80 at CLAUDE.md's $0.02 to $0.05 a game; the owner's decision |
+| STR-AI | win rate against Forge's AI on the frozen panels (`eval/suites/panels-v1.json`): deck d against Forge's AI on deck d, 16 cells, 50 seeds, both seat orders, 1,600 games | the `floor` (always pass) and `random` (uniform legal option) arms on the same cells; the Forge-AI mirror is 50% by symmetry | not run: about $150 at CLAUDE.md's measured $0.094 a game; the owner's decision |
 | STR-HELDOUT | the same on seeds blocked from every training corpus (`eval/seed_policy.py`) | as STR-AI | not run |
 | PUZ | puzzles where Forge enforces the goal and the engine judges the solve; mean over puzzles of pass@1 minus the puzzle's random solve rate (`eval/puzzles/puzzle_score.py`) | random play scores 0 by construction; always-pass and first-option alongside | recorded (below) |
 
@@ -140,7 +140,7 @@ step of the reference solution too.
 | on that sample pass@1 floors are random 0.088, PASS 0.000, first option 0.207; Forge's AI solves 0.302 | the same REPORT.md |
 | Luna called `rules_lookup` 0 times in 145 attempts when it was offered (`inspect` 40 times at epoch 66, 47 at epoch 67) | the same REPORT.md |
 | hard generated puzzles, pilot: 20 of 68 solved, one attempt each, pass@1 0.294 (95% CI 0.19 to 0.40), floors 0 | `DEMO.md`; `/eval.html` with `--hard-results`; a pilot, never pooled with PUZ |
-| a Luna game costs $0.02 to $0.05 and takes 20 to 90 minutes (the planning figure) | CLAUDE.md; `python3 eval/cost_report.py <run>` prices any run |
+| a Luna game against Forge's AI costs $0.094 on average (median $0.067) and takes 18 minutes (median 12), over 32 games at harness epochs 43-70 | CLAUDE.md; `python3 eval/cost_report.py <run>` prices any run |
 | recorded single games have cost from $0.01 to $0.32 (g26, 28 turns); the walkthrough game g33 (a win on turn 14) cost $0.13 | `docs/harness/GAME-LOOP-LOG.md` |
 | the paid side by side cost $0.32 + $0.14; the games part at decision 6, turn 1 (Mana Crypt against Tundra); the older harness won on turn 16, the current one lost on turn 15 | the `demo-recordings` README. One pair illustrates; it measures nothing. |
 | 54% of prompt tokens read from cache on an ask's first round, 92% on later rounds | `ARCHITECTURE.md` section 9 |

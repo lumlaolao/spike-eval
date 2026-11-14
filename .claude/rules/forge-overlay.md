@@ -17,7 +17,9 @@ FORGE_HOME=/root/forge bash eval/harness_acceptance.sh                         #
 ```
 
 Never build the checkout while a game runs (`pgrep -f LlmSpikeHeadless`): it swaps `target/classes` under the live JVM.
-Acceptance and the gauntlet use their own build directory and are safe alongside a game.
+Acceptance and the gauntlet compile into their own directory and never touch the checkout, so they cannot break a running
+game; but a full acceptance run keeps four cores busy, and above 4 load per core a game's timing and caps are not evidence
+(`docs/STANDARDS.md` section 6). So never beside a paid game; beside a zero-cost game they are fine.
 
 ## Engine patches
 

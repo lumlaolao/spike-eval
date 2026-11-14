@@ -176,7 +176,7 @@ amounts, order), never by the candidate's label, and records it; over the wire i
 
 ### 3.4 Coverage, weights, held-out, cost
 
-- **Weights** from recorded play: a local clone's uncommitted `runs/` (`/home/user/mtg-forge-llm-agent/runs`, on
+- **Weights** from recorded play: a local clone's uncommitted `runs/` (the author's, on
   2026-10-20) holds 79,691 decision rows, counted as every `"t":"decision"` row of every `*.jsonl` under it (`play`
   69%, `target` 7%, `attackers` 4%, then `counter-type`, `replacement-order`, `sacrifice`, `mana-sources`,
   `choose-entity`, `cleanup-discard`, `damage-assign` at 1 to 2% each, a tail of forty-plus types under 1%). The rows

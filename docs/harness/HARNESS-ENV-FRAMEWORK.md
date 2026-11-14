@@ -396,12 +396,12 @@ Seven ways to turn the family profile into one number, scored on the same report
 owner's sentences: ours at least 0.9, the default at most 0.05, a seat missing a family at most half of ours, a
 seat missing part of one below ours by more than 0.05, one more failure in ours' smallest family costing at most a
 quarter, the AI delegator at 0. Corpus weights come from 207,907 recorded decisions, every `"t":"decision"` row
-under `/home/user/mtg-forge-llm-agent/runs` on 2026-10-24, committed as counts by decision type in
+under the author's local clone's `runs/` (not in the repository) on 2026-10-24, committed as counts by decision type in
 `docs/harness/evidence/2026-10-24-corpus-decision-counts.json` (play 0.674, choices 0.097, targets 0.076, triggers
 0.044, costs 0.027, combat 0.025, game start, library and variants floored at 0.019). The table is
 `python3 eval/harness_env/harness_env_calibrate.py docs/harness/evidence/2026-10-22-env-grade-abi.tsv --counts
 docs/harness/evidence/2026-10-24-corpus-decision-counts.json`, which needs no runs directory (the counts were
-written by the same command with `--runs /home/user/mtg-forge-llm-agent/runs` added).
+written by the same command with `--runs runs` added, in that clone).
 
 | setting | ours | default | minus-combat | minus-costs | toy-ai | criteria (gated) | criteria (no AI gate) |
 |---|---|---|---|---|---|---|---|
