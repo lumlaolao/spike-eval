@@ -210,4 +210,40 @@ public class GameHistoryTest {
         Assert.assertTrue(r.text.contains("SINCE YOUR LAST DECISION"), r.text);
         Assert.assertEquals(r.watermark, 4);
     }
+
+    // ---- the cache order (v5-cache): each event once, verbatim, in an append-only record ---------------------
+
+    /** Decision over decision, the record only grows by the events shown at the decision before, each once and in
+     *  order, with its own id; the rest is the events since the last decision as TIERED prints them. Together every
+     *  event of the log is shown exactly once. */
+    @Test
+    public void everyEventIsShownOnceAndEntersTheRecordAtTheNextDecision() {
+        List<Ev> all = log(50);
+        List<String> record = new ArrayList<>();
+        int held = 0, watermark = -1;
+        for (int seen : new int[] {3, 6, 13, 14, 30, 31, 50, 50}) {
+            List<Ev> evs = all.subList(0, seen);
+            Rendered tiered = GameHistory.renderEvents(evs, ContextProfile.V4_FAITHFUL, watermark);
+            GameHistory.Split split = GameHistory.renderSplit(evs, ContextProfile.V5_CACHE, watermark, held);
+            Assert.assertEquals(split.watermark, tiered.watermark, "seen=" + seen);
+            Assert.assertEquals(split.recordedEvents, Math.max(0, watermark), "the record holds what was shown before");
+            record.addAll(split.recorded);
+            held = split.recordedEvents;
+            int at = tiered.text.indexOf("SINCE YOUR LAST DECISION");
+            Assert.assertEquals(split.rest, at < 0 ? "" : tiered.text.substring(at), "seen=" + seen);
+            watermark = split.watermark;
+        }
+        Assert.assertEquals(record.size(), 50, record.toString());
+        for (int i = 0; i < 50; i++) Assert.assertEquals(record.get(i), "- [E" + (i + 1) + "] " + all.get(i).msg);
+    }
+
+    @Test
+    public void aRecordThatAlreadyHoldsTheShownEventsGetsNothingNew() {
+        GameHistory.Split split = GameHistory.renderSplit(log(10), ContextProfile.V5_CACHE, 6, 6);
+        Assert.assertEquals(split.recorded.size(), 0, split.recorded.toString());
+        Assert.assertEquals(split.recordedEvents, 6);
+        Assert.assertTrue(split.rest.startsWith("SINCE YOUR LAST DECISION (Forge game log, oldest->newest):\n  - [E7] event-7\n"),
+                split.rest);
+        Assert.assertFalse(split.rest.contains("GAME HISTORY"), split.rest);
+    }
 }

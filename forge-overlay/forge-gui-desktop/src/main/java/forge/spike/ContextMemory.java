@@ -257,8 +257,23 @@ final class ContextMemory {
         currentObservation = id;
         // The archive first and the decision last: the question is the last thing the model reads
         // (docs/harness/PROMPT-AUDIT.md E1), and the lines say what the model can do, not internal names (F1).
-        return "<archive>\n" + nativeBrief(id) + "</archive>\n\n" + decision + (decision.endsWith("\n") ? "" : "\n");
+        // Under the cache order the archive lines (which change at every decision) follow the state, just before the
+        // decision: the message then starts with the previous one's record and, as far as it is unchanged, its state.
+        // The ask may reword a line of the state (AnswerTool.rephrase points the plan line at set_plan), so the
+        // archive lines go after the last whole line the decision shares with the state.
+        String state = archiveAfter == null ? "" : archiveAfter.get();
+        int k = 0, n = Math.min(state.length(), decision.length());
+        while (k < n && state.charAt(k) == decision.charAt(k)) k++;
+        int cut = k == state.length() && state.endsWith("\n") ? k : decision.lastIndexOf('\n', k - 1) + 1;
+        return decision.substring(0, cut) + "<archive>\n" + nativeBrief(id) + "</archive>\n\n" + decision.substring(cut)
+                + (decision.endsWith("\n") ? "" : "\n");
     }
+
+    private java.util.function.Supplier<String> archiveAfter;
+
+    /** The cache-ordered state a decision opens with (SeatObservation.renderedState), which the archive lines follow;
+     *  null for every other profile. */
+    void setArchiveAfter(java.util.function.Supplier<String> state) { this.archiveAfter = state; }
 
     /** The archive lines of a native ask: what is in it, how to reach it, what is left, the latest reveals
      *  and notes. */

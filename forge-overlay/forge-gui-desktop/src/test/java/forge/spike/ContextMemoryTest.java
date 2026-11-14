@@ -213,4 +213,33 @@ public class ContextMemoryTest {
         for (int i = 0; i < 9; i++) Assert.assertTrue(brief.contains("hypothesis number " + i), brief);
         Assert.assertTrue(brief.contains("YOUR NOTEBOOK (unverified hypotheses; 9 notes)"), brief);
     }
+
+    /** Under the cache order the archive lines (they change at every decision) follow the state, just before the
+     *  decision, so the message starts with the previous message's record and, as far as it is unchanged, its state;
+     *  without a cache-ordered state they open the message. */
+    @Test
+    public void theArchiveLinesFollowTheStateUnderTheCacheOrder() {
+        String state = "THE GAME SO FAR (...):\n  T1 [E1-E3]: a\n== Turn 2 ==\nYOU ...\n";
+        String decision = state + "\nDECISION: x\n";
+        ContextMemory memory = new ContextMemory();
+        memory.setArchiveAfter(() -> state);
+        String user = memory.beginNative(decision);
+        Assert.assertTrue(user.startsWith(state + "<archive>\nThis decision is saved as archive entry M1."), user);
+        Assert.assertTrue(user.endsWith("</archive>\n\n\nDECISION: x\n"), user);
+
+        ContextMemory legacy = new ContextMemory();
+        String plain = legacy.beginNative(decision);
+        Assert.assertTrue(plain.startsWith("<archive>\n"), plain);
+        Assert.assertTrue(plain.endsWith("</archive>\n\n" + decision), plain);
+        // A line the ask reworded (the plan line's hint): the archive goes before it, after the lines still shared.
+        ContextMemory reworded = new ContextMemory();
+        reworded.setArchiveAfter(() -> state + "YOUR PLAN (...write a PLAN line...)\n");
+        String r = reworded.beginNative(state + "YOUR PLAN (...call set_plan...)\n\nDECISION: x\n");
+        Assert.assertTrue(r.startsWith(state + "<archive>\n"), r);
+        Assert.assertTrue(r.endsWith("</archive>\n\nYOUR PLAN (...call set_plan...)\n\nDECISION: x\n"), r);
+        // A decision that shares no whole line with the state keeps the archive first.
+        ContextMemory stale = new ContextMemory();
+        stale.setArchiveAfter(() -> "THE GAME SO FAR (other):\n");
+        Assert.assertTrue(stale.beginNative(decision).startsWith("<archive>\n"));
+    }
 }

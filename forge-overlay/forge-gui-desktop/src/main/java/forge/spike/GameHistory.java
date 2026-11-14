@@ -276,6 +276,56 @@ final class GameHistory {
         return s.toString();
     }
 
+    // ---- the cache order: each event once, appended to a record, the new ones verbatim -----------------------
+
+    /** {@link #renderSplit}'s output: the lines of the events the seat had been shown and the caller's record does not
+     *  hold yet (oldest first, to append), the count of events the record now holds, and the events since the last
+     *  decision. */
+    static final class Split {
+        final List<String> recorded;
+        final int recordedEvents;
+        final String rest;
+        final int watermark;
+        Split(List<String> recorded, int recordedEvents, String rest, int watermark) {
+            this.recorded = recorded; this.recordedEvents = recordedEvents; this.rest = rest; this.watermark = watermark;
+        }
+    }
+
+    /**
+     * The history for a prompt whose opening must not change between decisions (the provider's prompt cache matches a
+     * prefix). Every event the seat was shown at an earlier decision is one line of the caller's append-only record,
+     * "- [E<n>] <the log's words>", handed back once, in order; the events since the last decision follow as SINCE
+     * YOUR LAST DECISION, as TIERED words them. No line is digested: a digest of a turn changes while the turn goes on
+     * (its "xN" counts and its id range), and an unfinished turn's digest was a third of a message that could not be
+     * cached. Every event is shown, with its own id and in its order, which a digest merged.
+     *
+     * @param recordedEvents how many events (from the first) the caller's record holds
+     */
+    static Split renderSplit(List<Ev> evs, ContextProfile ctx, int watermark, int recordedEvents) {
+        if (evs.isEmpty()) return new Split(new ArrayList<>(), recordedEvents, "", 0);
+        try {
+            int seen = Math.max(0, watermark);
+            int gap = Math.max(0, evs.size() - seen);
+            int verbatim = Math.min(gap, ctx.recentEventsMax);
+            int splitAt = evs.size() - verbatim;
+            List<String> recorded = new ArrayList<>();
+            for (int i = Math.max(0, recordedEvents); i < splitAt; i++) recorded.add(line(evs.get(i)));
+            StringBuilder s = new StringBuilder();
+            if (verbatim > 0) {
+                s.append(gap > verbatim
+                        ? "SINCE YOUR LAST DECISION (Forge game log, oldest->newest; older ones are in THE GAME SO FAR):\n"
+                        : "SINCE YOUR LAST DECISION (Forge game log, oldest->newest):\n");
+                for (int i = splitAt; i < evs.size(); i++) s.append("  ").append(line(evs.get(i))).append('\n');
+            }
+            return new Split(recorded, Math.max(recordedEvents, splitAt), s.toString(), evs.size());
+        } catch (Exception e) {
+            return new Split(new ArrayList<>(), recordedEvents, "", Rendered.KEEP_WATERMARK);
+        }
+    }
+
+    /** One event as the verbatim history prints it: "- [E<n>] <message>". */
+    private static String line(Ev e) { return "- [E" + e.id + "] " + e.msg; }
+
     /** {turn, firstIdx, lastIdx} for each turn appearing in [0, end), oldest-first. */
     private static List<int[]> turnSpans(List<Ev> evs, int end) {
         List<int[]> spans = new ArrayList<>();
