@@ -7,16 +7,40 @@ under `runs/harness-acceptance/<utc-stamp>/` and prints a PASS/FAIL line per sta
 checkout: sources are compiled into an isolated directory and the pinned engine classes
 are only read.
 
-A full run compiles once, then runs the later stages as four child runs side by side (`OUT/part<n>/`, their
-summaries merged into `OUT/summary.txt`), each JVM held to one core's worth of GC and compiler threads, with the
-keyword sweep split over `SWEEP_SHARDS` (2) JVMs: about 8 minutes on an idle 4-core machine, against 11 one stage
-after another, and up to 15 when other game JVMs share the cores (timings with their run directories: PR #301).
-The Python suite (pytests) runs alone in its group, itself in three shards side by side; the canaries run after
-javatests and nativetool after lines, so no game waits behind it. Measured on 98f26fb (`/tmp/acc-b1-98f26fb`,
-container-local; 4 cores, other work running beside it): the shards took 349, 223 and 157 s, and from the end of compile
-the groups ended at 6 min 39 s (javatests), 5 min 50 s (pytests), 5 min 23 s and 6 min 07 s. The serial stage on 7057bee
-(`/tmp/acc-b1-7057bee`) ran 1755 tests in 455 s, and that run ended at 7 min 37 s. `ACCEPTANCE_JOBS=1` runs every stage
-in one process with the sweep in one JVM.
+A full run is bound by the CPU its JVMs and Python processes use, not by any one stage: on 4 cores, 1,370 s of CPU
+cannot finish in under 343 s however it is packed. So a run (`ACCEPTANCE_JOBS`, default 4) spends less CPU and packs
+what is left:
+- the Python suite (pytests, in its three shards) starts after preflight, beside the classpath and compile stages: it
+  reads no compiled class;
+- after compile, every other stage runs as a child run (`OUT/part-<unit>/`, summaries merged into `OUT/summary.txt`)
+  fed to a pool of `ACCEPTANCE_POOL` (default `ACCEPTANCE_JOBS`) children, longest first (javatests with surfaces,
+  gaming, scoring, canary, faketool, nativerefuse, rules, faithful, lines, nativetool, lookahead, answertool,
+  turnchat), so the last to finish are short and no core idles while a long stage runs alone;
+- javatests runs the keyword sweep as `SWEEP_SHARDS` (2) JVMs and the other classes as `MAIN_SHARDS` (2) JVMs, dealt
+  by the seconds each class took (`eval/javatests_shards.py`, `eval/javatests_seconds.tsv`); the stage fails unless
+  every class is in exactly one shard, as before when a test is skipped or the count run differs from the count
+  declared;
+- each JVM is held to one core's worth of GC and compiler threads (`ACC_JVM`), and the JVMs that run briefly (the Java
+  tests' main shards; the lookahead, nativetool, answertool, turnchat and gaming games) compile with C1 only
+  (`ACC_C1`): a 20-decision loopback game took 19 s of CPU with C2 and 12 with C1, the same outcome. The long games
+  and the sweep keep C2, which costs them less (the floor canary: 50 s with C2, 62 with C1);
+- the tests themselves: a card is looked up in the database once per name (`LineFindingProbeTest.card`: a fifth of
+  the keyword sweep's time) and a sweep play's menu is enumerated once; the tokens search memoizes its Skirk
+  Prospector sacrifices (`eval/puzzles/puzzle_gen.py`, results unchanged).
+`ACCEPTANCE_JOBS=1` runs every stage in one process, one after another, with one JVM per Java test kind and C2 only.
+
+Timing (container-local, 4 cores, nothing else running; wall from start to the verdict, CPU user+sys of the run):
+
+| Run | Wall | CPU | |
+| --- | --- | --- | --- |
+| origin/main 56423ae, four fixed groups (`/tmp/acc5-base-full`) | 6:23 | 1,225 s | before (a faster container) |
+| origin/main + #470-#472 merged (`/tmp/acc5-merged0`) | 6:15 | 1,370 s | before (this container) |
+| pool, javatests shards, C1 for the short JVMs (`/tmp/acc5-pool2`) | 5:07 | 1,192 s | after |
+
+Per stage, alone on the same build, wall / CPU in s (`/tmp/acc5-base-serial`, before): javatests 185 / 357, pytests
+160 / 246, canary 41 / 77, gaming 121 / 78, faketool 31 / 47, faithful 28 / 48, lookahead 11 / 20, nativetool 17 /
+34, nativerefuse 30 / 49, answertool 10 / 18, turnchat 10 / 18, rules 28 / 48, lines 20 / 55, scoring 36 / 93. With C1
+(after): lookahead 12 / 13, nativetool 23 / 25, answertool 11 / 12, turnchat 11 / 12, gaming 131 / 56.
 
 The parent reads each child's exit status and requires a PASS or FAIL line for every stage it handed the child,
 so a child that dies part way fails the run instead of leaving only the PASS lines it wrote before it died.

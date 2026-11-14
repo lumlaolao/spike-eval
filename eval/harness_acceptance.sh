@@ -6,8 +6,9 @@
 #   OUT=/path bash eval/harness_acceptance.sh        # where evidence goes (default runs/harness-acceptance/<utc>)
 #   ACCEPTANCE_JOBS=1 bash eval/harness_acceptance.sh   # every stage in one process, one after another
 #
-# A full run compiles once, then runs the later stages in four child runs side by side (OUT/part<n>, merged
-# into OUT/summary.txt) and the keyword sweep as SWEEP_SHARDS JVMs (docs/harness/ACCEPTANCE.md).
+# A full run starts the Python suite beside the build, compiles once, then feeds the later stages to a pool of child
+# runs, longest first (OUT/part-<unit>, merged into OUT/summary.txt); the Java tests run as SWEEP_SHARDS + MAIN_SHARDS
+# JVMs (docs/harness/ACCEPTANCE.md).
 #
 # Stages, cheapest first (each writes its evidence under $OUT and a PASS/FAIL line to $OUT/summary.txt):
 #   preflight  no live game JVMs, JDK 17, Forge checkout at the FORGE_COMMIT pin, decks present
