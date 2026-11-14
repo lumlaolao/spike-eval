@@ -277,10 +277,6 @@ def expand_seeds(spec):
     return out
 
 
-def seed_count(spec):
-    return len(expand_seeds(spec))
-
-
 # ------------------------------------------------------------------ pure decisions
 
 def summarize(rows, seeds_spec):
