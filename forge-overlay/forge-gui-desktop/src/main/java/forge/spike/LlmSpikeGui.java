@@ -127,6 +127,10 @@ interface LLMBridge {
      *  provider answered and the answer was empty or unreadable, the deadline ran out while the model reasoned, or a
      *  routing filter refused it: those are the model's decisions lost, and stay scored (issue #369). */
     default boolean lastFailureWasTransport() { return false; }
+    /** True when the last failure cannot pass by asking again: a refused key (401) or no credits (402). */
+    default boolean lastFailureIsFinal() { return false; }
+    /** The HTTP status of the last failure, or 0. */
+    default int lastFailureStatus() { return 0; }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
      *  A plain last-value field is sufficient — the controller's ask() path is single-threaded per
@@ -436,8 +440,11 @@ public final class LlmSpikeGui {
      *  Epoch 98 (2026-11-14, audit B1/B3/B7/B8/B10): multi-word Glossary terms, search snippets around the match,
      *  over-long notes and plans refused by name, and the true reason for a call written as text
      *  (seat-tools-v12, evidence-tools-v5, rules-tool-v2, answer-tool-v20).
+     *  Epoch 99 (2026-11-14, audit B3/B5/B9): a search lists reveals and notes before archived states
+     *  (evidence-tools-v6); a tool ask cut off by max_tokens is always retried; a refused key or no credits is not
+     *  retried, and a 429 is asked again after its Retry-After within the call's deadline.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-98";
+    static final String HARNESS_EPOCH = "harness-epoch-99";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -8637,6 +8644,12 @@ public final class LlmSpikeGui {
             return c < 0 ? "" : ",\"cost_usd\":" + java.math.BigDecimal.valueOf(c).toPlainString();
         }
 
+        /** The prompt part of a native context_call row: round 0's `prompt`, or a later round's `messages`, whose first
+         *  message is that prompt (it was written twice, and the row grew by a whole prompt a round: audit B6). */
+        static String contextCallPrompt(String user, int round, String messages) {
+            return round == 0 ? ",\"prompt\":\"" + jsonEscape(user) + "\"" : ",\"messages\":" + messages;
+        }
+
         /** {@code spec}: the answer ask's typed legal values, handed to the bridge beside the messages (a decision
          *  model answers from them, DecisionsBridge); null on a lookup-only ask. */
         private ContextMemory.NativeModel nativeModel(LLMBridge b, AnswerTool.Spec spec) {
@@ -8657,9 +8670,7 @@ public final class LlmSpikeGui {
                         + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
                         + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens) + costField(b)
                         + (lastProvider == null ? "" : ",\"provider\":\"" + jsonEscape(lastProvider) + "\"")
-                        + ",\"prompt\":\"" + jsonEscape(user) + "\""
-                        // Later rounds carry the tool exchanges; the first is just the prompt above.
-                        + (round == 0 ? "" : ",\"messages\":" + messages)
+                        + contextCallPrompt(user, round, messages)
                         + ",\"raw_reply\":" + (text == null ? "null" : "\"" + jsonEscape(text) + "\"")
                         + reasoningField(got[0]) + "}");
                 // A turn of tool calls is not a discarded answer: the next round must not record it
@@ -8725,6 +8736,13 @@ public final class LlmSpikeGui {
             // just another HTTP attempt. Budget-wise this still counts as the one call bumped above
             // (multiple round-trips, one decision) — bounded, never loops indefinitely.
             for (int attempt = 0; reply == null && attempt < BRIDGE_RETRY_BACKOFF_MS.length; attempt++) {
+                // A refused key or no credits does not pass in two seconds: asking again only spends the wait
+                // (audit B9). The decision takes its fixed legal option below, counted as lost to the bridge.
+                if (b.lastFailureIsFinal()) {
+                    p("[BRIDGE " + b.getLabel() + "] the provider refused the call for good (HTTP " + b.lastFailureStatus()
+                            + ": a refused key or no credits): not retried; the decision takes its fixed legal option");
+                    break;
+                }
                 lastRetryMs += subMs; // that failed sub-attempt's own time is dead time, not think-time
                 long wait = BRIDGE_RETRY_BACKOFF_MS[attempt];
                 p("[BRIDGE " + b.getLabel() + "] no reply (attempt " + (attempt + 2) + "/"
@@ -12485,6 +12503,22 @@ public final class LlmSpikeGui {
         /** The last complete() failed in transport (LLMBridge.lastFailureWasTransport); set by send() and the IO catch. */
         private volatile boolean transportFailure = false;
         @Override public boolean lastFailureWasTransport() { return transportFailure; }
+        /** The last send's non-200 status (0 when it had none), and the wait its Retry-After named (-1 when none). */
+        private volatile int lastStatus = 0;
+        private volatile long lastRetryAfterMs = -1;
+        @Override public boolean lastFailureIsFinal() { return transportFailure && (lastStatus == 401 || lastStatus == 402); }
+        @Override public int lastFailureStatus() { return lastStatus; }
+
+        /** Retry-After in seconds, as milliseconds; -1 for none or an HTTP date (not read). */
+        static long retryAfterMs(String header) {
+            if (header == null) return -1;
+            try {
+                long s = Long.parseLong(header.trim());
+                return s < 0 ? -1 : s * 1000;
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
 
         /** A 4xx whose body talks about tools / functions is the provider saying this model or route
          *  has no function calling -- not a transient failure. Package-private for NativeToolsTest. */
@@ -12529,6 +12563,15 @@ public final class LlmSpikeGui {
                 Double temperature = cfg.temperature;
 
                 OrResult r = send(messages, toolsJson, allowCalls, maxTokens, reasoningEffort, temperature, deadline);
+                // A rate limit that names when to ask again is asked again then, when that fits in this call's own
+                // deadline (audit B9: the seat's retries landed inside the same window and lost the decision).
+                for (int waits = 0; r == null && lastStatus == 429 && lastRetryAfterMs >= 0 && waits < 3
+                        && System.currentTimeMillis() + lastRetryAfterMs < deadline; waits++) {
+                    System.out.println("[OPENROUTER " + label + "] HTTP 429: waiting the " + lastRetryAfterMs
+                            + " ms its Retry-After names, within the call's deadline, then sending again");
+                    Thread.sleep(lastRetryAfterMs);
+                    r = send(messages, toolsJson, allowCalls, maxTokens, reasoningEffort, temperature, deadline);
+                }
                 if (r == null) return null; // transport/HTTP-status failure, already logged by send()
                 bill(r);
                 r = r.withContent(collapseDegenerateRepetition(r.content)); // F2 residual (usage carried through)
@@ -12543,7 +12586,10 @@ public final class LlmSpikeGui {
                 // reply that hasn't already produced a recognizable decision tag -- empty or partial --
                 // BEFORE ever asking "is this a non-answer". Only once finish_reason isn't "length" (or
                 // the tag already made it out) do we fall through to the non-answer/bridge-down check.
-                if ("length".equals(r.finishReason) && !r.hasCalls() && !looksLikeDecisionTag(r.content)) {
+                // On a tool ask text is never the answer, so a decision tag in the prose does not mean the answer
+                // made it out (audit B5: "my choice is 2 lands" skipped the retry and cost the decision a nudge).
+                if ("length".equals(r.finishReason) && !r.hasCalls()
+                        && (toolsJson != null || !looksLikeDecisionTag(r.content))) {
                     // A REASONER that burns the whole budget on hidden reasoning and emits no answer
                     // token (measured 2026-10-13: a 16000-token smart completion, retried at 32000,
                     // ~3 minutes of the 8-minute game cap) does not need MORE room to think -- that is
@@ -12618,6 +12664,8 @@ public final class LlmSpikeGui {
                 return null;
             }
             lastSendCount++;
+            lastStatus = 0;
+            lastRetryAfterMs = -1;
             StringBuilder body = new StringBuilder();
             body.append("{\"model\":\"").append(jsonEscape(model)).append("\",");
             body.append("\"messages\":[");
@@ -12702,6 +12750,8 @@ public final class LlmSpikeGui {
             if (resp.statusCode() != 200) {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
                 int st = resp.statusCode();
+                lastStatus = st;
+                if (st == 429) lastRetryAfterMs = retryAfterMs(resp.headers().firstValue("Retry-After").orElse(null));
                 String lower = resp.body() == null ? "" : resp.body().toLowerCase(java.util.Locale.ROOT);
                 // The filter's own fields, not the word "provider": OpenRouter relays every upstream's 400 as
                 // "Provider returned error", and that request error is the model's (pr-review of #327).

@@ -176,7 +176,11 @@ final class ReplayBridge implements LLMBridge {
                     results = toolResults(m.getAsJsonArray());
                 }
                 JsonElement raw = r.get("raw_reply");
-                turns.add(new Turn(r.has("call") ? r.get("call").getAsInt() : turns.size() + 1, str(r, "prompt"), n,
+                // A later round writes no `prompt`: its first message is the prompt (audit B6).
+                String prompt = str(r, "prompt");
+                if (prompt == null && m != null && m.isJsonArray() && m.getAsJsonArray().size() > 0)
+                    prompt = ScriptBridge.text(m.getAsJsonArray().get(0));
+                turns.add(new Turn(r.has("call") ? r.get("call").getAsInt() : turns.size() + 1, prompt, n,
                         results, raw == null || raw.isJsonNull() ? null : raw.getAsString()));
             } else if ("decision".equals(t)) {
                 List<String> opts = new ArrayList<>();

@@ -262,6 +262,24 @@ public class ReplayBridgeTest {
             + "  2) PASS (do nothing)\n"
             + "ANSWER: call `answer` with `option`: one number from the list.";
 
+    /** Audit B6: a later round's row writes no `prompt`; its prompt is its first message, and the replay reads it so. */
+    @Test
+    public void aLaterRoundWithoutAPromptIsReadFromItsFirstMessage() throws Exception {
+        JsonObject later = JsonParser.parseString(callRow(2, MENU, "TOOL CALL answer {\"option\":1}")).getAsJsonObject();
+        later.remove("prompt");
+        later.addProperty("round", 1);
+        JsonArray msgs = JsonParser.parseString(messages(MENU)).getAsJsonArray();
+        msgs.add(NativeTools.toolResult("c0", "a result"));
+        later.add("messages", msgs);
+        String first = callRow(1, MENU, "TOOL CALL inspect {\"target\":\"@2\"}");
+        ReplayBridge b = ReplayBridge.fromFile("Solver/smart", recording(first, later.toString()).getPath());
+        b.chat(messages(MENU), "[]", true);
+        NativeTools.Turn t = b.chat(msgs.toString(), "[]", true);
+        Assert.assertNull(b.drift, String.valueOf(b.drift));
+        Assert.assertEquals(t.calls.get(0).name, AnswerTool.NAME);
+        Assert.assertEquals(b.promptDiffs, 0, "the recorded prompt is the first message, as the live one is");
+    }
+
     @Test
     public void eachRecordedTurnIsServedWithItsCallsInOrder() throws Exception {
         String raw = "TOOL CALL set_plan {\"goal\":\"burn\",\"next\":\"Spike\"}\nTOOL CALL answer {\"option\":1}";

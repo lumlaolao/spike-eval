@@ -54,6 +54,27 @@ public class ContextMemoryTest {
         Assert.assertTrue(memory.execute("MEMORY READ 1 40000").contains("next=END"));
     }
 
+    /** Audit B3: every decision's whole prompt is an archived state, so a card's name matched each state that showed
+     *  it, oldest first, and the short reveal the seat wanted was paged out behind them. Within one match quality a
+     *  reveal or a note is listed before the archived states; each kind keeps its order. */
+    @Test
+    public void aRevealIsListedBeforeTheArchivedStatesThatAlsoMatch() {
+        ContextMemory memory = new ContextMemory();
+        memory.observe("== Turn 1 == OPPONENT HAND (seen): Force of Will");
+        memory.observe("== Turn 2 == OPPONENT HAND (seen): Force of Will, Daze");
+        memory.reveal("Opponent revealed Force of Will from their hand");
+        memory.observe("== Turn 3 == OPPONENT HAND (seen): nothing; GRAVEYARD: Force of Will");
+        String out = memory.execute("MEMORY SEARCH 0 force of will");
+        java.util.List<String> order = new java.util.ArrayList<>();
+        for (String l : out.split("\n")) if (l.matches("M\\d+ .*")) order.add(l.substring(0, l.indexOf(' ')));
+        Assert.assertEquals(order, java.util.List.of("M3", "M1", "M2", "M4"), out);
+        // No entry holds every word: the most words first (M2: daze, hand); among equals the reveal, then the newest.
+        String ranked = memory.execute("MEMORY SEARCH 0 daze hand nonsense");
+        java.util.List<String> byCount = new java.util.ArrayList<>();
+        for (String l : ranked.split("\n")) if (l.matches("M\\d+ .*")) byCount.add(l.substring(0, l.indexOf(' ')));
+        Assert.assertEquals(byCount, java.util.List.of("M2", "M3", "M4", "M1"), ranked);
+    }
+
     /** Each decision's whole prompt is archived as one entry, so a card's name usually sits far past an entry's
      *  first 240 characters (the turn and life header): the search result showed the header and never the match
      *  (runs/loop: query "turn", 18 matches, every one the same header). A snippet now shows the text around the

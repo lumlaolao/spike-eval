@@ -960,7 +960,7 @@ public class LlmSpikeTest {
     }
 
     /** A bridge whose transport fails on every ask (a provider answering 402 once the credits ran out). */
-    static final class CreditsGoneBridge implements LLMBridge {
+    static class CreditsGoneBridge implements LLMBridge {
         private final String label;
         int asks = 0;
         CreditsGoneBridge(String label) { this.label = label; }
@@ -1003,6 +1003,57 @@ public class LlmSpikeTest {
         Assert.assertFalse(talks.prompts.isEmpty(), "the live seat was asked");
         Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(alive), 0);
         Assert.assertEquals(LlmSpikeGui.circuitBreakerTrips(alive), 0);
+    }
+
+    /** Audit B6: a later round's context_call row carried the first user message twice, as `prompt` and as the first of
+     *  its `messages`. Round 0 keeps `prompt` (prefix_stability reads it); a later round's prompt is its first message. */
+    @Test
+    public void aLaterRoundsCallRowWritesItsPromptOnce() {
+        String user = "DECISION: choose one\n  1) PASS";
+        com.google.gson.JsonArray msgs = new com.google.gson.JsonArray();
+        msgs.add(NativeTools.message("user", user));
+        msgs.add(NativeTools.message("tool", "a result"));
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.contextCallPrompt(user, 0, msgs.toString()),
+                ",\"prompt\":\"DECISION: choose one\\n  1) PASS\"");
+        String later = LlmSpikeGui.PlayerControllerLLM.contextCallPrompt(user, 1, msgs.toString());
+        Assert.assertEquals(later, ",\"messages\":" + msgs);
+        com.google.gson.JsonObject row = com.google.gson.JsonParser.parseString("{\"t\":\"context_call\"" + later + "}")
+                .getAsJsonObject();
+        Assert.assertFalse(row.has("prompt"));
+        Assert.assertEquals(row.getAsJsonArray("messages").get(0).getAsJsonObject().get("content").getAsString(), user);
+    }
+
+    /** Audit B9: a bridge whose failure is final (a refused key, no credits) is not asked again for the same decision:
+     *  one ask a decision, not three, and one loud line naming why. The decision still takes its fixed legal option and
+     *  is counted as lost to the bridge, and the breaker still trips at five. */
+    @Test(timeOut = 90000)
+    public void aFinalBridgeFailureIsNotRetriedButStillCounted() throws Exception {
+        Game game = buildBareGame();
+        String seat = "seat-final-b9";
+        CreditsGoneBridge gone = new CreditsGoneBridge(seat + "/fast") {
+            @Override public boolean lastFailureIsFinal() { return true; }
+            @Override public int lastFailureStatus() { return 402; }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, game.getPlayers().get(0), new LobbyPlayerAi(seat, null), seat, "", gone, gone, "llm");
+        java.io.ByteArrayOutputStream log = new java.io.ByteArrayOutputStream();
+        java.io.PrintStream was = System.out;
+        System.setOut(new java.io.PrintStream(log, true, "UTF-8"));
+        try {
+            for (int i = 0; i < 5; i++)
+                Assert.assertFalse(ctrl.confirmAction(null, PlayerActionConfirmMode.OptionalChoose, "Shuffle your library?",
+                        null, null, null), "the fixed legal option, never Forge's AI");
+        } finally {
+            System.setOut(was);
+        }
+        Assert.assertEquals(gone.asks, 5, "one ask a decision: a final failure is not retried");
+        Assert.assertEquals(LlmSpikeGui.bridgeDownDecisions(seat), 5);
+        Assert.assertEquals(LlmSpikeGui.circuitBreakerTrips(seat), 1);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+        String out = log.toString("UTF-8");
+        Assert.assertTrue(out.contains("[BRIDGE " + seat + "/fast] the provider refused the call for good (HTTP 402: a refused key or no credits): not retried"),
+                out.length() > 600 ? out.substring(0, 600) : out);
+        Assert.assertFalse(out.contains("retrying in"), "no retry line");
     }
 
     // ================================================================================
