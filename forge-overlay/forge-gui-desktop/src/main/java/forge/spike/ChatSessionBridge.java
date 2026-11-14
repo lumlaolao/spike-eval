@@ -43,9 +43,11 @@ final class ChatSessionBridge implements LLMBridge {
     /** TURN_CHAT=1: the conversation holds this game turn's decisions only. */
     static final boolean TURN = "1".equals(System.getenv("TURN_CHAT"));
     /** v2 (2026-10-15): the whole game's decisions, not the last 20 (docs/harness/MODEL-LIMITS.md).
-     *  v3 (2026-10-16): a decision answered by a call is kept as its calls, results and reasoning. */
-    static final String VERSION = "one-chat-v3";
-    static final String TURN_VERSION = "turn-chat-v1";
+     *  v3 (2026-10-16): a decision answered by a call is kept as its calls, results and reasoning.
+     *  v4 (2026-11-14, audit B2): a call that got no reply, and the bridge retry after it, keep the conversation. */
+    static final String VERSION = "one-chat-v4";
+    /** v2 (2026-11-14, audit B2): as one-chat-v4, a failed call keeps this turn's conversation. */
+    static final String TURN_VERSION = "turn-chat-v2";
     static final int DEFAULT_PAIRS = 10000;
     static final int MAX_PAIRS = intEnv("ONE_CHAT_TURNS", DEFAULT_PAIRS);
 
@@ -159,7 +161,10 @@ final class ChatSessionBridge implements LLMBridge {
         return inner.chat("[" + h + (body.isEmpty() ? "" : "," + body) + "]", toolsJson, allowCalls);
     }
 
-    @Override public void restart() { asks.clear(); inner.restart(); }
+    /** The seat's bridge retry calls this after a call that got no reply. The conversation is the harness's, not a
+     *  provider session: it stays, and the retry sends it again with the same ask (that ask was never stored). It
+     *  used to be cleared, so one 429 or stall took the rest of the game out of the condition its stamp names (B2). */
+    @Override public void restart() { inner.restart(); }
     @Override public String getLabel() { return inner.getLabel(); }
     @Override public String getModel() { return inner.getModel(); }
     @Override public long getTotalMs() { return inner.getTotalMs(); }

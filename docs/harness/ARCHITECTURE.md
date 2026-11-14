@@ -781,7 +781,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   the scored launchers scrub it: `SETTINGS.md`, the `ANSWER_SCHEMA` row).
   Both replay a decision as it happened: its DECISION part, the model's assistant messages unchanged with
   their tool calls and `reasoning_details`, and a result for every call (OpenRouter's reasoning guide: pass
-  reasoning back unchanged and in order). Acceptance stage `turnchat` checks every request is a valid
+  reasoning back unchanged and in order). A call that gets no reply, and the seat's bridge retry after it, keep the
+  conversation (one-chat-v4, turn-chat-v2: it was cleared, so one 429 or stall took the rest of the game out of the
+  condition); TURN_CHAT still starts over only at a new turn. Acceptance stage `turnchat` checks every request is a valid
   tool-call sequence. Opt-in until a measured block shows one keeps lines more coherent (review C3).
 
 ## 9. Talking to models: bridges
@@ -839,6 +841,15 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     bridge retry is skipped with one `[BRIDGE ...] the provider refused the call for good (HTTP <n>...)` line, and the
     decision takes its fixed legal option, counted as lost to the bridge (epoch 99; the two retries spent 2.5 s a
     decision on a key that could not pass).
+  - once the seat's game is over or capped (the runners mark a capped game, `LlmSpikeGui.markCapped`, before setting it
+    over), no new model request starts: no further round of the decision, nudge, correction, bridge retry, rate-limit
+    resend or truncation retry (`PlayerControllerLLM.askStop`, read by the bridge through `LlmSpikeGui.ASK_STOP`). The
+    request in flight is the last; the decision takes its fixed legal option and its row names the stop
+    (`confirm(game-capped)->NO`, `game-over`) in place of `bridge-down`, and it is not counted as a dead bridge. At the
+    cap the order is: the runner marks the game capped and sets it over, waits its grace (`maxDecisionMs` + 10 s, one
+    decision), the in-flight request returns, the decision row is written, the game thread ends, the game line is
+    written, the JVM exits. A tool-answer decision is up to 19 requests, each with its own deadline, so before this it
+    could outlast the grace and lose its row (epoch 100).
   - the truncation retry (a reply cut off by `max_tokens` with no call) always runs on a tool ask: a decision tag in
     the cut-off prose ("my choice is 2 lands") means the answer made it out only on a text ask (epoch 99).
   - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full

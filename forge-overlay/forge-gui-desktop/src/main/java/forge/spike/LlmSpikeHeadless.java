@@ -101,6 +101,8 @@ public final class LlmSpikeHeadless {
         boolean capped = worker.isAlive();
         if (capped) {
             System.out.println("[HEADLESS] wall-clock cap reached; game is INVALID for eval purposes");
+            // Marked first, so the seat's last decision names the cap (and starts no further request: audit B4).
+            LlmSpikeGui.markCapped(game);
             game.setGameOver(GameEndReason.Draw);
             // Grace must outlast the slowest configured model's own per-request HTTP timeout
             // (LlmSpikeGui.ModelCfg.maxConfiguredTimeoutMs(), e.g. 150s for kimi's smart tier), not
