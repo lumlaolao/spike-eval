@@ -111,6 +111,47 @@ def stage_text(name):
     return "\n".join(lines[start:end + 1])
 
 
+class ClasspathStageReadsMavensStatusTest(unittest.TestCase):
+    """The classpath stage fails, naming Maven's log, when `mvn dependency:build-classpath` fails: with a reused OUT
+    an earlier run's deps.txt passed the stage after Maven had failed (audit D10). The stage runs as the script has
+    it, with the script's own `digest`, on a stub `mvn` and a Forge directory that is not a checkout."""
+
+    def stage(self, mvn_rc):
+        with open(SCRIPT, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        start = next(i for i, l in enumerate(lines) if l.startswith("digest() {"))
+        digest = "\n".join(lines[start:next(i for i in range(start, len(lines)) if lines[i] == "}") + 1])
+        with tempfile.TemporaryDirectory() as d:
+            out, forge, bin_ = (os.path.join(d, n) for n in ("out", "forge", "bin"))
+            for p in (out, forge, bin_):
+                os.makedirs(p)
+            with open(os.path.join(out, "deps.txt"), "w") as f:   # an earlier run's, with TestNG on it
+                f.write("/old/testng-7.jar:/old/x.jar")
+            with open(os.path.join(bin_, "mvn"), "w") as f:
+                f.write('#!/bin/sh\nfor a in "$@"; do case "$a" in -Dmdep.outputFile=*) o="${a#*=}";; esac; done\n'
+                        + ('echo "[ERROR] Cannot access central in offline mode"\nexit %d\n' % mvn_rc if mvn_rc
+                           else 'printf "/m2/testng-7.jar:/m2/y.jar" > "$o"\nexit 0\n'))
+            os.chmod(os.path.join(bin_, "mvn"), 0o755)
+            script = ('OUT="$1"; FORGE="$2"; CP_FILE="$1/classpath.txt"; HARNESS_DEPS_FILE=""\n'
+                      'has_stage() { true; }; pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; }\n%s\n%s\n'
+                      % (digest, stage_text("classpath")))
+            env = dict(os.environ, PATH=bin_ + os.pathsep + os.environ["PATH"])
+            return subprocess.run(["bash", "-c", script, "x", out, forge], check=True, stdout=subprocess.PIPE,
+                                  universal_newlines=True, env=env).stdout
+
+    def test_a_failed_maven_fails_the_stage_and_names_its_log_even_with_an_old_classpath_in_out(self):
+        res = self.stage(1)
+        self.assertEqual(res.count("FAIL classpath"), 1, res)
+        self.assertIn("mvn dependency:build-classpath exited 1", res)
+        self.assertIn("mvn-classpath.log): [ERROR] Cannot access central in offline mode", res)
+        self.assertNotIn("PASS classpath", res)
+
+    def test_a_maven_that_succeeds_passes(self):
+        res = self.stage(0)
+        self.assertIn("PASS classpath 6 entries", res)
+        self.assertNotIn("FAIL", res)
+
+
 class CompileRecordsItsSourcesTest(unittest.TestCase):
     """The compile stage writes overlay-sha.txt beside classes/, the hash run_batch.py stamps as overlay_sha, so
     puzzle_baselines.Build can refuse a build that is not this checkout's (puzzle-build-staleness). A failed

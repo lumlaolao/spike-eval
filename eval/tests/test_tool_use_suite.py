@@ -50,7 +50,14 @@ class ToolUseSuiteTest(unittest.TestCase):
         self.assertIn("PAGE_CHARS = %d;" % tu.PAGE_CHARS, memory)
         self.assertIn("SEARCH_PAGE = %d;" % tu.SEARCH_PAGE, memory)
         self.assertIn("REQUEST_CHARS = NOTE_CHARS + 100;", memory)
-        self.assertIn("NOTE_CHARS = %d;" % (tu.REQUEST_CHARS - 100), memory)
+        self.assertIn("NOTE_CHARS = %d;" % tu.NOTE_CHARS, memory)
+        self.assertEqual(tu.REQUEST_CHARS, tu.NOTE_CHARS + 100)
+        # The text arm's note limit is the executor's: a note the Java seat keeps is kept here too (it said 500).
+        self.assertIn('return "ERROR: note exceeds " + NOTE_CHARS + " characters.";', memory)
+        seat = tu.Seat({"archive": [{"kind": "observation", "text": "Opponent cast Brainstorm"}]}, "DECISION")
+        self.assertTrue(seat.execute("MEMORY NOTE 1 " + "n" * tu.NOTE_CHARS).startswith("Saved hypothesis"))
+        self.assertEqual(seat.execute("MEMORY NOTE 1 " + "n" * (tu.NOTE_CHARS + 1)),
+                         "ERROR: note exceeds %d characters." % tu.NOTE_CHARS)
         self.assertIn("SNIPPET_CHARS = %d;" % tu.SNIPPET, memory)
         self.assertIn("int from = Math.max(0, at - 100), to = Math.min(text.length(), from + SNIPPET_CHARS);", memory)
         self.assertIn(tu.BUDGET_ERROR, memory)

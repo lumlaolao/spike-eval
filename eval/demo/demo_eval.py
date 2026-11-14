@@ -33,7 +33,9 @@ PUZ_DIR = os.path.join(EVAL, "puzzles", "rules-pilot", "benchmark-v1")
 PUZ_RUNS = (("lookups off, epoch 66", "results/off"), ("lookups on, epoch 66", "results/on"),
             ("lookups off, epoch 67", "results-e67/off"), ("lookups on, epoch 67", "results-e67/on"))
 PANELS = os.path.join(EVAL, "suites", "panels-v1.json")
-GAME_COST_USD = (0.02, 0.05)   # one one-tier Luna game (CLAUDE.md, "Cost of paid runs")
+# One one-tier Luna game against Forge's AI, on the provider's bill: 32 games, runs/loop g01-g33 and pair-4201, harness
+# epochs 43-70 (CLAUDE.md, "Cost of paid runs", which test_demo_eval keeps equal to this).
+GAME_COST_USD = {"mean": 0.094, "median": 0.067, "min": 0.02, "max": 0.38, "games": 32}
 
 
 def acceptance(out_dir):
@@ -94,7 +96,7 @@ def panel_plan(panel):
     spec, _, _ = panel_score.load_panel(PANELS, panel)
     games = len(spec["cells"]) * len(panel_score.parse_seed_spec(spec["seeds"])) * (2 if spec.get("pairs") else 1)
     return {"panel": panel, "cells": len(spec["cells"]), "games": games, "seeds": spec["seeds"],
-            "cost_usd": [round(games * c, 2) for c in GAME_COST_USD], "game_cost_usd": list(GAME_COST_USD)}
+            "cost_usd": round(games * GAME_COST_USD["mean"], 2), "game_cost_usd": dict(GAME_COST_USD)}
 
 
 def report(acceptance_dir=None, hard_dir=None):

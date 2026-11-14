@@ -12,7 +12,7 @@
 #
 # Stages, cheapest first (each writes its evidence under $OUT and a PASS/FAIL line to $OUT/summary.txt):
 #   preflight  no live game JVMs, JDK 17, Forge checkout at the FORGE_COMMIT pin, decks present
-#   classpath  offline Maven dependency classpath (module target/classes FIRST, then jars); Forge tree untouched
+#   classpath  offline Maven dependency classpath (module target/classes FIRST, then jars); Forge tree untouched; a failed mvn fails it
 #   compile    overlay main+test sources and the engine patches applied to the pinned originals
 #              (eval/engine_patches.py; one that does not apply fails) -> $OUT/classes with javac --release 17
 #              (the checkout is never rebuilt), and $OUT/overlay-sha.txt, the overlay hash compiled
@@ -223,14 +223,19 @@ if has_stage classpath; then
     # of the pinned classes would be invisible to git and must fail this stage).
     BEFORE="$(git -C "$FORGE" status --porcelain 2>/dev/null | digest)"
     MARK="$OUT/.mvn-marker"; touch "$MARK"; sleep 1
+    # A reused OUT keeps an earlier run's deps.txt: Maven failing now must not pass on that one.
+    rm -f "$DEPS"
     ( cd "$FORGE" && mvn -o -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile="$DEPS" -Dmdep.includeScope=test ) >"$OUT/mvn-classpath.log" 2>&1
+    MVN_RC=$?
+    [ "$MVN_RC" = 0 ] || fail classpath "mvn dependency:build-classpath exited $MVN_RC (see $OUT/mvn-classpath.log): $(tail -1 "$OUT/mvn-classpath.log" | cut -c1-200)"
     AFTER="$(git -C "$FORGE" status --porcelain 2>/dev/null | digest)"
     if [ -z "$BEFORE" ]; then fail classpath "no md5 or md5sum on PATH: cannot check the Forge working tree"
     elif [ "$BEFORE" != "$AFTER" ]; then fail classpath "mvn dependency:build-classpath changed the Forge working tree"; fi
     TOUCHED="$(find "$FORGE"/forge-*/target -type f -newer "$MARK" 2>/dev/null | head -3)"
     [ -z "$TOUCHED" ] || fail classpath "Maven wrote into the engine's target/ trees (pinned classes may have been rebuilt): $TOUCHED"
   fi
-  if [ -s "$DEPS" ]; then
+  if [ "${MVN_RC:-0}" != 0 ]; then :   # named above
+  elif [ -s "$DEPS" ]; then
     MODS=""
     for m in forge-gui-desktop forge-core forge-game forge-ai forge-gui; do MODS="$MODS$FORGE/$m/target/classes:"; done
     printf '%s%s' "$MODS" "$(cat "$DEPS")" > "$CP_FILE"

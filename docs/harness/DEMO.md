@@ -201,9 +201,8 @@ python3 eval/demo/demo_server.py --game runs/loop/g33 --acceptance /tmp/acc-<sha
 `demo_eval.py` builds the page from files on disk: every stage of that acceptance run as its `summary.txt` reports
 it (the canary stages themselves fail when a pin moves), PUZ computed by `puzzle_score.score` from the recorded Luna runs in
 `eval/puzzles/rules-pilot/benchmark-v1/` (each condition's headline, 95% interval and floors, as a forest plot), and
-STR-AI and STR-HELDOUT shown as not yet run, with the mirror panel's size (16 cells, 1600 games) and its cost ($32 to
-$80, from `demo_eval.GAME_COST_USD`, the old $0.02 to $0.05 a game; at the measured mean in CLAUDE.md, $0.094, it
-is about $150). Every other number on the page is read from a scorer or a summary.
+STR-AI and STR-HELDOUT shown as not yet run, with the mirror panel's size (16 cells, 1600 games) and its cost (about
+$150: `demo_eval.GAME_COST_USD`, the measured $0.094 a game of CLAUDE.md, which a test keeps equal). Every other number on the page is read from a scorer or a summary.
 
 ## A walkthrough (about ten minutes)
 
