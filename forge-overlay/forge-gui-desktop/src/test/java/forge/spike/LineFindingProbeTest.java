@@ -81,11 +81,14 @@ public class LineFindingProbeTest {
         public int getCalls() { return prompts.size(); }
     }
 
-    static Game bareGame(PhaseType phase) {
+    static Game bareGame(PhaseType phase) { return bareGame(phase, 2); }
+
+    /** A game of {@code seats} players, the seat first: Seat, Rival, then Third and Fourth. */
+    static Game bareGame(PhaseType phase, int seats) {
         List<RegisteredPlayer> players = Lists.newArrayList();
         Deck d = new Deck();
-        players.add(new RegisteredPlayer(d).setPlayer(new LobbyPlayerAi("Seat", null)));
-        players.add(new RegisteredPlayer(d).setPlayer(new LobbyPlayerAi("Rival", null)));
+        String[] names = {"Seat", "Rival", "Third", "Fourth"};
+        for (int i = 0; i < seats; i++) players.add(new RegisteredPlayer(d).setPlayer(new LobbyPlayerAi(names[i], null)));
         GameRules rules = new GameRules(GameType.Constructed);
         Game game = new Game(players, rules, new Match(rules, players, "LineFindingProbe"));
         game.setAge(GameStage.Play);

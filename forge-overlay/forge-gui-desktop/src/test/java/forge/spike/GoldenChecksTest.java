@@ -2854,6 +2854,42 @@ public class GoldenChecksTest {
         Assert.assertEquals(seat(g, model, model).chooseStartingPlayer(true), g.getPlayers().get(1));
     }
 
+    /** With more than one opponent, play or draw cannot say who starts: "draw first" handed the first turn to the
+     *  first opponent. The seat names the player, as Forge's own human controller asks in a multiplayer game. */
+    @Test
+    public void whoStartsAMultiplayerGameIsTheModels() {
+        Game g = bareGame(PhaseType.MAIN1, 4);
+        Script model = new Script("CHOICE: 1").on("Who takes the first turn", choice("opponent (Fourth)"));
+        Assert.assertEquals(seat(g, model, model).chooseStartingPlayer(true), g.getPlayers().get(3));
+    }
+
+    /** The two-player asks keep their bytes: the play-or-draw question and the attackers question. */
+    @Test
+    public void twoPlayerStartAndAttackAsksAreUnchanged() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Llanowar Elves", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("declare attackers", picks("Grizzly Bears"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseStartingPlayer(true);
+        ctrl.declareAttackers(me, new Combat(me));
+        Assert.assertEquals(model.prompts.size(), 2);
+        Assert.assertEquals(decisionOf(model.prompts.get(0)), START_ASK);
+        Assert.assertEquals(decisionOf(model.prompts.get(1)), ATTACK_ASK);
+    }
+
+    private static final String START_ASK = "DECISION: You won the roll. Play first, or draw first?\nOptions:\n"
+            + "  1) Play first\n  2) Draw first";
+    private static final String ATTACK_ASK = "DECISION: COMBAT: declare attackers against Rival (life 20). Choose which "
+            + "creatures attack; you may attack with none. LETHAL: they are at 20 life and 0/10 poison, so 20 damage or 10 "
+            + "poison wins.\nChoose between 0 and 2 of these (by number):\n  1) Grizzly Bears (2/2)\n  2) Llanowar Elves (1/1)";
+
+    /** The DECISION question and its options, without the answer instruction (text or tool form) after them. */
+    private static String decisionOf(String prompt) {
+        return prompt.substring(Math.max(0, prompt.lastIndexOf("DECISION:"))).split("\n(End with EXACTLY|ANSWER):")[0];
+    }
+
     // ------------------------------------------------------------------ combat
 
     @Test
@@ -2869,6 +2905,39 @@ public class GoldenChecksTest {
         seat(g, model, model).declareAttackers(me, combat);
         Assert.assertEquals(combat.getAttackers().size(), 1);
         Assert.assertEquals(combat.getDefenderByAttacker(combat.getAttackers().get(0)), jace);
+    }
+
+    /** Blazing Archon keeps creatures off Rival, the first opponent: the attackers were the creatures that could
+     *  attack the first defending player, so none was offered, and Third could not be attacked. */
+    @Test
+    public void aCreatureBarredFromTheFirstOpponentAttacksAnother() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS, 3);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1), third = g.getPlayers().get(2);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Blazing Archon", rival, ZoneType.Battlefield);   // creatures can't attack Rival
+        Script model = new Script("CHOICE: 1").on("declare attackers", picks("Grizzly Bears"));
+        Combat combat = new Combat(me);
+        seat(g, model, model).declareAttackers(me, combat);
+        Assert.assertEquals(combat.getAttackers().size(), 1);
+        Assert.assertEquals(combat.getDefenderByAttacker(combat.getAttackers().get(0)), third);
+    }
+
+    /** Every opponent is named in the attackers question with their life and poison, and where each attacker goes
+     *  is the seat's: the question named the first opponent only. */
+    @Test
+    public void theAttackersAskNamesEveryOpponent() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS, 3);
+        Player me = g.getPlayers().get(0), third = g.getPlayers().get(2);
+        third.setLife(7, null);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("declare attackers", picks("Grizzly Bears"))
+                .on("Where does", choice("opponent (Third)"));
+        Combat combat = new Combat(me);
+        seat(g, model, model).declareAttackers(me, combat);
+        Assert.assertEquals(combat.getDefenderByAttacker(combat.getAttackers().get(0)), third);
+        String ask = decisionOf(model.prompts.get(0));
+        Assert.assertTrue(ask.contains("Rival (life 20, 0/10 poison)") && ask.contains("Third (life 7, 0/10 poison)"), ask);
     }
 
     /** Banding: Benalish Hero and Grizzly Bears attack as one band when the seat says so (the seat used to declare
