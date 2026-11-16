@@ -11823,6 +11823,11 @@ public final class LlmSpikeGui {
         lastPlanA = planA; lastPlanB = planB;
         String ctlA = env.getOrDefault("CONTROLLER_A", "llm");
         String ctlB = env.getOrDefault("CONTROLLER_B", "llm");
+        // PLAYERS=3/4 seats C and D after A and B; GAME_FORMAT=commander registers every seat as a Commander seat.
+        int seats = MultiSeat.players(env);
+        boolean commander = MultiSeat.commander(env);
+        if (seats > 2 && "1".equals(env.get("SWAP_SEATS")))
+            throw new IllegalStateException("SWAP_SEATS swaps two seats: a game of " + seats + " seats is rotated instead");
         if (HUMAN.equals(ctlA) || HUMAN.equals(ctlB)) {
             if (!allowHuman) throw new IllegalStateException(NO_WINDOW);
             if (HUMAN.equals(ctlA) && HUMAN.equals(ctlB))
@@ -11869,14 +11874,15 @@ public final class LlmSpikeGui {
             lastPlanA = planA; lastPlanB = planB;
         }
 
-        RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(HUMAN.equals(ctlA) ? new LobbyPlayerHuman(nameA)
+        RegisteredPlayer a = MultiSeat.registered(deckA, commander).setPlayer(HUMAN.equals(ctlA) ? new LobbyPlayerHuman(nameA)
                 : seatFor(ctlA, nameA, planA, smartA, fastA, profileA));
-        RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(HUMAN.equals(ctlB) ? new LobbyPlayerHuman(nameB)
+        RegisteredPlayer b = MultiSeat.registered(deckB, commander).setPlayer(HUMAN.equals(ctlB) ? new LobbyPlayerHuman(nameB)
                 : seatFor(ctlB, nameB, planB, smartB, fastB, profileB));
         boolean swap = "1".equals(env.get("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
         System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + seatModel(ctlA, smartA) + ") B=" + nameB + "(" + ctlB
                 + "," + seatModel(ctlB, smartB) + ")" + (swap ? " [SWAPPED]" : ""));
+        if (seats > 2) players.addAll(MultiSeat.extraSeats(env, commander, Lists.newArrayList(nameA, nameB)));
         return players;
     }
 
@@ -13166,6 +13172,14 @@ public final class LlmSpikeGui {
 
     /** Parse a plain "N Cardname" decklist (blank line separates mainboard from sideboard). */
     static Deck loadDeck(String name, String path) throws Exception {
+        // A Forge .dck (a Commander precon: [metadata], [Commander], [Main]) is read by Forge's own reader.
+        if (path.toLowerCase(java.util.Locale.ROOT).endsWith(".dck")) {
+            Deck dck = forge.deck.io.DeckSerializer.fromFile(new java.io.File(path));
+            if (dck == null) throw new java.io.IOException("not a Forge deck file: " + path);
+            System.out.println("[DECK] loaded '" + name + "': " + dck.getMain().countAll() + " main, "
+                    + (dck.has(DeckSection.Commander) ? dck.get(DeckSection.Commander).countAll() : 0) + " commander  (" + path + ")");
+            return dck;
+        }
         Deck deck = new Deck(name);
         DeckSection section = DeckSection.Main;
         int mainCt = 0, sideCt = 0;
@@ -13317,13 +13331,18 @@ public final class LlmSpikeGui {
         String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
         String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
         String winner = "draw"; int turns = -1; String winCond = "?";
+        String winnerName = null;
+        boolean placed = MultiSeat.placed(System.getenv());
         try {
             if (game != null && game.getOutcome() != null) {
                 turns = game.getOutcome().getLastTurnNumber();
                 winCond = String.valueOf(game.getOutcome().getWinCondition());
                 var w = game.getOutcome().getWinningLobbyPlayer();
+                winnerName = w == null ? null : w.getName();
                 // unknown-name winner should be unreachable; map to "invalid" so the A|B|draw|invalid contract holds
                 if (w != null) winner = nameA.equals(w.getName()) ? "A" : (nameB.equals(w.getName()) ? "B" : "invalid");
+                // More seats, or Commander: the winning seat's id (C, D as well).
+                if (placed) winner = MultiSeat.winner(System.getenv(), winnerName);
             }
         } catch (Exception ignore) { }
         winner = finalWinner(winner, capped, gameError);
@@ -13392,6 +13411,8 @@ public final class LlmSpikeGui {
                 // the engine held, which no reader can tell from a finished draw.
                 + ",\"capped\":" + capped
                 + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
+                // A game of more seats, or Commander: each seat's place (additive; a two-seat Constructed line has none).
+                + (placed ? MultiSeat.gameLineFields(game, System.getenv(), winnerName, capped, gameError) : "")
                 + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
                 // The routing filters are conditions (aggregate.PROVENANCE_FIELDS): at list an open-weight model may
                 // find only a 4-bit host. A batch scrubs both and refuses them in --env, so a game names one only when

@@ -1176,6 +1176,34 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - A deck with no `.plan` gets no plan text, only its decklist and card texts. *Why:* the fallback used to be
   the default decks' plan, so a Standard deck was told it was Grixis Reanimator.
 
+**Commander and more seats** (`MultiSeat.java`; the plan: the Commander study, Part E). `GAME_FORMAT=commander` plays
+Forge's Commander game (`GameType.Commander` with its variant applied: the command zone, 40 life, commander damage and
+tax), each seat registered with its commander (`RegisteredPlayer.forCommander`), its deck a Forge `.dck` with a
+`[Commander]` section (`loadDeck` reads a `.dck` with Forge's own reader; `run_batch.py` also finds one of the 180
+precons in `res/quest/commanderprecons` by name). `PLAYERS=3` or `4` seats C and D after A and B, each with its own
+`DECK_X`, `DECK_X_NAME` (default: the deck file's name), `CONTROLLER_X` (default `ai`), `SMART_MODEL_X` /
+`FAST_MODEL_X`, `AI_PROFILE_X` and `PLAN_X`, as A and B are built.
+- The game line of such a game adds `n_players` and `players`, one entry per seat in seat order: `seat` (A-D), `name`,
+  `controller`, `deck` (the file's name), `place` (1 the winner, then the reverse order of losses; null for a seat
+  still playing when the game ended without a winner), `eliminated_turn` (the turn in progress at the first game event
+  after the loss: the engine records the order of losses, not their turns), `reason` (`won`, the engine's
+  `GameLossReason`, or `draw` / `capped` / `error`) and `bridge_down_decisions`. `winner` is the winning seat's id. A
+  two-seat Constructed game is built and recorded as before, its line without these fields.
+- `aggregate.py` splits on `n_players` (default 2) beside `game_format`, so a game of more seats never pools with a
+  two-seat one; `run_batch.py` records `game_format`, `players` and seats C and D (`seats_cd`, with each deck's sha) in
+  the manifest and refuses to resume a directory under another (a manifest from before the field is read by its game
+  lines' `game_format`).
+- `run_batch.py --players N --deck-c/-d --name-c/-d --controller-c/-d --ai-profile-c/-d`, and `--format commander`, are
+  exploratory only: placement scoring is not built (the study's stage 5), and a panel is two-seat Constructed. Seats C
+  and D are zero-model seats there (ai, ai-log, random, floor) until the seat reads more than one opponent (stage 3);
+  seat A or B may be the model seat. `--pairs` is refused: a game of more seats is rotated, not swapped. The derived
+  cap is 30 minutes with no model seat and 120 + 90 a model seat (four Forge AI seats played 56-77 turns in 37-84 s;
+  the study estimates 70-100 minutes for one model seat among three AI).
+- The seat itself still reads one opponent in its observation, plan signature and prompt wording (the study's stage
+  3); only the attackers, who starts (harness-epoch-101) and the seat count are multiplayer so far.
+- The `commander` acceptance stage plays two pinned four-seat games on four precons, four Forge AI seats and then a
+  random seat A among three; both seeds replay to the same game.
+
 - **`run_batch.py`** launches games:
   - it pins every condition explicitly (ambient environment is scrubbed) and records provenance;
   - provenance: `overlay_sha` hashes every overlay source (`forge-overlay/*/src/main/**`, the harness

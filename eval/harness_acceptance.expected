@@ -2,6 +2,19 @@
 # Re-pin DELIBERATELY, with the commit that moved a number, never to make a run pass.
 # floor/floor never builds a play menu; random/random reaches the full menu (see CLAUDE.md).
 floor.seed=42
+# 2026-11-16 (feat/commander-headless): four-seat Commander on Forge precons, seats A-D Abzan Armor, Breed Lethality,
+# Coven Counters, Dungeons of Death. Four Forge AI seats: 56 turns, Breed Lethality first; seat A random among three
+# AI: 72 turns, Coven Counters first. Each seed played twice to the same game. Places are seat+place, seat order.
+commander-ai.seed=1
+commander-ai.winner=B
+commander-ai.turns=56
+commander-ai.decisions=0
+commander-ai.places=A3,B1,C4,D2
+commander-random.seed=1
+commander-random.winner=C
+commander-random.turns=72
+commander-random.decisions=37
+commander-random.places=A4,B2,C1,D3
 floor.winner=A
 floor.turns=108
 # 2026-10-12: G7 routed chooseStartingPlayer/chooseColor/chooseSomeType/chooseProtectionType then
