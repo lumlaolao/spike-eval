@@ -446,8 +446,12 @@ public final class LlmSpikeGui {
      *  Epoch 100 (2026-11-14, audit B4): once the game is over or capped no new model request starts (a further
      *  round, a nudge, a correction, a retry, a rate-limit resend or a truncation retry); the decision takes its fixed
      *  legal option and its row names the stop (`game-capped`, `game-over`) in place of `bridge-down`.
+     *  Epoch 101 (2026-11-16, multiplayer): with more than one opponent the attackers are every creature that can
+     *  attack any defender and the question names each opponent's life and poison, and the seat names who starts
+     *  instead of play or draw. A two-player game asks the same bytes (GoldenChecksTest
+     *  twoPlayerStartAndAttackAsksAreUnchanged); there, a creature that may attack only a planeswalker is now offered.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-100";
+    static final String HARNESS_EPOCH = "harness-epoch-101";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */
@@ -3346,8 +3350,7 @@ public final class LlmSpikeGui {
                 Player defender = null;
                 for (Player pl : combat.getDefendingPlayers()) { defender = pl; break; }
                 if (defender == null) { auto("attackers(no-defender)->none"); return; } // declare nothing, never the AI
-                CardCollection legal = new CardCollection();
-                for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
+                CardCollection legal = legalAttackers(attacker, combat);
                 if (legal.isEmpty()) return;
                 // ONE creature that can attack is still a decision: attack with it, or do not. This site
                 // used to add it to combat without asking ("forced-only-legal"), so a seat with a single
@@ -3365,7 +3368,7 @@ public final class LlmSpikeGui {
                 // No model available (floor arm / budget) -> deterministic ALL-IN, the classic goldfish
                 // baseline. Never the engine AI.
                 if (!smartOk()) {
-                    for (Card c : legal) combat.addAttacker(c, defender);
+                    for (Card c : legal) combat.addAttacker(c, firstDefender(c, combat, defender));
                     if (!makeAttackLegal(combat, "no-model")) auto("attackers(no-model)->all-in x" + legal.size());
                     return;
                 }
@@ -3375,23 +3378,12 @@ public final class LlmSpikeGui {
                 List<String> labels = new ArrayList<>();
                 for (Card c : legal) labels.add(c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
                 if (!proposesCombat()) p("[ROUTER] attackers: " + legal.size() + " can attack -> " + routeLabel(smart.getModel(), rnd != null));
-                // Poison-aware lethal: a life-total-only hint actively misleads an infect/poison deck
-                // (SF-1: deepseek's Infect matchup vs an opponent that never dropped below 20 life the
-                // whole game — the real win condition was poison, invisible to the old hint). Compute
-                // BOTH numbers and flag whether any legal attacker actually deals poison damage.
-                int oppLife = defender.getLife();
-                int oppPoison = 0;
-                try { oppPoison = defender.getCounters(CounterEnumType.POISON); } catch (Exception ignore) { }
-                boolean anyInfect = false;
-                for (Card c : legal) { try { if (c.isInfectDamage(defender)) { anyInfect = true; break; } } catch (Exception ignore) { } }
                 if (proposesCombat()) {   // no outlook: it names which attackers could be blocked by what
-                    proposeAttackers(attacker, combat, legal, labels, shadowAtk,
-                            buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect, ""));
+                    proposeAttackers(attacker, combat, legal, labels, shadowAtk, attackersQuestion(combat, legal, false));
                     return;
                 }
                 // Shared question template (single source; the ai-teacher seat rebuilds byte-identically).
-                String question = buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect,
-                        attackersCeiling(legal, defender, combat));
+                String question = attackersQuestion(combat, legal, true);
                 // The engine re-asks until the declaration is legal (PhaseHandler: validateAttackers), so a set it
                 // refuses (Silent Arbiter's one attacker, a creature that must attack) looped for a seat that kept
                 // its answer (authored puzzles x_0, x_15, x_18 searched for hours). Asked once more with the reason;
@@ -3403,7 +3395,8 @@ public final class LlmSpikeGui {
                     int noted = line == null ? 0 : line.choices.size();
                     picks = decideMany(smart, null, question, labels, 0, legal.size());
                     if (picks == null) break;
-                    for (int i : picks) combat.addAttacker(legal.get(i), attackTarget(legal.get(i), defender, combat));
+                    for (int i : picks)
+                        combat.addAttacker(legal.get(i), attackTarget(legal.get(i), firstDefender(legal.get(i), combat, defender), combat));
                     if (CombatUtil.validateAttackers(combat)) break;
                     // on the record as asked, answered and overruled (its own row type: JSONL stays additive)
                     for (int i : picks) combat.removeFromCombat(legal.get(i));
@@ -3993,7 +3986,7 @@ public final class LlmSpikeGui {
         /** Where one declared attacker attacks: the player, or a planeswalker or battle it can attack.
          *  Every attacker used to go at the first defending player, so Jace, the Mind Sculptor, Minsc &
          *  Boo or Karn could never be attacked. Asked only when there is more than one legal defender. */
-        private GameEntity attackTarget(Card attacker, Player player, Combat combat) {
+        private GameEntity attackTarget(Card attacker, GameEntity player, Combat combat) {
             List<GameEntity> defs = new ArrayList<>();
             try { for (GameEntity d : combat.getDefenders()) if (CombatUtil.canAttack(attacker, d)) defs.add(d); }
             catch (Exception e) { return player; }
@@ -4003,7 +3996,7 @@ public final class LlmSpikeGui {
             int c = decideOne(smart, "attack-target", "Where does " + labelOf(attacker) + " attack?", labels, null);
             if (c >= 0) return defs.get(c);
             auto("attack-target(unparsed)->player");
-            return player;
+            return defs.contains(player) ? player : defs.get(0);
         }
 
         /** The engine's reason the last block set was not legal, put into the re-ask; set only during that re-ask. */
@@ -6840,12 +6833,20 @@ public final class LlmSpikeGui {
         // deterministic legal option, never Forge AI.
 
         /** Play or draw after winning the toss. Forge AI always plays first; the model may choose to
-         *  draw. Deterministic fallback: play first (the pre-existing behaviour). */
+         *  draw. With more than one opponent the seat names who starts, as Forge's human controller asks
+         *  ("draw first" handed the first turn to the first opponent). Deterministic fallback: play first
+         *  (the pre-existing behaviour). */
         @Override
         public Player chooseStartingPlayer(boolean isFirstGame) {
             clearLast();
             try {
-                if (fastOk()) {
+                List<Player> order = new ArrayList<>(getGame().getPlayersInTurnOrder());
+                if (fastOk() && order.size() > 2) {
+                    List<String> labels = new ArrayList<>();
+                    for (Player pl : order) labels.add(labelOf(pl));
+                    int c = decideOne(fast, "starting-player", "You won the roll. Who takes the first turn?", labels, null);
+                    if (c >= 0) return order.get(c);
+                } else if (fastOk()) {
                     List<String> labels = Lists.newArrayList("Play first", "Draw first");
                     int c = decideOne(fast, "starting-player", "You won the roll. Play first, or draw first?", labels, null);
                     if (c == 0) return getPlayer();
@@ -11018,6 +11019,57 @@ public final class LlmSpikeGui {
             } catch (Exception e) { return ""; }
         }
 
+        /** The creatures that can attack any defender: a player, a planeswalker or a battle. These were the creatures
+         *  that could attack the first defending player, so in a game of three or more a creature barred from that
+         *  player (Blazing Archon) was never offered, and in any game one that could attack only a planeswalker. */
+        static CardCollection legalAttackers(Player attacker, Combat combat) {
+            CardCollection legal = new CardCollection();
+            for (Card c : attacker.getCreaturesInPlay())
+                for (GameEntity d : combat.getDefenders())
+                    if (CombatUtil.canAttack(c, d)) { legal.add(c); break; }
+            return legal;
+        }
+
+        /** Where a creature goes when the seat is not asked: {@code dflt}, the first defending player, when it may
+         *  attack them, else the first defending player it may attack, else the first defender it may attack. */
+        static GameEntity firstDefender(Card c, Combat combat, Player dflt) {
+            if (CombatUtil.canAttack(c, dflt)) return dflt;
+            for (Player p : combat.getDefendingPlayers()) if (CombatUtil.canAttack(c, p)) return p;
+            for (GameEntity d : combat.getDefenders()) if (CombatUtil.canAttack(c, d)) return d;
+            return dflt;
+        }
+
+        /** The attackers question. Against one opponent it is {@link #buildAttackersQuestion} with that opponent's
+         *  numbers, byte for byte. Against more it names every opponent's life and poison (each attacker's target
+         *  is asked after, as "Where does ... attack?"); the engine outlook is the one-opponent text, so it is left
+         *  out there. {@code outlook} adds the lookahead outlook where the seat shows it. */
+        static String attackersQuestion(Combat combat, CardCollection legal, boolean outlook) {
+            List<Player> defenders = new ArrayList<>(combat.getDefendingPlayers());
+            boolean anyInfect = false;
+            for (Card c : legal)
+                for (Player d : defenders) { try { if (c.isInfectDamage(d)) anyInfect = true; } catch (Exception ignore) { } }
+            if (defenders.size() == 1) {
+                Player d = defenders.get(0);
+                // Poison-aware lethal: a life-total-only hint actively misleads an infect/poison deck (SF-1).
+                return buildAttackersQuestion(d.getName(), d.getLife(), poisonOf(d), anyInfect,
+                        outlook ? attackersCeiling(legal, d, combat) : "");
+            }
+            StringBuilder b = new StringBuilder("COMBAT: declare attackers. You may attack any of " + defenders.size()
+                    + " opponents: ");
+            for (int i = 0; i < defenders.size(); i++) {
+                Player d = defenders.get(i);
+                b.append(i == 0 ? "" : "; ").append(d.getName()).append(" (life ").append(d.getLife()).append(", ")
+                        .append(poisonOf(d)).append("/10 poison)");
+            }
+            return b.append(". Choose which creatures attack; you may attack with none. Where each attacker goes is asked")
+                    .append(" next. LETHAL: an opponent at 0 life or 10 poison loses")
+                    .append(anyInfect ? " (infect attackers deal poison, not life loss)" : "").append(".").toString();
+        }
+
+        private static int poisonOf(Player p) {
+            try { return p.getCounters(CounterEnumType.POISON); } catch (Exception e) { return 0; }
+        }
+
         /** Adds the optional combat outlook to the shared attackers question. */
         static String buildAttackersQuestion(String defenderName, int oppLife, int oppPoison, boolean anyInfect, String outlook) {
             int poisonNeeded = Math.max(0, 10 - oppPoison);
@@ -11434,23 +11486,14 @@ public final class LlmSpikeGui {
             // attackers the AI is about to declare (the void-method state-leak the review flagged).
             List<String> labels = null; int nLegal = 0; String prompt = null;
             try {
-                Player defender = null;
-                for (Player pl : combat.getDefendingPlayers()) { defender = pl; break; }
-                if (defender != null) {
-                    CardCollection legal = new CardCollection();
-                    for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
+                if (!combat.getDefendingPlayers().isEmpty()) {
+                    CardCollection legal = PlayerControllerLLM.legalAttackers(attacker, combat);
                     nLegal = legal.size();
                     if (nLegal > 1) {
                         labels = new ArrayList<>();
                         for (Card c : legal) labels.add(c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
-                        int oppLife = defender.getLife();
-                        int oppPoison = 0;
-                        try { oppPoison = defender.getCounters(CounterEnumType.POISON); } catch (Exception ignore) { }
-                        boolean anyInfect = false;
-                        for (Card c : legal) { try { if (c.isInfectDamage(defender)) { anyInfect = true; break; } } catch (Exception ignore) { } }
                         // Shared question template (single source; byte-identical to the LLM seat's).
-                        String q = PlayerControllerLLM.buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect,
-                                PlayerControllerLLM.attackersCeiling(legal, defender, combat));
+                        String q = PlayerControllerLLM.attackersQuestion(combat, legal, true);
                         prompt = PlayerControllerLLM.buildDecideManyPrompt(snap(), q, labels, 0, nLegal);
                     }
                 }
