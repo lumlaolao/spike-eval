@@ -1,0 +1,15 @@
+Modified from Forge (https://github.com/Card-Forge/forge), GPL-3.0-or-later; changes marked HARNESS PATCH;
+see docs/harness/ENGINE-PATCHES.md. Changes dated 2026-11-16 to 2026-11-16.
+Upstream file: forge-gui/res/cardsfolder/d/disciple_of_perdition.txt at FORGE_COMMIT. Made by: python3 eval/engine_patches.py diff
+
+--- a/forge-gui/res/cardsfolder/d/disciple_of_perdition.txt
++++ b/forge-gui/res/cardsfolder/d/disciple_of_perdition.txt
+@@ -7,6 +7,7 @@
+ SVar:DBDraw:DB$ Draw | SubAbility$ DBLoseLife | SpellDescription$ You draw a card and lose 1 life.
+ SVar:DBLoseLife:DB$ LoseLife | LifeAmount$ 1 | StackDescription$ None
+ SVar:Y:Count$YourLifeTotal
+-SVar:DBExile:DB$ ChangeZoneAll | Origin$ Graveyard | Destination$ Exile | ValidTgts$ Player | ChangeType$ Card | SpellDescription$ Exile target player's graveyard. That player loses 1 life.
++# HARNESS PATCH: the exile mode's life loss (DBLoseLife2) was never chained, so the player lost no life.
++SVar:DBExile:DB$ ChangeZoneAll | Origin$ Graveyard | Destination$ Exile | ValidTgts$ Player | ChangeType$ Card | SubAbility$ DBLoseLife2 | SpellDescription$ Exile target player's graveyard. That player loses 1 life.
+ SVar:DBLoseLife2:DB$ LoseLife | Defined$ Targeted | LifeAmount$ 1 | StackDescription$ None
+ Oracle:When Disciple of Perdition dies, choose one. If you have exactly 13 life, you may choose both.\n• You draw a card and lose 1 life.\n• Exile target player's graveyard. That player loses 1 life.
