@@ -2811,6 +2811,31 @@ public class GoldenChecksTest {
         Assert.assertTrue(me.getCardsIn(ZoneType.Sideboard).contains(lurrus), "Lurrus stays in the sideboard");
     }
 
+    /** Disciple of Perdition's exile mode makes that player lose 1 life (engine patch to its script: DBExile chained no
+     *  SubAbility, so DBLoseLife2 never ran and the player lost nothing; found by the card-script audit, 2026-11-16).
+     *  The mode is read from the patched script acceptance writes ({@code harness.engine.patched}) when there is one,
+     *  else from the checkout's, which install.sh patches. */
+    @Test
+    public void disciplesExileModeMakesThatPlayerLoseOneLife() throws Exception {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card disciple = card("Disciple of Perdition", me, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Graveyard);
+        String rel = "d/disciple_of_perdition.txt", dir = System.getProperty("harness.engine.patched");
+        java.io.File f = dir == null ? null : new java.io.File(dir, "forge-gui/res/cardsfolder/" + rel);
+        if (f == null || !f.isFile()) f = new java.io.File(forge.localinstance.properties.ForgeConstants.CARD_DATA_DIR, rel);
+        String exile = null;
+        for (String line : java.nio.file.Files.readAllLines(f.toPath()))
+            if (line.startsWith("SVar:DBExile:")) exile = line.substring("SVar:DBExile:".length());
+        Assert.assertNotNull(exile, "no DBExile in " + f);
+        SpellAbility sa = forge.game.ability.AbilityFactory.getAbility(exile, disciple);
+        sa.setActivatingPlayer(me);
+        sa.getTargets().add(rival);
+        forge.game.ability.AbilityUtils.resolve(sa);
+        Assert.assertTrue(rival.getCardsIn(ZoneType.Graveyard).isEmpty(), "the graveyard is exiled");
+        Assert.assertEquals(rival.getLife(), 19, "that player loses 1 life (" + f + ")");
+    }
+
     /** A five-card hand is the seat's to keep or mulligan: the harness kept it on its own (runs/luna-std/g13). */
     @Test
     public void aFiveCardHandIsStillTheSeatsMulligan() {
