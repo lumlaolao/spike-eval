@@ -120,6 +120,15 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   creature can attack this combat"), then replaced by the engine's legal declaration
   (`AttackConstraints.getLegalAttackers`, a constraint solve), recorded as taken. The engine re-asks until the
   declaration is legal, so a seat that kept its answer looped (epoch 66; authored puzzles x_0, x_15, x_18).
+- The attackers offered are the creatures that can attack any defender (a player, a planeswalker or a battle), each
+  checked by `CombatUtil.canAttack`; where each one goes is asked after the pick ("Where does ... attack?") when it may
+  attack more than one. They were the creatures that could attack the first defending player, so with more than one
+  opponent a creature barred from the first (Blazing Archon) was never offered and the others could be attacked only
+  by a creature the first could also be attacked by. With more than one opponent the question names each one's life
+  and poison; with one it is the two-player question byte for byte, outlook included (harness-epoch-101).
+- Winning the roll: with one opponent, play or draw; with more, the seat names who takes the first turn from the
+  players in turn order, as Forge's human controller asks ("draw first" handed the first turn to the first
+  opponent; harness-epoch-101).
 - A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
   tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
   harness seats), but last, after every safe source (epoch 65) and after the sacrifice-cost sources too (epoch 95,
