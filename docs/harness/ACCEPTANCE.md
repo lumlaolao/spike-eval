@@ -14,8 +14,8 @@ what is left:
   reads no compiled class;
 - after compile, every other stage runs as a child run (`OUT/part-<unit>/`, summaries merged into `OUT/summary.txt`)
   fed to a pool of `ACCEPTANCE_POOL` (default `ACCEPTANCE_JOBS`) children, longest first (javatests with surfaces,
-  gaming, scoring, canary, faketool, nativerefuse, rules, faithful, lines, nativetool, lookahead, answertool,
-  turnchat), so the last to finish are short and no core idles while a long stage runs alone;
+  commander, gaming, scoring, canary, faketool, nativerefuse, rules, faithful, lines, nativetool, lookahead,
+  answertool, cacheorder, turnchat), so the last to finish are short and no core idles while a long stage runs alone;
 - javatests runs the keyword sweep as `SWEEP_SHARDS` (2) JVMs and the other classes as `MAIN_SHARDS` (2) JVMs, dealt
   by the seconds each class took (`eval/javatests_shards.py`, `eval/javatests_seconds.tsv`); the stage fails unless
   every class is in exactly one shard, as before when a test is skipped or the count run differs from the count

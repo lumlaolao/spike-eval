@@ -296,7 +296,7 @@ if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ]; then
   # Without a build the units are not started: each stage then runs below, in this process, and fails on it.
   POOL_UNITS=""
   [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] && [ -f "$CP_FILE" ] && \
-    POOL_UNITS="javatests+surfaces gaming scoring canary commander faketool nativerefuse rules faithful lines nativetool lookahead answertool cacheorder turnchat"
+    POOL_UNITS="javatests+surfaces commander gaming scoring canary faketool nativerefuse rules faithful lines nativetool lookahead answertool cacheorder turnchat"
   POOL_SIZE="${ACCEPTANCE_POOL:-$ACCEPTANCE_JOBS}"
   case "$POOL_SIZE" in ''|*[!0-9]*|0) fail parallel "ACCEPTANCE_POOL='$POOL_SIZE' must be a number >= 1"; POOL_SIZE=1;; esac
   JOBS="$EARLY_JOBS"; RUNNING="$EARLY_PIDS"
