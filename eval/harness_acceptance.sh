@@ -381,7 +381,7 @@ PYEOF
     testng() { # $1 name  $2 test classes  $3.. extra JVM options
       local name="$1" classes="$2"; shift 2
       ( cd "$FORGE/forge-gui-desktop" && env -u EVAL_OUT TMPDIR="$JTMP" MEMORY_TOOLS=1 "$JAVA" $ACC_JVM "$@" -Djava.io.tmpdir="$JTMP" -Dapple.awt.UIElement=true \
-          -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
+          -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces-$name.tsv" -Dharness.engine.patched="${ACC_BUILD:-$OUT}/patched-engine" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
           org.testng.TestNG -testclass "$classes" -d "$OUT/testng-$name" ) >"$OUT/javatests-$name.log" 2>&1
     }
     TPIDS=""

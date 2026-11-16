@@ -48,7 +48,10 @@ class AgentsTest(unittest.TestCase):
         forge = self.forge()
         ag.copy_ours(REPO, self.box, forge)
         info = hgrade.intake(os.path.join(self.box, "overlay"), str(forge))
-        self.assertEqual(sorted(info["engine_patches"]), sorted(engine_patches.patch_files(REPO)))
+        # The grader reads Java: a patched card script (res/cardsfolder) is copied but not counted, and the
+        # environment's games read the read-only engine's own scripts.
+        java = [p for p in engine_patches.patch_files(REPO) if p.endswith(".java")]
+        self.assertEqual(sorted(info["engine_patches"]), sorted(java))
         self.assertEqual(info["unmarked_engine_patches"], [])
 
     def test_the_build_does_not_add_the_adapter_twice(self):
