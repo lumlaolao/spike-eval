@@ -27,6 +27,8 @@ with none of them set plays with the lookups and the rules tool on. The variable
 | `PROPOSE_AUDIT` | 0 | diagnostic, and a condition (stamped `propose_audit`; it registers handles early; `run_batch.py` pins it off, puzzles strip it, so it runs only in the keyword gauntlet): at every play decision, proposes each menu play and logs `[PROPOSE-AUDIT] MISS` for any that does not land on itself (ARCHITECTURE.md, "The checker audit") |
 | `GAME_SEED`, `SWAP_SEATS` | random, 0 | seeded shuffles; `1` seats identity B first (the paired flip) |
 | `DECK_A/B`, `DECK_A_NAME/B_NAME`, `PLAN_A/B` | eval decks | decklists, seat labels, deck framing (unset or `PLAN_A=""`: none) |
+| `SMART_REASONING_EFFORT` | unset (no reasoning field) | an explicit reasoning effort the openrouter: smart tier sends (one the model accepts); stamped `reasoning_effort_a/_b`, a condition (critique V1) |
+| `OPENROUTER_KEY_HOST` | unset | the one host besides openrouter.ai that may receive the API key (critique V20) |
 | `PLAN_SIDECAR` | 0 | 1 loads a deck's `<deck>.plan` strategy text into `<your_deck>` when `PLAN_A/B` is unset; off by default, since the text is advice the panel's seat never gets (critique E37, P44) |
 | `EVAL_OUT` | off | directory for the per-decision and game JSONL |
 | `TRANSCRIPTS` | 0 (1 in `puzzle_solve.py` and `play-vs-llm.sh`) | with `EVAL_OUT`, keeps every HTTP request and response byte for byte (`docs/eval/PUZZLES.md`, "Keeping a run") |

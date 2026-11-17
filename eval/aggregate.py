@@ -120,6 +120,9 @@ PROVENANCE_FIELDS = (
     # Reasoning effort is part of the player's identity, like temperature.
     ("claude_effort_smart", MISSING),
     ("claude_effort_fast", MISSING),
+    # The openrouter: smart tier's effort (SMART_REASONING_EFFORT, critique V1); a game from before it sent none.
+    ("reasoning_effort_a", "provider-default"),
+    ("reasoning_effort_b", "provider-default"),
     # What the seat can do beyond answering: the tool protocol (native vs text) and each opt-in
     # tool are conditions and never pool (CLAUDE.md). native_tools_downgraded is an observation
     # (a provider refused function calling mid-game): such a game is not a clean native-tools

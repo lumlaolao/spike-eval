@@ -91,7 +91,7 @@ DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT", "ANSWER_SCHEMA", "ANSWER_TOOL_CHOICE",
                       "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT", "PROPOSE_ACTIONS", "PROPOSE_AUDIT",
-                      "PROPOSE_TERSE", "PROPOSE_NOTEBOOK",
+                      "PROPOSE_TERSE", "PROPOSE_NOTEBOOK", "SMART_REASONING_EFFORT",
                       # The Forge AI profile of an ai / ai-log seat (--ai-profile-a / -b); "" = the compiled AiProps
                       # defaults, the opponent every recorded STR-AI score met (issue #381).
                       "AI_PROFILE_A", "AI_PROFILE_B",

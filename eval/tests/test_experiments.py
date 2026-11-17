@@ -413,6 +413,8 @@ class GameLineStampCoverageTest(unittest.TestCase):
     # (STANDARDS section 4; test_every_allowlist_entry_says_why). One that ever did would need a stamp.
     NON_CONDITION_ENV = {
         "AUTO_EXIT": "process control: the JVM exits when the game ends",
+        "OPENROUTER_KEY_HOST": "credentials: which host may receive the API key",
+        "SMART_REASONING_EFFORT": "stamped by its effect: reasoning_effort_a / _b on the game line",
         "PLAN_SIDECAR": "stamped by its effect: the plan text it loads is the game line's plan_a / plan_b",
         "CLAUDE_BIN": "transport: which claude executable a claude-cli: seat runs",
         "EVAL_OUT": "recording: the directory the rows are written to",

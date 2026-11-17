@@ -67,11 +67,12 @@ final class ClaudeCliBridge implements LLMBridge {
     /** What the child may inherit, by name: how it runs, reaches the network and logs in to the subscription. None of
      *  them chooses the model, its thinking or its effort (those are argv or {@link #THINKING_ENV}, both stamped);
      *  everything else, among it MAX_THINKING_TOKENS, ANTHROPIC_MODEL and its per-tier defaults, the launching session's
-     *  CLAUDE* variables and the harness's OPENROUTER* ones, is dropped (pr-review of #320). */
+     *  CLAUDE* variables and the harness's OPENROUTER* ones, is dropped (pr-review of #320). NODE_OPTIONS is dropped too:
+     *  it can preload code into the CLI, unstamped (critique V16). */
     static final Set<String> KEEP_ENV = Collections.unmodifiableSet(new java.util.TreeSet<>(Arrays.asList(
             "PATH", "HOME", "USER", "LOGNAME", "SHELL", "TERM", "LANG", "TZ", "TMPDIR",
             "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "https_proxy", "http_proxy", "no_proxy", "all_proxy",
-            "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS", "NODE_OPTIONS",
+            "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
             "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR")));
     /** An API key login: kept only when the operator asks ({@link #API_KEY_OPT_IN}). */
     static final List<String> API_KEY_ENV = List.of("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN");

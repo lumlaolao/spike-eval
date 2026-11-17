@@ -476,8 +476,10 @@ public final class LlmSpikeGui {
      *  search finds every word, and its results name the function.
      *  Epoch 108 (2026-11-17, critique batch 7): a preview keeps what the seat knows (its library's known top, cards it
      *  saw in an opponent's hand) instead of shuffling it away (lookahead-preview-v19).
+     *  Epoch 109 (2026-11-17, critique batch 8): a truncated answer is retried with the same reasoning and more room,
+     *  never with reasoning off; SMART_REASONING_EFFORT sends and stamps an explicit effort.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-108";
+    static final String HARNESS_EPOCH = "harness-epoch-109";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */
@@ -8847,6 +8849,8 @@ public final class LlmSpikeGui {
         // Short exponential backoff between retries (0.5s, 2s) — long enough to let a flaky route or a
         // CLI process recover, short enough not to stack into a real hang across up to 3 attempts.
         static final long[] BRIDGE_RETRY_BACKOFF_MS = { 500L, 2000L };
+        /** The waits before a retry after a provider's 429 or 5xx (plus up to half again of jitter). */
+        static final long[] PROVIDER_RETRY_BACKOFF_MS = { 5_000L, 20_000L };
         /** Decisions in a row lost to the bridge that trip the breaker (askModelUnstopped). */
         static final int BREAKER_STREAK = 5;
         /** Every model call funnels through here — also the single capture point for the decision record:
@@ -9221,7 +9225,12 @@ public final class LlmSpikeGui {
                     break;
                 }
                 lastRetryMs += subMs; // that failed sub-attempt's own time is dead time, not think-time
-                long wait = BRIDGE_RETRY_BACKOFF_MS[attempt];
+                // A provider that said 429 or 5xx is waited out longer, with jitter (critique V5: 0.5 s and 2 s, then the
+                // decision was lost, and a game with one lost decision is refused by the scorer and replayed whole).
+                int status = b.lastFailureStatus();
+                long wait = status == 429 || status >= 500
+                        ? PROVIDER_RETRY_BACKOFF_MS[attempt] + (long) (Math.random() * PROVIDER_RETRY_BACKOFF_MS[attempt] / 2)
+                        : BRIDGE_RETRY_BACKOFF_MS[attempt];
                 p("[BRIDGE " + b.getLabel() + "] no reply (attempt " + (attempt + 2) + "/"
                         + (BRIDGE_RETRY_BACKOFF_MS.length + 1) + ") -> restarting session, retrying in " + wait + "ms");
                 b.restart();
@@ -12260,8 +12269,9 @@ public final class LlmSpikeGui {
         String pathB = env.getOrDefault("DECK_B", home + "/Downloads/Deck - Mardu Energy.txt");
         String nameA = env.getOrDefault("DECK_A_NAME", "Grixis Reanimator");
         String nameB = env.getOrDefault("DECK_B_NAME", "Mardu Energy");
-        String smart = env.getOrDefault("SMART_MODEL", "opus");
-        String fast  = env.getOrDefault("FAST_MODEL", "haiku");
+        // No default model (critique V15: the retired bare names "opus"/"haiku"); a seat with none is "none" on the line.
+        String smart = env.getOrDefault("SMART_MODEL", "none");
+        String fast  = env.getOrDefault("FAST_MODEL", "none");
         String smartA = env.getOrDefault("SMART_MODEL_A", smart);
         String smartB = env.getOrDefault("SMART_MODEL_B", smart);
         String fastA  = env.getOrDefault("FAST_MODEL_A", fast);
@@ -12484,7 +12494,10 @@ public final class LlmSpikeGui {
             // (MANDATORY_REASONING_FLOOR) -- but its answer is no longer cut: 1024 tokens
             // truncated 2 of 170 fast calls in runs/compare/two-tier, and the retry then asked again
             // at the same 1024. 8192 tokens and 120s (docs/harness/MODEL-LIMITS.md).
-            ModelCfg uniform = new ModelCfg(32000, 300000, null, null, 8192, 120000, "none");
+            // SMART_REASONING_EFFORT: an explicit reasoning effort for the smart tier, sent and stamped (reasoning_effort_a/_b,
+            // critique V1: none was sent, so the provider's default of the day decided, unstamped). Unset: no field.
+            String effort = System.getenv("SMART_REASONING_EFFORT");
+            ModelCfg uniform = new ModelCfg(32000, 300000, effort == null || effort.isBlank() ? null : effort.trim(), null, 8192, 120000, "none");
             // THE TIMEOUT IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap shutdown grace from
             // maxDecisionMs() (three attempts of the slowest timeout), and run_batch.py's backstop budgets
             // for that with a hardcoded GRACE_S = 1000 (it cannot call the Java side). 300s gives a
@@ -12498,8 +12511,10 @@ public final class LlmSpikeGui {
             // takes this row too: send() replaces its "none" with MANDATORY_REASONING_FLOOR's lowest effort,
             // on the fast tier and the truncation retry alike. Keep it per model id, never per family: a
             // grok-wide row would send "low" to grok-build-0.1 (no efforts) and to grok-4.3 (can turn it off).
+            // A config that does not read stops the run, as an unknown CONTEXT_PROFILE does (critique V7: it fell back to
+            // the defaults with one log line).
             try { applyEnvOverride(t); }
-            catch (Exception e) { System.out.println("[MODEL-CFG] failed to parse OPENROUTER_MODEL_CFG, using built-in defaults: " + e); }
+            catch (Exception e) { throw new IllegalStateException("OPENROUTER_MODEL_CFG does not parse: " + e, e); }
             return t;
         }
 
@@ -12586,7 +12601,9 @@ public final class LlmSpikeGui {
          */
         static long maxDecisionMs() {
             long backoff = 0;
-            for (long b : PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS) backoff += b;
+            // The longer of the two waits a retry can take, jitter included.
+            for (int i = 0; i < PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS.length; i++)
+                backoff += Math.max(PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS[i], PlayerControllerLLM.PROVIDER_RETRY_BACKOFF_MS[i] * 3 / 2);
             long attempts = PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS.length + 1;
             return maxConfiguredTimeoutMs() * attempts + backoff;
         }
@@ -13031,7 +13048,14 @@ public final class LlmSpikeGui {
         static String authorizationHeader(String apiKey, String endpoint) {
             if (apiKey == null || apiKey.isEmpty()) return null;
             if (LLMBridgeFactory.isLoopbackEndpoint(endpoint)) return null;
-            return "Bearer " + apiKey;
+            // The key goes to openrouter.ai, or to the one host OPENROUTER_KEY_HOST names; a base URL pointing anywhere
+            // else gets no key (critique V20: it was sent to whatever host the base URL named).
+            String host;
+            try { host = java.net.URI.create(endpoint).getHost(); } catch (RuntimeException e) { return null; }
+            String allowed = System.getenv("OPENROUTER_KEY_HOST");
+            boolean ok = host != null && (host.equals("openrouter.ai") || host.endsWith(".openrouter.ai")
+                    || (allowed != null && !allowed.isBlank() && host.equalsIgnoreCase(allowed.trim())));
+            return ok ? "Bearer " + apiKey : null;
         }
 
         OpenRouterBridge(String label, String model, String preamble) {
@@ -13068,7 +13092,9 @@ public final class LlmSpikeGui {
             this.quantizations = quantizationsField(quantizationsEnv, model);
             this.timeoutMs = timeoutMs;
             this.client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofMillis(timeoutMs))
+                    // A connection that has not opened in 10 s will not (critique V9: the connect timeout was the 300 s
+                    // call deadline).
+                    .connectTimeout(Duration.ofMillis(Math.min(timeoutMs, 10_000L)))
                     .build();
         }
 
@@ -13186,30 +13212,13 @@ public final class LlmSpikeGui {
                 // made it out (audit B5: "my choice is 2 lands" skipped the retry and cost the decision a nudge).
                 if ("length".equals(r.finishReason) && !r.hasCalls() && !askStopped()
                         && (toolsJson != null || !looksLikeDecisionTag(r.content))) {
-                    // A REASONER that burns the whole budget on hidden reasoning and emits no answer
-                    // token (measured 2026-10-13: a 16000-token smart completion, retried at 32000,
-                    // ~3 minutes of the 8-minute game cap) does not need MORE room to think -- that is
-                    // exactly what it just spent. Asking it to stop reasoning gets an answer in ~1s
-                    // (measured: enabled=false -> 65 completion tokens, 1.3s). So for a row we know is
-                    // a reasoner, the retry DISABLES reasoning; every other model keeps the historic
-                    // double-the-budget retry, which is right for a genuinely long answer.
-                    // A call whose reasoning was already off ("none": the fast tier) gets nothing from
-                    // turning it off again; it needs room for its answer, so it takes the doubled budget.
-                    boolean reasoner = !"none".equals(reasoningEffort)
-                            && (reasoningEffort != null || cfg.fastReasoningEffort != null);
+                    // The retry keeps the model's thinking as it was and doubles the room for the answer (critique V2: a
+                    // reasoner was retried with reasoning OFF, so the hardest decisions were decided without thinking,
+                    // unstamped). A change of thinking mid-game is a condition the score cannot see; more room is not.
                     int retryTokens = Math.min(maxTokens * 2, 64000);
                     String retryEffort = reasoningEffort;
-                    // A model that refuses reasoning-off is sent its lowest effort instead (send()), and still
-                    // reasons there, so its retry keeps the whole budget rather than the 4096 an answer needs.
-                    boolean floored = !"none".equals(reasoningFloor(model));
-                    if (reasoner) {
-                        retryTokens = floored ? maxTokens : Math.min(Math.max(maxTokens, 1024), 4096);
-                        retryEffort = "none";
-                    }
-                    System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY"
-                            + (reasoner ? (floored ? "-LOW-REASONING" : "-NO-REASONING") : "")
-                            + "] finish_reason=length @ max_tokens=" + maxTokens + " -> retrying at " + retryTokens
-                            + (reasoner ? (floored ? " with its lowest reasoning effort" : " with reasoning disabled") : ""));
+                    System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY] finish_reason=length @ max_tokens="
+                            + maxTokens + " -> retrying at " + retryTokens + ", the same reasoning");
                     OrResult retry;
                     try {
                         retry = send(messages, toolsJson, allowCalls, retryTokens, retryEffort, temperature, deadline);
@@ -13790,6 +13799,16 @@ public final class LlmSpikeGui {
     /** Resolved sampling temperature for a model SPEC, for the game line. "n/a" for the Claude CLI
      *  backend (no temperature knob there); "default" when the spec's ModelCfg row leaves it unset and
      *  the request body omits the field entirely — which is a real, distinct configuration, not zero. */
+    /** The smart tier's reasoning effort a seat's requests carry: the value, "provider-default" when none is sent, or
+     *  "n/a" for a seat with no openrouter: model (critique V1). */
+    static String resolvedReasoningEffort(String spec) {
+        if (spec == null || !spec.startsWith("openrouter:")) return "n/a";
+        try {
+            String e = ModelCfg.forModel(spec.substring("openrouter:".length())).reasoningEffort;
+            return e == null ? "provider-default" : e;
+        } catch (Exception e) { return "unknown"; }
+    }
+
     static String resolvedTemperature(String spec) {
         if (spec == null || !spec.startsWith("openrouter:")) return "n/a";
         try {
@@ -13845,8 +13864,8 @@ public final class LlmSpikeGui {
         } catch (Exception e) { System.out.println("  (log unavailable: " + e + ")"); }
         System.out.println("===============================");
 
-        String smartDef = System.getenv().getOrDefault("SMART_MODEL", "opus");
-        String fastDef  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
+        String smartDef = System.getenv().getOrDefault("SMART_MODEL", "none");
+        String fastDef  = System.getenv().getOrDefault("FAST_MODEL", "none");
 
         // --- resolved-identity provenance: "which model, on which endpoint, actually played?" ---
         // The served_* fields are keyed by deck-identity NAME (the bridge label's seat is the deck
@@ -13930,6 +13949,8 @@ public final class LlmSpikeGui {
                 + ",\"checkpoint_sha\":\"" + jsonEscape(System.getenv().getOrDefault("CHECKPOINT_SHA", "unknown")) + "\""
                 + ",\"model_cfg_sha\":\"" + jsonEscape(modelCfgSha()) + "\""
                 + ",\"temperature_a\":\"" + jsonEscape(resolvedTemperature(smartASpec)) + "\""
+                + ",\"reasoning_effort_a\":\"" + jsonEscape(resolvedReasoningEffort(smartASpec)) + "\""
+                + ",\"reasoning_effort_b\":\"" + jsonEscape(resolvedReasoningEffort(smartBSpec)) + "\""
                 + ",\"temperature_b\":\"" + jsonEscape(resolvedTemperature(smartBSpec)) + "\""
                 + ",\"memory_tools\":" + PlayerControllerLLM.MEMORY_TOOLS
                 + ",\"memory_tools_version\":\"" + ContextMemory.VERSION + "\""

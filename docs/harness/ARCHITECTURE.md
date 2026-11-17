@@ -1177,6 +1177,15 @@ anything runs):
 `OPENROUTER_ALLOW_EGRESS` is consent for openrouter.ai and is not asked for. The lane's own consent is its explicit
 opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
 
+**Batch 8 of the critique (harness-epoch-109).** A reply truncated at `max_tokens` is retried once with the same
+reasoning and twice the room (it was retried with reasoning off, so the hardest decisions were decided without
+thinking, unstamped; V2). `SMART_REASONING_EFFORT` sends an explicit effort for the smart tier and stamps it
+(`reasoning_effort_a/_b`, a condition in `aggregate.PROVENANCE_FIELDS`; V1); unset, no field is sent, as before. A
+provider's 429 or 5xx is retried after 5 s and 20 s with jitter (`PROVIDER_RETRY_BACKOFF_MS`; V5). The connect timeout is
+10 s (V9). The API key goes only to openrouter.ai or the host `OPENROUTER_KEY_HOST` names (V20). A bad
+`OPENROUTER_MODEL_CFG` stops the run (V7). No default model name (V15). The Claude CLI lane no longer passes
+NODE_OPTIONS to the child (V16).
+
 ## 10. Costs
 
 - Every call row carries:
