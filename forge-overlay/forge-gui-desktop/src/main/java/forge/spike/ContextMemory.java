@@ -25,10 +25,13 @@ final class ContextMemory {
     // v6 (2026-11-14, audit B3): within one match quality a search lists reveals and notes before the archived states.
     // v7 (2026-11-17, critique T9, M5): what is left of the lookup budget is said in each lookup's result, not at the
     // top of every message; the archive lines show each reveal once and every note (up to NOTES_SHOWN).
-    static final String VERSION = "evidence-tools-v7";
+    // v8 (2026-11-17, critique T8, T10, T12): a report spends no lookup and up to 50 a game are kept; an exhausted
+    // budget has one wording; a read page is 4000 characters.
+    static final String VERSION = "evidence-tools-v8";
     static final int TOOLS_PER_ASK = 16;
     static final int TOOLS_PER_GAME = 1000;
-    static final int PAGE_CHARS = 20000;
+    // 4000 (was 20000, critique T12): one read added about 5,000 tokens of an old state to the conversation, 16 a decision.
+    static final int PAGE_CHARS = 4000;
     static final int SEARCH_PAGE = 50;
     static final int NOTE_CHARS = 2000;
     /** The longest command line the executor takes: a NOTE of {@link #NOTE_CHARS} plus its prefix. */
@@ -41,7 +44,8 @@ final class ContextMemory {
     /** Lookups served this game, against TOOLS_PER_GAME. */
     int lookupsUsed() { return toolsUsed; }
     /** The seat's reports that a question was broken (report_unclear_decision). */
-    static final int REPORTS_PER_GAME = 10;
+    // 50 (was 10): a seat that reports many broken questions is the signal wanted, not something to cap (critique T8).
+    static final int REPORTS_PER_GAME = 50;
     private final List<String> reports = new ArrayList<>();
     private java.util.function.Consumer<String> reporter = r -> { };
     void setReporter(java.util.function.Consumer<String> reporter) { this.reporter = reporter; }
@@ -81,7 +85,7 @@ final class ContextMemory {
     static String instructions() {
         return "MEMORY TOOLS " + VERSION + ": instead of an action, you may reply with exactly ONE line: "
                 + "MEMORY SEARCH <offset> <literal text> (50 matching evidence snippets per page), "
-                + "MEMORY READ <evidence id> <character offset> (20000 characters per page), or "
+                + "MEMORY READ <evidence id> <character offset> (4000 characters per page), or "
                 + "MEMORY NOTE <evidence id> <hypothesis or plan, max 2000 characters>. "
                 + "Offsets start at 0; evidence ids start at 1. At most 16 tools per ask and 1000 per game. "
                 + "GAME HISTORY / RECENT EVENTS cite canonical event ids as [E<n>] — `MEMORY SEARCH 0 [E<n>]` "
@@ -342,9 +346,9 @@ final class ContextMemory {
         // tool_choice "none" is a request the provider may ignore. A call made anyway on a
         // forbidden round must not run: on the last round its result could never be read.
         if (!allow || st.used >= TOOLS_PER_ASK || toolsUsed >= TOOLS_PER_GAME)
-            return "ERROR: tool budget exhausted; no tool executed. Answer the original decision.";
+            return NativeTools.NO_LOOKUPS_LEFT;
         if (NativeTools.REPORT.equals(c.name)) {
-            // Not a lookup: it spends one of the ask's calls but none of the game's archive budget.
+            // Not a lookup: it spends none of the ask's or the game's lookups (critique T8: it took one of the decision's).
             String command = NativeTools.command(c.name, c.arguments);
             if (command.startsWith("ERROR:")) return command;
             if (st.reported) return "ERROR: one report per decision.";
@@ -352,7 +356,6 @@ final class ContextMemory {
             String problem = command.substring("REPORT ".length());
             reports.add(problem);
             reporter.accept(problem);
-            st.used++;
             st.reported = true;
             return "Recorded for the harness maintainers. Nothing in the game changed: answer the decision "
                     + "with the options as given; if none fits, pick the one closest to what you intended.";
@@ -370,7 +373,8 @@ final class ContextMemory {
         if (command.startsWith("ERROR:")) return command;
         st.used++;
         toolsUsed++;
-        return execute(command);
+        String result = execute(command);
+        return "rules_lookup".equals(c.name) ? NativeTools.rulesForFunction(result) : result;
     }
 
     String execute(String request) {

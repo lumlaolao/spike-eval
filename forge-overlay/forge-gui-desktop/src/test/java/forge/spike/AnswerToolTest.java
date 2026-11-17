@@ -355,6 +355,18 @@ public class AnswerToolTest {
         Assert.assertNull(transport.lostReason);
     }
 
+    /** T2: slips of form cost a try: an unknown field, one number sent as `options` to an `option` decision, "true" as
+     *  text for `keep`. They are read as meant. */
+    @Test
+    public void slipsOfFormAreReadAsMeant() {
+        Assert.assertEquals(AnswerTool.validate(AnswerTool.Spec.one(3), "{\"option\":2,\"reason\":\"x\"}").answer.option, 2);
+        Assert.assertEquals(AnswerTool.validate(AnswerTool.Spec.one(3), "{\"options\":[3]}").answer.option, 3);
+        Assert.assertEquals(AnswerTool.validate(AnswerTool.Spec.keep(), "{\"keep\":\"false\"}").answer.keep, Boolean.FALSE);
+        Assert.assertNotNull(AnswerTool.validate(AnswerTool.Spec.one(3), "{\"options\":[1,2]}").error, "two numbers stay refused");
+        Assert.assertFalse(new AnswerTool.Ask(AnswerTool.Spec.one(2), false).definitions().toString().contains("\"steps\""),
+                "steps only under PLAN_EXECUTE (T3)");
+    }
+
     /** A seat with the lookahead preview declares `simulate` on every ask, so a decision without a play
      *  menu has the same tools as one with; a preview there is refused with the reason. */
     @Test

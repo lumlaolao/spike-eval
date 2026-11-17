@@ -39,7 +39,10 @@ import java.util.regex.Pattern;
 final class RulesTool {
     /** v2 (2026-11-14, audit B1): TERM takes a term of several words, with a trailing number as its offset; the
      *  second word was read as the offset and refused. */
-    static final String VERSION = "rules-tool-v2";
+    // v3 (2026-11-17, critique T18, T20): a search of several words also finds the rules holding every word in any
+    // order, those with them in the first sentence first; a Glossary term is found from a plural or a hyphenated form,
+    // and an unknown one falls back to a search.
+    static final String VERSION = "rules-tool-v3";
     /** Deliberately tighter than MEMORY's page: a rule lookup must never dump a wall of text into the
      *  prompt. Every reply is bounded, self-describing (chars a..b/N, next=), and paginated. */
     private static final int PAGE_CHARS = 1200;
@@ -246,6 +249,26 @@ final class RulesTool {
         if (needle.isBlank()) return "ERROR: nothing to search for.";
         List<Entry> hits = new ArrayList<>();
         for (Entry e : rules) if (norm(e.text).contains(needle) || e.id.startsWith(needle)) hits.add(e);
+        // Then every rule holding all the words, in any order, those with the words in their first sentence first
+        // (critique T18: "trample deathtouch" found nothing, the words not being adjacent in any rule).
+        String[] words = needle.split("\\s+");
+        if (words.length > 1) {
+            List<Entry> early = new ArrayList<>(), late = new ArrayList<>();
+            for (Entry e : rules) {
+                if (hits.contains(e)) continue;
+                String t = norm(e.text);
+                boolean all = true;
+                for (String w : words) if (!t.contains(w)) { all = false; break; }
+                if (!all) continue;
+                int dot = t.indexOf(". ");
+                String first = dot < 0 ? t : t.substring(0, dot);
+                boolean inFirst = true;
+                for (String w : words) if (!first.contains(w)) { inFirst = false; break; }
+                (inFirst ? early : late).add(e);
+            }
+            hits.addAll(early);
+            hits.addAll(late);
+        }
         if (hits.isEmpty()) return "No rule contains '" + query + "'. Try RULES TOC, or fewer words.";
         // A digest: id + one short line. The model picks ids and READs the ones it needs in full.
         StringBuilder b = new StringBuilder();
@@ -290,7 +313,18 @@ final class RulesTool {
             for (Map.Entry<String, String> e : glossary.entrySet())
                 if (norm(e.getKey()).equals(norm(key))) { def = e.getValue(); break; }
         }
-        if (def == null) return "ERROR: no Glossary term '" + word + "'. Try RULES SEARCH <words>.";
+        if (def == null) {
+            // A plural or a hyphen ("tramples", "first-strike") is the term (critique T20); else the rules' own words.
+            String k = norm(key.replace('-', ' '));
+            for (String cand : new String[] {k, k.endsWith("es") ? k.substring(0, k.length() - 2) : k, k.endsWith("s") ? k.substring(0, k.length() - 1) : k})
+                for (Map.Entry<String, String> e : glossary.entrySet())
+                    if (def == null && norm(e.getKey()).equals(cand)) def = e.getValue();
+            if (def == null) {
+                String hits = search(off, word);
+                return hits.startsWith("No rule contains") ? "ERROR: no Glossary term '" + word + "', and no rule holds those words."
+                        : "No Glossary term '" + word + "'; the rules holding those words:\n" + hits;
+            }
+        }
         return page("RULES GLOSSARY;", def, off);
     }
 

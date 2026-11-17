@@ -45,7 +45,7 @@ DATA = Path(__file__).resolve().parent / "tooluse"
 DEFAULT_MODEL = "openai/gpt-6-luna"   # owner 2026-10-15: Luna for every game model
 ARMS = ("text-strict", "text-lenient", "native", "native-answer")
 TOOLS_PER_ASK = 16         # ContextMemory.TOOLS_PER_ASK
-PAGE_CHARS = 20000         # ContextMemory.PAGE_CHARS
+PAGE_CHARS = 4000          # ContextMemory.PAGE_CHARS
 SEARCH_PAGE = 50           # ContextMemory.SEARCH_PAGE
 NOTE_CHARS = 2000          # ContextMemory.NOTE_CHARS
 REQUEST_CHARS = NOTE_CHARS + 100   # ContextMemory.REQUEST_CHARS
@@ -55,9 +55,9 @@ SNIPPET = 240              # ContextMemory.snippet
 # Verbatim from ContextMemory.instructions() and SeatObservation.inspectInstructions(); the unit
 # test compares both against the Java sources so the text arm cannot drift from the shipped grammar.
 MEMORY_INSTRUCTIONS = (
-    "MEMORY TOOLS evidence-tools-v7: instead of an action, you may reply with exactly ONE line: "
+    "MEMORY TOOLS evidence-tools-v8: instead of an action, you may reply with exactly ONE line: "
     "MEMORY SEARCH <offset> <literal text> (50 matching evidence snippets per page), "
-    "MEMORY READ <evidence id> <character offset> (20000 characters per page), or "
+    "MEMORY READ <evidence id> <character offset> (4000 characters per page), or "
     "MEMORY NOTE <evidence id> <hypothesis or plan, max 2000 characters>. "
     "Offsets start at 0; evidence ids start at 1. At most 16 tools per ask and 1000 per game. "
     "GAME HISTORY / RECENT EVENTS cite canonical event ids as [E<n>] — `MEMORY SEARCH 0 [E<n>]` "

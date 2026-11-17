@@ -44,7 +44,8 @@ def classify(request, result):
     result = result or ""
     # Outcomes are read from how the result STARTS: a served READ may quote any of these phrases.
     first = result.split("\n", 1)[0]
-    if result.startswith("ERROR: tool budget exhausted"):
+    # Both wordings: "no lookups left" since evidence-tools-v8 (critique T10), "tool budget exhausted" before.
+    if result.startswith("ERROR: tool budget exhausted") or result.startswith("ERROR: no lookups left"):
         return "exhausted"
     # A preview guard on a decision that is neither a priority menu nor an aim is the tool's documented
     # `empty` (the model gets a corrective hint; no lookup is spent), not a refused form.

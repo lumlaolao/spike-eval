@@ -162,6 +162,23 @@ public class RulesToolTest {
         Assert.assertTrue(t.lookup("RULES TOC 0").contains("100. General"));
     }
 
+    /** T18, T20, T19 on the real rules: a search of words not adjacent in any rule finds the rules holding them all;
+     *  a plural or hyphenated glossary term is found; a function-calling seat's result names the function. */
+    @Test
+    public void wordsSearchAndLooseTermsOnTheRealRules() {
+        String path = realRulesPath();
+        if (path == null) { System.out.println("[RulesToolTest] no bundled CR found; skipped"); return; }
+        RulesTool t = RulesTool.load(path);
+        String both = t.lookup("RULES SEARCH 0 trample deathtouch");
+        Assert.assertFalse(both.startsWith("No rule contains"), both);
+        Assert.assertTrue(both.contains("702.19"), "the trample rules that mention deathtouch: " + both);
+        Assert.assertTrue(t.lookup("RULES TERM tramples").startsWith("RULES GLOSSARY"), t.lookup("RULES TERM tramples"));
+        Assert.assertTrue(t.lookup("RULES TERM first-strike").startsWith("RULES GLOSSARY"));
+        String hint = NativeTools.rulesForFunction(t.lookup("RULES SEARCH 0 vigilance"));
+        Assert.assertFalse(hint.contains("READ <id>"), hint);
+        Assert.assertTrue(hint.contains("rules_lookup with action \"read\""), hint);
+    }
+
     private static String realRulesPath() {
         for (String p : new String[] { System.getProperty("harness.rules.file"), System.getenv("RULES_FILE") }) {
             if (p != null && !p.trim().isEmpty() && new java.io.File(p.trim()).isFile()) return p.trim();

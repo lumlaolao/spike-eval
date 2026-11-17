@@ -26,8 +26,8 @@ The rules with their sources are in `docs/harness/PROMPT-CRAFT.md`; the audit in
 - Every block names its source (engine, Forge log, card database, harness record, the seat's own notes).
 - The system prompt's state guide (`SeatObservation.GUIDE`) describes every section and tag the state can show; when a
   render or a hand tag changes, the guide changes with it.
-- The tool list never changes within a game (it opens the prompt-cache prefix): the `answer` schema is fixed, and
-  `set_plan` and `simulate` are declared on every ask.
+- The tool list never changes within a game (it opens the prompt-cache prefix): the `answer` schema is fixed, `set_plan`
+  is declared on every ask, and `simulate` on every ask of a lookahead seat.
 - Tool definitions live in `NativeTools.java` / `AnswerTool.java` and, identically, in `eval/tooluse/tools.json` and
   `answer_tools.json`; the Python mirror of each instruction text is checked against the Java literal.
 - A tool change is measured with `python3 eval/tool_use_suite.py` before a game is played.

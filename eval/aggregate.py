@@ -1214,7 +1214,7 @@ def harness_decided(d):
 # have no token record at all. Everything here is therefore "reported", never
 # "billed".
 
-TOOL_DENIED_PREFIX = "ERROR: tool budget exhausted"
+TOOL_DENIED_PREFIX = ("ERROR: tool budget exhausted", "ERROR: no lookups left")   # the old and the new wording (T10)
 TOOL_ERROR_PREFIX = "ERROR:"
 TOOL_ACCOUNTING_CAVEAT = (
     "Token counts are what the backend reported for the LAST transport attempt "

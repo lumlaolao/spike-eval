@@ -1,5 +1,5 @@
 {
-  "version": "seat-tools-v12",
+  "version": "seat-tools-v13",
   "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead), and report_unclear_decision is a complaint about the question, not a lookup; the tool-use suite has no fixture for them and does not offer them. The decision answer (`answer`, AnswerTool.java) is built per decision from its legal values, so it is not listed here: the suite's native-answer arm builds it from each scenario's numbered options, the way the seat does.",
   "tools": [
     {
@@ -54,7 +54,7 @@
       "text_command": "MEMORY READ {evidence_id} {offset}",
       "function": {
         "name": "memory_read",
-        "description": "Read one archive entry [M<n>] in full, 20000 characters per page. Use it after memory_search when a snippet ends with \"[READ for full text]\", or to see a whole earlier state you know the id of. The reply ends with next=<offset> when there is more; pass that offset to read on. An entry describes the game as it was then, not as it is now.",
+        "description": "Read one archive entry [M<n>] in full, 4000 characters per page. Use it after memory_search when a snippet ends with \"[READ for full text]\", or to see a whole earlier state you know the id of. The reply ends with next=<offset> when there is more; pass that offset to read on. An entry describes the game as it was then, not as it is now.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -146,7 +146,7 @@
       "text_command": "SIMULATE {option} {target} {then}",
       "function": {
         "name": "simulate",
-        "description": "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE, a PLAY LAND or PASS of your priority menu, or, while you choose the target of a play you are making, a target (the play aimed at it) — on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. PASS resolves nothing, so its preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays the costs on the copy. You may preview several options or lines before you answer.",
+        "description": "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE, a PLAY LAND or PASS of your priority menu, or, while you choose the target of a play you are making, a target (the play aimed at it) — on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. PASS resolves nothing, so its preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, the opponent does not respond on the copy, and targets, modes and payments you did not give are chosen there by Forge's AI (named in the result), and the engine pays the costs on the copy. You may preview several options or lines before you answer.",
         "parameters": {
           "type": "object",
           "properties": {

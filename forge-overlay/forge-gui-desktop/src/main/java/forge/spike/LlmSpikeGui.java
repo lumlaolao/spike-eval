@@ -471,8 +471,11 @@ public final class LlmSpikeGui {
      *  put the opponents' objects first; a multi-target play can be cancelled; a play that failed once stays on the menu,
      *  labelled (twice in a window, it leaves); the seat is told why a forbidden or target-less play vanished; a pile
      *  split's single card is asked; X is searched past 99; convoke symbols are matched to the most picks.
+     *  Epoch 107 (2026-11-17, critique batch 6): the tools. `answer` reads slips of form as meant; `steps` only under
+     *  PLAN_EXECUTE; read pages of 4000 characters; a report is free; `simulate` says what its copy leaves out; rules
+     *  search finds every word, and its results name the function.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-106";
+    static final String HARNESS_EPOCH = "harness-epoch-107";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */

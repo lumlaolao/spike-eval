@@ -59,13 +59,6 @@
             "type": "string",
             "description": "For a decision that asks you to name a card: its exact English name."
           },
-          "steps": {
-            "type": "array",
-            "description": "Optional, only on a play decision that says it takes `steps`: the CAST/ACTIVATE option numbers of your plan, in order, for the harness to cast without asking again this turn. Omit anything you are holding. Elsewhere it is ignored.",
-            "items": {
-              "type": "integer"
-            }
-          },
           "yield": {
             "type": "string",
             "description": "Optional, only with PASS on a play decision. \"none\" (the default): you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you; an attack does not, though you are still asked how to block; your own main phase asks again once the stack is empty; end-of-turn lasts through this turn's end step).",

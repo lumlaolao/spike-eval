@@ -22,12 +22,12 @@ import com.google.gson.JsonParser;
  *
  * The standard wherever native tools are on (an `openrouter:` seat); ANSWER_TOOL=0 is the opt-out, and
  * the text tags survive only as that opt-out and as the protocol of a backend with no function calling
- * (none since the Claude CLI text lane was retired). A text reply in a tool ask is still accepted that round (counted as
- * `answer_via: "text"`), so a model that ignores the tool loses nothing; the comparison is measured
- * (docs/harness/PLAYER-HARNESS.md, "Answer tool").
+ * (none since the Claude CLI text lane was retired). A reply that calls nothing is never read as the answer: it is
+ * reminded MAX_NUDGES times in the same conversation, then the decision is lost to its fixed option.
  *
- * `tool_choice` stays "auto" on every round: forcing a call skips extended thinking on the Claude models
- * that accept it and is a 400 on Opus/Sonnet 5.5 (eval/research/2026-10-15-tool-protocol-and-action-parsing.md).
+ * `tool_choice` is "required" for OpenAI models and "auto" elsewhere (toolChoiceFor): forcing a call skips extended
+ * thinking on the Claude models that accept it and is a 400 on Opus/Sonnet 5.5
+ * (eval/research/2026-10-15-tool-protocol-and-action-parsing.md).
  * An invalid call (an option out of range, a wrong count, an illegal block) is answered in the SAME
  * conversation with the validation error and one more round; a second invalid call ends the ask with
  * no answer (`lost`), and the caller takes its deterministic fallback.
@@ -77,8 +77,11 @@ final class AnswerTool {
      *  call after an illegal one, two reminders for no call, then the do-nothing option); the yield's description says
      *  an attack does not wake a yielded seat (one text, YIELD_RULE, for the schema and the hint).
      *  v22 (2026-11-17, critique P7): the ANSWER line no longer ends every ask with "Call `set_plan` too ..." and
-     *  "Lookups do not count against the answer." (the tool descriptions and the preamble say them). */
-    static final String VERSION = "answer-tool-v22";
+     *  "Lookups do not count against the answer." (the tool descriptions and the preamble say them).
+     *  v23 (2026-11-17, critique T2, T3): a field the schema does not name is ignored, one number sent as `options` to an
+     *  `option` decision and "true"/"false" text for `keep` are read as meant (each cost a try); `steps` is declared
+     *  only under PLAN_EXECUTE. */
+    static final String VERSION = "answer-tool-v23";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -541,7 +544,9 @@ final class AnswerTool {
                 + "the CAST/ACTIVATE option numbers of your plan, in order, for the harness to cast without asking again this "
                 + "turn. Omit anything you are holding. Elsewhere it is ignored.");
         steps.add("items", obj("type", "integer"));
-        props.add("steps", steps);
+        // Declared only where it does something (critique T3: on every ask, "Elsewhere it is ignored"), as `action` is
+        // declared only under PROPOSE_ACTIONS. The arm is fixed for a whole game, so the tool list still never changes.
+        if (LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE) props.add("steps", steps);
         JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision. \"none\" (the default): "
                 + "you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then " + YIELD_RULE);
         JsonArray e = new JsonArray();
@@ -843,6 +848,15 @@ final class AnswerTool {
         JsonObject a = NativeTools.arguments(argumentsJson);
         if (a == null) return Result.bad("the arguments are not a JSON object.");
         String field = fieldOf(s.kind);
+        // Slips of form are read as meant, not refused (critique T2: each cost one of the decision's two tries): one
+        // number sent as `options: [3]` to an `option` decision, and "true" / "false" as text for `keep`.
+        if ("option".equals(field) && absent(a, "option") && !absent(a, "options") && a.get("options").isJsonArray()
+                && a.getAsJsonArray("options").size() == 1)
+            a.add("option", a.getAsJsonArray("options").get(0));
+        if ("keep".equals(field) && !absent(a, "keep") && a.get("keep").isJsonPrimitive() && a.get("keep").getAsJsonPrimitive().isString()) {
+            String v = a.get("keep").getAsString().trim().toLowerCase(java.util.Locale.ROOT);
+            if (v.equals("true") || v.equals("false")) a.addProperty("keep", v.equals("true"));
+        }
         // A proposal answered with a menu field (`option`, `keep`): 9 of 48 Haiku plays did it (runs/propose,
         // 2026-11-03), so the error shows the shape and says there is no list.
         if (s.kind == Kind.ACTION && absent(a, field))
@@ -973,10 +987,8 @@ final class AnswerTool {
             out.keepUntapped = hs.isEmpty() ? null : hs;
         }
         out.why = str(a, "why");
-        // The fixed schema names every field; another decision kind's field beside the right one is ignored.
-        JsonObject known = (perDecision() ? definition(s) : fixedDefinition())
-                .getAsJsonObject("function").getAsJsonObject("parameters").getAsJsonObject("properties");
-        for (String k : a.keySet()) if (!known.has(k)) return Result.bad("unknown field `" + k + "`.");
+        // Another decision kind's field beside the right one is ignored, and so is a field the schema does not name
+        // (`reason`, say): it was refused and cost a try (critique T2).
         if (s.check != null) {
             String err;
             try { err = s.check.apply(out); } catch (RuntimeException e) { err = "not legal here."; }
@@ -1312,7 +1324,7 @@ final class AnswerTool {
             public String serve(NativeTools.Call c, boolean open) {
                 if (!NativeTools.SIMULATE.equals(c.name)) return "ERROR: unknown tool `" + c.name + "`. Call `answer`.";
                 if (simulate == null) return NativeTools.NO_PREVIEW + " Call `answer`.";
-                if (!open) return "ERROR: no lookups left for this decision. Call `answer`.";
+                if (!open) return NativeTools.NO_LOOKUPS_LEFT;
                 String r;
                 try { r = simulate.apply(c.arguments); } catch (RuntimeException e) { r = "ERROR: preview failed: " + e; }
                 if (r == null) r = "ERROR: preview returned nothing.";
@@ -1364,7 +1376,7 @@ final class AnswerTool {
         List<Integer> sent = new ArrayList<>();   // refusals whose result is in `messages`, not yet read by a turn
         for (int round = 0; round < rounds; round++) {
             boolean open = lookups != null && lookups.open(round);
-            // tool_choice "auto" every round: the answer must stay callable, and forcing is not an option.
+            // The answer stays callable on every round; tool_choice is toolChoiceFor's (critique T15: this said "auto").
             NativeTools.Turn turn = model.turn(first, messages.toString(), toolsJson, true, round);
             if (turn == null) return null;
             ask.told.addAll(sent);

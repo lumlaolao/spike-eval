@@ -805,6 +805,15 @@ lookahead seat, declared on every ask. A call that does not apply gets an error 
 
 ## 7. What the model can look up or do: native tools
 
+**Batch 6 of the critique (harness-epoch-107; answer-tool-v23, seat-tools-v13, evidence-tools-v8, rules-tool-v3).**
+`answer` reads slips of form as meant instead of spending a try on them (an unknown field is ignored, `options: [n]`
+answers an `option` decision, "true"/"false" text answers `keep`); `steps` is declared only under PLAN_EXECUTE.
+`memory_read` pages are 4000 characters; `report_unclear_decision` spends no lookup (50 a game); one wording for an
+exhausted budget (`NativeTools.NO_LOOKUPS_LEFT`). `simulate`'s description says the opponent does not respond on the
+copy and that Forge's AI chooses what the seat did not give there. `rules_lookup` search also finds rules holding every
+word in any order (first-sentence matches first), a Glossary term is found from a plural or hyphenated form and an
+unknown one falls back to a search, and results name the function (`rulesForFunction`), not the RULES text grammar.
+
 **Function definitions in `NativeTools`**, mirrored in `eval/tooluse/tools.json`:
 
 | Tool | What it does |
