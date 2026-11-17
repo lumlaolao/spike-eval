@@ -1213,6 +1213,12 @@ final class AnswerTool {
         int nudges;
         int invalid;
         boolean lost;
+        /** Why a lost decision was lost, every exit the model caused (critique A9): "no-call" (no `answer` call after
+         *  the reminders), "invalid" (illegal calls), "call-as-text" (a tool call written as text twice),
+         *  "lookups-only" (lookups past the budget twice) or "rounds" (no answer within the rounds). A null reply with
+         *  {@code lost} false is the transport's: the bridge returned nothing. */
+        String lostReason;
+        Answer lose(String reason) { lost = true; via = "lost"; lostReason = reason; return null; }
         /** A proposal (play, attack or blocks): every `answer` call in order, {arguments, error or null when accepted}. */
         final List<String[]> proposals = new ArrayList<>();
         /** Indices into {@link #proposals} of the refusals the model was told: the ERROR result was in its messages and
@@ -1357,7 +1363,7 @@ final class AnswerTool {
             if (turn.calls.isEmpty()) {
                 if (ContextMemory.toolLine(turn.content) != null || NativeTools.looksLikeCallMarkup(turn.content)) {
                     audit.accept(turn.content, "ERROR: a tool request must be a function call; no tool executed.");
-                    if (pressed) return null;
+                    if (pressed) { ask.lose("call-as-text"); return null; }
                     pressed = true;
                     messages.add(NativeTools.message("user", open ? CALL_AS_FUNCTION : CALL_ANSWER));
                     continue;
@@ -1374,8 +1380,7 @@ final class AnswerTool {
                     continue;
                 }
                 audit.accept(turn.content, "LOST: no `answer` call after " + MAX_NUDGES + " reminders.");
-                ask.lost = true;
-                ask.via = "lost";
+                ask.lose("no-call");
                 return null;
             }
             messages.add(JsonParser.parseString(turn.messageJson));
@@ -1423,7 +1428,7 @@ final class AnswerTool {
             }
             if (calledAnswer) {
                 ask.invalid++;
-                if (ask.invalid >= maxInvalid) { ask.lost = true; ask.via = "lost"; return null; }
+                if (ask.invalid >= maxInvalid) { ask.lose("invalid"); return null; }
             }
             boolean refused = false;
             for (int i = 0; i < results.length; i++) {
@@ -1438,11 +1443,12 @@ final class AnswerTool {
                 if (proposalAt[i] >= 0) sent.add(proposalAt[i]);
             }
             if (refused && !calledAnswer) {
-                if (pressed) return null;
+                if (pressed) { ask.lose("lookups-only"); return null; }
                 pressed = true;
                 messages.add(NativeTools.message("user", CALL_ANSWER));
             }
         }
+        ask.lose("rounds");
         return null;
     }
 }

@@ -450,8 +450,12 @@ public final class LlmSpikeGui {
      *  attack any defender and the question names each opponent's life and poison, and the seat names who starts
      *  instead of play or draw. A two-player game asks the same bytes (GoldenChecksTest
      *  twoPlayerStartAndAttackAsksAreUnchanged); there, a creature that may attack only a planeswalker is now offered.
+     *  Epoch 102 (2026-11-16, critique batch 1): one rule for an unanswered decision. A model seat out of calls or at
+     *  the turn's guard passes (no land drop) and attacks with nothing; a target ask of a play not yet made that gets
+     *  no answer cancels the play (it aimed at candidate 1); a Phyrexian payment with no answer takes its first option
+     *  (it was the engine's); a decision whose state did not render is not asked; a tripped breaker stops retrying.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-101";
+    static final String HARNESS_EPOCH = "harness-epoch-102";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */
@@ -1013,6 +1017,9 @@ public final class LlmSpikeGui {
                     || PlayerLookahead.isCopySeat(p);
         }
         boolean choosesOwnColours() { return "llm".equals(mode) && rnd == null; }
+        /** The floor and random arms: seats with no model whose fixed policies (land drop, all-in attack) are baselines
+         *  pinned by the canaries. A model seat that gets no answer takes the do-nothing option instead (critique A3, A4). */
+        boolean zeroModelArm() { return "floor".equals(mode) || rnd != null; }
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;
         /** The same loop guard under the faithful profile. It counts both players' windows in a turn, so
          *  25 stopped Storm, Doomsday and Elves turns partway through. 500 (was 80; the most a recorded
@@ -1127,8 +1134,13 @@ public final class LlmSpikeGui {
             lastPromptTokens = -1; lastCompletionTokens = -1; lastCachedTokens = -1; lastCacheWriteTokens = -1;
             lastSuccessMs = 0; lastRetryMs = 0; lastAttempts = 0; lastFirstFailedReply = null; lastDeclineLogged = false;
             lastShadowChoice = null; lastPicks = null;
-            nextAnswer = null; lastAnswer = null; answerVia = null; answerInvalid = 0;
+            nextAnswer = null; lastAnswer = null; answerVia = null; answerInvalid = 0; renderFailed = false; hookError = null;
         }
+        /** The state of this decision could not be rendered: it was not asked (askModel), and its fallback row says
+         *  `render-failed` (critique O12). */
+        private boolean renderFailed;
+        /** The text a state render returns when it throws (SeatObservation, the legacy snapshot). */
+        static final String STATE_UNAVAILABLE = "== (state unavailable";
 
         // per-turn play-loop state (was static in v1 — now per-instance so two seats don't collide)
         private int lastPlayTurn = -1;
@@ -2824,7 +2836,7 @@ public final class LlmSpikeGui {
                     s.append(planText(turnPlan, planTurn, ph.getTurn()));
                 return s.toString();
             } catch (Exception e) {
-                return "== (state unavailable) ==";
+                return STATE_UNAVAILABLE + ") ==";
             }
         }
         /** Cumulative "<Name> xN, ..." history of one player's casts (STACK_ADD + " cast ") or land
@@ -3368,6 +3380,12 @@ public final class LlmSpikeGui {
                 // No model available (floor arm / budget) -> deterministic ALL-IN, the classic goldfish
                 // baseline. Never the engine AI.
                 if (!smartOk()) {
+                    // All-in is the floor arm's goldfish baseline; a model seat out of calls attacks with nothing, as
+                    // when its bridge is down (critique A4).
+                    if (!zeroModelArm()) {
+                        if (!makeAttackLegal(combat, "no-budget")) auto("attackers(no-budget)->none");
+                        return;
+                    }
                     for (Card c : legal) combat.addAttacker(c, firstDefender(c, combat, defender));
                     if (!makeAttackLegal(combat, "no-model")) auto("attackers(no-model)->all-in x" + legal.size());
                     return;
@@ -4500,10 +4518,12 @@ public final class LlmSpikeGui {
                 int turn = phh.getTurn();
                 if (turn != lastPlayTurn) { lastPlayTurn = turn; playDecisionsThisTurn = 0; passedReactSigs.clear(); }
                 boolean overCap = playDecisionsThisTurn >= (observer != null ? MAX_PLAY_DECISIONS_PER_TURN_FAITHFUL : MAX_PLAY_DECISIONS_PER_TURN);
-                if (!haveBudget || overCap) { // exhausted -> develop mana if possible, else pass. Not the AI.
+                if (!haveBudget || overCap) { // exhausted -> pass. Not the AI.
                     // The cap and the budget are different causes and say so (the cap used to read "no-budget").
                     String why = !haveBudget || observer == null ? "no-budget" : "turn-cap";
-                    if (haveLand) { auto("play(" + why + "): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
+                    // A land drop is the floor and random arms' policy (the canaries pin it). A model seat out of
+                    // calls passes like one whose bridge is down: no answer is never a land drop (critique A3).
+                    if (haveLand && zeroModelArm()) { auto("play(" + why + "): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
                     auto("play(" + why + ")->PASS");
                     return PASS;
                 }
@@ -4899,9 +4919,17 @@ public final class LlmSpikeGui {
                 // the play is committed may be answered "cancel": the model saw the candidates and no
                 // longer wants the play (runs/loop/g06 Grindstone, g07 Wirewood Symbiote: "there's no
                 // 'don't activate' option"). The menu is asked again, at most twice per window.
+                targetUnanswered = false;
                 if (!ensureTargetsSet(chosen, observer != null && rnd == null && cancels < 2, true)) {
                     for (SpellAbility s = chosen; s != null; s = s.getSubAbility()) s.resetTargets();
                     dropModes(chosen);
+                    if (targetUnanswered) {   // no answer, not the seat's cancel: the window passes (its row is written)
+                        targetUnanswered = false;
+                        actionIntent = null;
+                        playsNotMade++;
+                        p("[ROUTER] play: " + labelOf(chosen) + " not made (its target got no answer) -> PASS");
+                        return PASS;
+                    }
                     cancels++;
                     cancelNote = "you chose " + verbOf(chosen) + " " + labelOf(chosen) + " and then cancelled it when asked for its target. Choose again.";
                     actionIntent = null;
@@ -4911,7 +4939,9 @@ public final class LlmSpikeGui {
                 p("[ROUTER] play: " + (observer == null || chosen.isSpell() ? "casts " : "activates ") + labelOf(chosen));
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
+                // On the record like every other hook's failure: a pass with no row read as a model's pass (critique A2).
                 p("[ROUTER] play: error " + e + " -> PASS");
+                auto("play(err:" + e.getClass().getSimpleName() + ")->PASS");
                 if (chose) playsNotMade++;
                 return PASS;
             }
@@ -4939,12 +4969,12 @@ public final class LlmSpikeGui {
                     if (!seen.isEmpty()) remember("REVEALED (" + zoneLabel(delayedReveal.getZone()) + "): " + String.join(", ", seen));
                 } catch (Exception ignore) { }
             }
-            if (opts.size() == 1 && !isOptional) { auto("choose-entity(forced-only-legal)" + srcOf(sa)); return opts.get(0); }
+            if (opts.size() == 1 && !isOptional) { auto("entity(forced-only-legal)" + srcOf(sa)); return opts.get(0); }
             try {
                 // Smart budget exhausted is NOT a reason to pick blind: fall to the fast tier so this
-                // site stays model-routed (runs showed every "choose-entity(no-budget)" fired only after
+                // site stays model-routed (runs showed every "entity(no-budget)" fired only after
                 // budget exhaustion). The deterministic auto path remains for floor arms / both budgets gone.
-                if (!smartOk() && !fastOk()) { auto("choose-entity(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
+                if (!smartOk() && !fastOk()) return noAnswer("entity", "no-budget", opts, isOptional, sa);
                 LLMBridge b = smartOk() ? smart : fast;
                 List<String> labels = new ArrayList<>();
                 for (T t : opts) labels.add(labelOf(t));
@@ -4954,16 +4984,16 @@ public final class LlmSpikeGui {
                 if (observer != null) q = q.replace(getPlayer().getName() + "'s library", "your library")
                         .replace(getPlayer().getName() + " library", "your library");
                 int c = decideOne(b, "entity", q, labels, isOptional ? "Decline / none" : null);
-                if (c == -2) { auto("choose-entity(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
+                if (c == -2) return noAnswer("entity", "bridge-down", opts, isOptional, sa);
                 if (c < 0) { // decideOne's -1 also covers "still unparseable after retry", which (unlike an
                              // explicit decline) decideOne does NOT log itself — never drop that case silently.
-                    if (isOptional) { if (!lastDeclineLogged) auto("choose-entity(unparsed)->decline" + srcOf(sa)); return null; }
-                    auto("choose-entity(unparsed)->first" + srcOf(sa)); return opts.get(0);
+                    if (isOptional) { if (!lastDeclineLogged) auto("entity(unparsed)->decline" + srcOf(sa)); return null; }
+                    auto("entity(unparsed)->first" + srcOf(sa)); return opts.get(0);
                 }
                 p("[ROUTER] choose-entity: " + labels.get(c) + srcOf(sa));
                 return opts.get(c);
             } catch (Exception e) {
-                auto("choose-entity(err)->first" + srcOf(sa)); return isOptional ? null : opts.get(0);
+                return noAnswer("entity", "err:" + e.getClass().getSimpleName(), opts, isOptional, sa);
             }
         }
 
@@ -5002,7 +5032,7 @@ public final class LlmSpikeGui {
             List<Card> opts = new ArrayList<>(fetchList);
             if (opts.size() == 1 && !isOptional) { auto("zone-change(forced-only-legal)" + srcOf(sa)); return opts.get(0); }
             try {
-                if (!okFor("zone-change")) { auto("zone-change(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
+                if (!okFor("zone-change")) return noAnswer("zone-change", "no-budget", opts, isOptional, sa);
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(labelOf(c));
                 // A pick that is one of several for the same effect ("(3 / 5)": Doomsday, Brainstorm) says the cards
@@ -5020,7 +5050,7 @@ public final class LlmSpikeGui {
                         + (again ? " You declined this pick and then chose to keep searching; declining again ends the search." : "");
                 int c = decideOne(bridgeFor("zone-change"), "zone-change", q, labels, isOptional ? "Decline / none" : null);
                 if (c >= 0) zonePicks.add(labels.get(c));
-                if (c == -2) { auto("zone-change(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
+                if (c == -2) return noAnswer("zone-change", "bridge-down", opts, isOptional, sa);
                 if (c < 0) { // decideOne's -1 also covers "still unparseable after retry", which (unlike an
                              // explicit decline) decideOne does NOT log itself — never drop that case silently.
                     if (isOptional) { if (!lastDeclineLogged) auto("zone-change(unparsed)->decline" + srcOf(sa)); return null; }
@@ -5029,7 +5059,7 @@ public final class LlmSpikeGui {
                 p("[ROUTER] zone-change: " + labels.get(c) + " -> " + destination + srcOf(sa));
                 return opts.get(c);
             } catch (Exception e) {
-                auto("zone-change(err)->first" + srcOf(sa)); return isOptional ? null : opts.get(0);
+                return noAnswer("zone-change", "err:" + e.getClass().getSimpleName(), opts, isOptional, sa);
             }
         }
 
@@ -5075,7 +5105,7 @@ public final class LlmSpikeGui {
                 // for the whole target set; a DIVIDED spell ("distribute 5 damage", 132 cards) also
                 // needs an allocation per target. Both route through the same menu (#124); the
                 // division is the model's, with an even split as the deterministic legal fallback.
-                if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) return chooseManyTargets(sa, cands, labels, min);
+                if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) return chooseManyTargets(sa, cands, labels, min, false);
                 // "Up to one" with one candidate is still a choice: that one, or none (rules pilot RP_045).
                 if ((cands.size() > 1 || min == 0) && okFor("targets")) {
                     String q = "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa) + " (the spell/ability resolves against whatever you pick).";
@@ -5116,7 +5146,8 @@ public final class LlmSpikeGui {
          *  divided one ("4 damage divided as you choose"): the seat picks the set, and a division is the seat's, with an
          *  even split as the legal fallback (#124). Both targeting paths use it: the play loop and triggers went through
          *  a one-target ask, so Fury's trigger could take one creature, and the default took Fury itself (surface check). */
-        private boolean chooseManyTargets(SpellAbility sa, List<forge.game.GameObject> cands, List<String> labels, int min) {
+        private boolean chooseManyTargets(SpellAbility sa, List<forge.game.GameObject> cands, List<String> labels, int min,
+                                          boolean cancellable) {
             int max = sa.getMaxTargets();
             boolean divided = sa.isDividedAsYouChoose();
                 int lo = Math.max(divided ? 1 : 0, min), hi = Math.min(Math.max(max, 1), cands.size());
@@ -5146,10 +5177,16 @@ public final class LlmSpikeGui {
                     tp = decideMany(bridgeFor("targets"), "targets", "Choose TARGETS for " + labelOf(sa)
                             + " (pick " + lo + " to " + hi + " from the list" + striveNote + ").", labels, lo, hi);
                     if (tp == null || tp.size() < lo) {
+                        // decideMany returns null both for no reply and for a reply it could not read: the reply tells them apart.
+                        String cause = tp == null && !answerLost() && lastReply == null ? "bridge-down" : "unparsed";
+                        // A play not yet committed is not made on a lost answer (critique C17, as A13).
+                        if (cancellable) return targetUnanswered("targets", "multi," + cause, labels);
                         tp = new ArrayList<>();
                         for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
-                        evalDec("targets", cands.size(), tp.size(), tierOf(smartTierFor("targets")), 0, "targets(multi,unparsed)->first", labels);
+                        evalDec("targets", cands.size(), tp.size(), tierOf(smartTierFor("targets")), 0, "targets(multi," + cause + ")->first", labels);
                     }
+                } else if (cancellable && !zeroModelArm()) {
+                    return targetUnanswered("targets", "multi,no-budget", labels);
                 } else {
                     tp = new ArrayList<>();
                     for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
@@ -5173,8 +5210,10 @@ public final class LlmSpikeGui {
                             + " for " + labelOf(sa) + " among the chosen targets, in order, at least 1 each.", tl,
                             divideTotal, EACH_TARGET_AT_LEAST_ONE);
                     if (alloc == null || alloc.size() != tp.size()
-                            || alloc.stream().mapToInt(Integer::intValue).sum() != divideTotal)
+                            || alloc.stream().mapToInt(Integer::intValue).sum() != divideTotal) {
                         alloc = evenSplit(divideTotal, tp.size());
+                        auto("split(unanswered)->even " + alloc + srcOf(sa));   // never silent (critique C18)
+                    }
                     for (int k = 0; k < tp.size(); k++) {
                         sa.addDividedAllocation(cands.get(tp.get(k)), alloc.get(k));
                         split.append(' ').append(alloc.get(k));
@@ -5295,7 +5334,8 @@ public final class LlmSpikeGui {
                     if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) {
                         List<String> many = new ArrayList<>();
                         for (forge.game.GameObject ge : cands) many.add(targetLabel(ge));
-                        chooseManyTargets(sa, cands, many, sa.getMinTargets());
+                        chooseManyTargets(sa, cands, many, sa.getMinTargets(), cancellable);
+                        if (targetUnanswered) return false;
                         continue;
                     }
                     int min = Math.max(1, sa.getMinTargets());
@@ -5322,9 +5362,17 @@ public final class LlmSpikeGui {
                             evalDec("target", labels.size(), c, tierOf(smartTierFor("target")), 0, null, labels);
                             return false;
                         }
+                        // No usable answer while CANCEL was on the list: the play is not made. Aiming at candidate 1
+                        // could exile the seat's own creature (critique A13); the window passes, on the record.
+                        if (c < 0 && cancellable) return targetUnanswered("target", noAnswerCause(c), labels);
                         if (c >= 0) pick = c;
-                        else fb = "target(unparsed-or-dead)->first"; // the fixed legal option, never the plan's prose
+                        else fb = "target(" + noAnswerCause(c) + ")->first"; // the fixed legal option, never the plan's prose
                     } else if (cands.size() > 1) {
+                        if (cancellable && !zeroModelArm()) {
+                            List<String> labels = new ArrayList<>();
+                            for (forge.game.GameObject ge : cands) labels.add(targetLabel(ge));
+                            return targetUnanswered("target", "no-budget", labels);
+                        }
                         fb = "target(no-model)->first";                    // floor arm / budget exhausted
                     } else {
                         // single legal candidate — genuinely forced, no model call was ever attempted for it.
@@ -5349,8 +5397,10 @@ public final class LlmSpikeGui {
                                 + labelOf(sa) + " among the chosen targets, in order, at least 1 each.", tl, dt,
                                 EACH_TARGET_AT_LEAST_ONE);
                         if (alloc == null || alloc.size() != tl.size()
-                                || alloc.stream().mapToInt(Integer::intValue).sum() != dt)
+                                || alloc.stream().mapToInt(Integer::intValue).sum() != dt) {
                             alloc = evenSplit(dt, tl.size());
+                            auto("split(unanswered)->even " + alloc + srcOf(sa));   // never silent (critique C18)
+                        }
                         int k = 0;
                         for (forge.game.GameObject ge : sa.getTargets()) sa.addDividedAllocation(ge, alloc.get(k++));
                     }
@@ -5359,9 +5409,41 @@ public final class LlmSpikeGui {
                     evalDec("target", cands.size(), pick, fb == null ? tierOf(smartTierFor("target")) : "auto", 0, fb, tgtOpts);
                     p("[ROUTER] target: " + targetLabel(cands.get(pick)) + " <- " + labelOf(sa)
                             + (cands.size() == 1 ? " (only legal)" : ""));
-                } catch (Exception e) { /* leave targeting to the engine for this ability */ }
+                } catch (Exception e) {
+                    // On the record (critique A14): left to the engine, the cast went out untargeted and fizzled
+                    // with nothing in the JSONL. A play not yet committed is not made.
+                    auto("target(err:" + e.getClass().getSimpleName() + ")->" + (cancellable ? "cancel play" : "engine") + srcOf(sa));
+                    if (cancellable) { targetUnanswered = true; return false; }
+                }
             }
             return true;
+        }
+
+        /** Set when a target ask of a play not yet committed got no usable answer and the play was cancelled for it:
+         *  the play loop passes the window instead of asking the menu again (critique A13, C17). */
+        private boolean targetUnanswered;
+        private boolean targetUnanswered(String type, String cause, List<String> labels) {
+            String what = type + "(" + cause + ")->cancel play";
+            autoPicks++;
+            p("[AUTO-LEGAL] " + what);
+            evalDec(type, labels.size(), -1, "auto", 0, what, labels);
+            targetUnanswered = true;
+            return false;
+        }
+
+        /** The one rule for a pick that got no answer (critique A5, A15): decline when declining is legal, else the first
+         *  option. The row names the cause and what was done, so it never says "first" for a decline. */
+        private <T> T noAnswer(String type, String cause, List<T> opts, boolean optional, SpellAbility sa) {
+            auto(type + "(" + cause + ")->" + (optional ? "decline" : "first") + srcOf(sa));
+            return optional ? null : opts.get(0);
+        }
+
+        /** Why a decision got no answer, for its fallback row (critique A18): the call budget, a lost tool answer
+         *  (unparsed), or the bridge ({@code c == -2}, decideOne's code; renamed to the stop when the game ended). */
+        private String noAnswerCause(int c) {
+            if (!smartOk() && !fastOk()) return "no-budget";
+            if (answerLost()) return "unparsed";
+            return c == -2 ? "bridge-down" : "unparsed";
         }
 
         @Override
@@ -5527,7 +5609,7 @@ public final class LlmSpikeGui {
                     // decideOne wrote the model's row; a second (auto) row for the same answer double-counted it.
                     if (c == 1) { p("[ROUTER] prevent-effect: declined " + desc); return false; }
                 }
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             auto("prevent-effect(default)->decline");
             return false;
         }
@@ -5635,7 +5717,7 @@ public final class LlmSpikeGui {
                         }
                     }
                 }
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             auto("optional-costs(default)->decline-all");
             return new ArrayList<>();
         }
@@ -5832,7 +5914,7 @@ public final class LlmSpikeGui {
             try {
                 toPay = phyrexianByLife(toPay, sa, effect, lifeDue);
             } catch (Exception e) {
-                p("[ROUTER] mana: phyrexian " + e + " -> engine");
+                auto("phyrexian(err:" + e.getClass().getSimpleName() + ")->engine payment" + srcOf(sa));
             }
             try {
                 if (!sa.isManaAbility()) prepayTapTypeManaAbilities(toPay, sa, effect, said);
@@ -5921,8 +6003,9 @@ public final class LlmSpikeGui {
          *  engine still pays; the life goes in {@code lifeDue}, which payManaCost pays once the mana is. */
         private forge.card.mana.ManaCost phyrexianByLife(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect,
                                                          int[] lifeDue) {
-            if (toPay == null || !toPay.hasPhyrexian() || toPay.countX() > 0 || sa == null || sa.isManaAbility()
-                    || "floor".equals(mode) || (!smartOk() && !fastOk())) return toPay;
+            if (toPay == null || !toPay.hasPhyrexian() || sa == null || sa.isManaAbility() || "floor".equals(mode)) return toPay;
+            // With X in the cost the split is not asked; the engine's payment takes it, on the record for a model seat.
+            if (toPay.countX() > 0) { if (rnd == null) auto("phyrexian(X in the cost)->engine payment" + srcOf(sa)); return toPay; }
             final Player me = getPlayer();
             final int k = toPay.getPhyrexianCount();
             List<Integer> lifeFor = new ArrayList<>();
@@ -5949,10 +6032,12 @@ public final class LlmSpikeGui {
                 auto("phyrexian(forced: payable only with life)->" + (2 * n) + " life" + srcOf(sa));
             } else {
                 String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
-                int c = decideOne(smartOk() ? smart : fast, "phyrexian", "MANA: you are paying " + toPay + " for " + what
+                int c = !smartOk() && !fastOk() ? -1 : decideOne(smartOk() ? smart : fast, "phyrexian", "MANA: you are paying " + toPay + " for " + what
                         + ". Each Phyrexian symbol is paid with one mana of its colour or with 2 life. You have "
                         + me.getLife() + " life. How do you pay?", labels, null);
-                if (c < 0 || c >= lifeFor.size()) { auto("phyrexian(unparsed)->engine"); return toPay; }
+                // No answer: the first option, as everywhere (critique A5); handing the split to the engine's payment
+                // let Forge AI's AIPhyrexianPayment pick life or mana.
+                if (c < 0 || c >= lifeFor.size()) { auto("phyrexian(" + noAnswerCause(c) + ")->first: " + labels.get(0)); c = 0; }
                 n = lifeFor.get(c);
             }
             lifeDue[0] = n;   // payManaCost pays it after the mana
@@ -6077,7 +6162,7 @@ public final class LlmSpikeGui {
                 auto("mana-sources(cannot-pay-keeping-them)->kept " + held.size() + " of the picks");
                 return held;
             } catch (Exception e) {
-                p("[ROUTER] mana: " + e + " -> engine plan");
+                auto("mana-sources(err:" + e.getClass().getSimpleName() + ")->engine plan" + srcOf(sa));
                 return none;
             }
         }
@@ -6356,7 +6441,7 @@ public final class LlmSpikeGui {
                         return play;
                     }
                 }
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             auto("trigger-order(default)->as-triggered");
             return new ArrayList<>(activePlayerSAs);
         }
@@ -6684,12 +6769,15 @@ public final class LlmSpikeGui {
                 auto("confirm(declined-again)->YES cancel search" + srcOf(sa));
                 return true;
             }
-            boolean yes = askConfirm(sa, mode, message, cardToShow);
+            boolean yes = askConfirm(sa, mode, message, cardToShow, options);
             if (cancelSearch && !yes) keptSearching = sa;
             return yes;
         }
 
-        private boolean askConfirm(SpellAbility sa, PlayerActionConfirmMode mode, String message, Card cardToShow) {
+        /** {@code options}: the engine's two button captions when the question is "A or B?" (Discover: Cast / Hand;
+         *  a library position: Top / Bottom). They are the labels, first = true, as the human controller shows them;
+         *  YES/NO answered an either-or question the seat could not map (critique C21). */
+        private boolean askConfirm(SpellAbility sa, PlayerActionConfirmMode mode, String message, Card cardToShow, List<String> options) {
             clearLast();
             // The "may shuffle" after an ordering goes to the fast tier, a separate conversation that never
             // saw the order: in runs/loop/g10 it answered YES to Ponder's shuffle and undid the order the
@@ -6702,10 +6790,13 @@ public final class LlmSpikeGui {
                 undoes = " You just put these on top of that library, top first: " + lastTopOrder
                         + ". Shuffling randomizes the whole library, those cards included.";
             lastTopOrderSa = null;
-            if (!fastOk()) { auto("confirm(no-model)->NO"); return false; } // deterministic decline, not the AI
+            boolean either = options != null && options.size() == 2 && !options.get(0).isEmpty() && !options.get(1).isEmpty();
+            String no = either ? options.get(1) : "NO";
+            if (!fastOk()) { auto("confirm(no-model)->" + no); return false; } // deterministic decline, not the AI
             try {
-                String q = "Yes/No decision" + srcAsk(sa) + ": " + (message == null ? String.valueOf(mode) : message) + undoes;
-                List<String> yn = Lists.newArrayList("YES (do it)", "NO (decline)");
+                String q = (either ? "Choose one" : "Yes/No decision") + srcAsk(sa) + ": "
+                        + (message == null ? String.valueOf(mode) : message) + undoes;
+                List<String> yn = either ? Lists.newArrayList(options) : Lists.newArrayList("YES (do it)", "NO (decline)");
                 int c = decideOne(fast, "confirm", q, yn, null);
                 // UNPARSED and BRIDGE-DOWN both take the same deterministic decline default — a dead
                 // bridge must never fall through to Forge's AI here (this was the hard-invariant
@@ -6713,21 +6804,21 @@ public final class LlmSpikeGui {
                 // — the fast-tier bridge going dark mid-game and this site being the one place left that
                 // still asked super for a real decision instead of taking the same safe default the
                 // unparsed branch already used). Make the fallback VISIBLE to the gate either way.
-                if (c == -1) evalDec("confirm", 2, 1, tierOf(false), 0, "confirm(unparsed)->NO", yn);
-                else if (c == -2) evalDec("confirm", 2, 1, "auto", 0, "confirm(bridge-down)->NO", yn);
+                if (c == -1) evalDec("confirm", 2, 1, tierOf(false), 0, "confirm(unparsed)->" + no, yn);
+                else if (c == -2) evalDec("confirm", 2, 1, "auto", 0, "confirm(bridge-down)->" + no, yn);
                 boolean yes = (c == 0);
                 playConfirmed = yes && sa != null && sa.getApi() == ApiType.Play ? cardToShow : null;
-                p("[ROUTER] confirm(" + oneLine(message == null ? String.valueOf(mode) : message) + "): " + (yes ? "YES" : "NO"));
+                p("[ROUTER] confirm(" + oneLine(message == null ? String.valueOf(mode) : message) + "): " + (yes ? (either ? options.get(0) : "YES") : no));
                 return yes;
             } catch (Exception e) {
-                auto("confirm(err)->NO"); return false;
+                auto("confirm(err:" + e.getClass().getSimpleName() + ")->" + no); return false;
             }
         }
 
         @Override
         public int chooseNumber(SpellAbility sa, String title, int min, int max) {
             clearLast();
-            if (max < min) throw new IllegalArgumentException("empty numeric range");
+            if (max < min) { auto("number(empty range " + min + ".." + max + ")->" + min); return min; }   // never throw into the engine (critique A30)
             if (max == min) { auto("number(forced)->" + min); return min; }
             if (sa != null && sa.isHarmonize() && HARMONIZE_TITLE.equals(title)) return chooseHarmonizePower(sa, min, max);
             if (!fastOk()) { auto("number(no-model)->" + min); return min; }
@@ -6784,7 +6875,7 @@ public final class LlmSpikeGui {
         @Override
         public int chooseNumber(SpellAbility sa, String title, List<Integer> options, Player relatedPlayer) {
             clearLast();
-            if (options == null || options.isEmpty()) throw new IllegalArgumentException("empty numeric options");
+            if (options == null || options.isEmpty()) { auto("number(no options)->0"); return 0; }   // never throw into the engine (critique A30)
             int fallback = options.get(0);
             if (options.size() == 1) { auto("number(forced)->" + fallback); return fallback; }
             if (!fastOk()) { auto("number(no-model)->" + fallback); return fallback; }
@@ -6793,7 +6884,7 @@ public final class LlmSpikeGui {
             try {
                 int c = decideOne(fast, "number", (title == null ? "Choose a number" : title) + srcAsk(sa), labels, null);
                 if (c >= 0) return options.get(c);
-            } catch (Exception e) { /* deterministic fallback below, never Forge AI */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below, never Forge AI (critique A25)
             auto("number(unparsed)->" + fallback); return fallback;
         }
 
@@ -6818,7 +6909,7 @@ public final class LlmSpikeGui {
             try {
                 int c = decideOne(fast, "binary", String.valueOf(question) + srcAsk(sa), labels, null);
                 if (c >= 0) return c == 0;
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             auto("binary(unparsed)->" + fallback); return fallback;
         }
 
@@ -6852,7 +6943,7 @@ public final class LlmSpikeGui {
                     if (c == 0) return getPlayer();
                     if (c == 1) for (Player o : getPlayer().getOpponents()) return o;
                 }
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             auto("starting-player(default)->play");
             return getPlayer();
         }
@@ -6883,7 +6974,7 @@ public final class LlmSpikeGui {
                         if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
                     }
                 }
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             auto(legal < 2 ? "color(forced)->first" : "color(default)->first of " + legal + " legal");
             return firstColorMask(colors);
         }
@@ -6906,7 +6997,7 @@ public final class LlmSpikeGui {
                         if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
                     }
                 }
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             auto("color-colorless(default)->first");
             return firstColorMask(colors);
         }
@@ -6925,7 +7016,7 @@ public final class LlmSpikeGui {
                             : "Choose a " + kindOfType + " to name") + srcAsk(sa), opts, null);
                     if (pick >= 0 && pick < opts.size()) return opts.get(pick);
                 }
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             if (validTypes == null || validTypes.isEmpty()) return super.chooseSomeType(kindOfType, sa, validTypes, isOptional);
             auto(validTypes == null || validTypes.size() < 2
                     ? "some-type(forced)->first"
@@ -6943,7 +7034,7 @@ public final class LlmSpikeGui {
                     int pick = decideOne(smart, "protection", "Choose what to protect from" + srcAsk(sa), new ArrayList<>(choices), null);
                     if (pick >= 0 && pick < choices.size()) return choices.get(pick);
                 }
-            } catch (Exception e) { /* deterministic fallback below */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below (critique A25)
             if (choices == null || choices.isEmpty()) return super.chooseProtectionType(sa, choices);
             auto("protection(default)->first");
             return choices.get(0);
@@ -7348,7 +7439,15 @@ public final class LlmSpikeGui {
                            : priced ? "; each mode adds its cost" : "") + ".";
                 List<Integer> picks = decideMany(smart, "modes", mq, labels, Math.max(0, min), Math.min(num, possible.size()));
                 for (int attempt = 0; priced && picks != null && picks.size() > 1 && !modesPayable(sa, pick(possible, picks)); attempt++) {
-                    if (attempt == 1) { picks = List.of(0); auto("modes(together unpayable)->first payable"); break; }
+                    if (attempt == 1) {
+                        // The first of the seat's own picks it can pay alone, not mode 1 (critique A22).
+                        List<Integer> own = picks;
+                        picks = List.of(0);
+                        if (!zeroModelArm())   // the random arm's fixed repair stays, as the canary pins it
+                            for (int i : own) if (modesPayable(sa, pick(possible, List.of(i)))) { picks = List.of(i); break; }
+                        auto("modes(together unpayable)->" + labels.get(picks.get(0)));
+                        break;
+                    }
                     picks = decideMany(smart, "modes", mq + " That set's costs together are more than you can pay; pick a set you can pay.",
                             labels, Math.max(0, min), Math.min(num, possible.size()));
                 }
@@ -7378,24 +7477,28 @@ public final class LlmSpikeGui {
         /** One option of {@code labels}, or -1 for {@code noneLabel}; {@code dflt} when the seat cannot answer. */
         private int askOne(String type, String question, List<String> labels, String noneLabel, int dflt) {
             if (labels.size() == 1 && noneLabel == null) { auto(type + "(forced-only-legal)"); return 0; }
+            int c = -1;
             if (smartOk() || fastOk()) {
-                int c = decideOne(smartOk() ? smart : fast, type, question, labels, noneLabel);
+                c = decideOne(smartOk() ? smart : fast, type, question, labels, noneLabel);
                 if (c >= 0) return c;
                 if (c == -1 && noneLabel != null && lastDeclineLogged) return -1;
             }
-            auto(type + "(no-answer)->" + (dflt < 0 ? "none" : "first"));
+            // The row names what was taken (critique A21): "->first" was written for a last-option default too.
+            auto(type + "(" + noAnswerCause(c) + ")->" + (dflt < 0 ? (noneLabel == null ? "none" : noneLabel) : labels.get(dflt)));
             return dflt;
         }
 
         /** Between {@code min} and {@code max} of {@code labels}; the first {@code min} when the seat cannot answer. */
         private List<Integer> askMany(String type, String question, List<String> labels, int min, int max) {
+            int c = -1;
             if (smartOk() || fastOk()) {
                 List<Integer> picks = decideMany(smartOk() ? smart : fast, type, question, labels, min, max);
                 if (picks != null && picks.size() >= min && picks.size() <= max) return picks;
+                if (picks == null && lastReply == null) c = -2;   // no reply, not one it could not read
             }
             List<Integer> first = new ArrayList<>();
             for (int i = 0; i < min && i < labels.size(); i++) first.add(i);
-            auto(type + "(no-answer)->first " + first.size());
+            auto(type + "(" + noAnswerCause(c) + ")->" + (first.isEmpty() ? "none" : "first " + first.size()));
             return first;
         }
 
@@ -7403,13 +7506,18 @@ public final class LlmSpikeGui {
         @Override
         public boolean chooseCardsPile(SpellAbility sa, CardCollectionView pile1, CardCollectionView pile2, String faceUp) {
             clearLast();
-            List<String> labels = java.util.Arrays.asList("Pile 1: " + pileLabel(pile1, faceUp), "Pile 2: " + pileLabel(pile2, faceUp));
+            // The engine's fourth argument is the card's FaceDown parameter: "True" hides both piles, "One" pile 1, and
+            // "False" (Fact or Fiction, every ordinary pile effect) none, as the human controller shows them. The seat was
+            // shown the opposite (critique P29).
+            String faceDown = faceUp == null ? "False" : faceUp;
+            List<String> labels = java.util.Arrays.asList("Pile 1: " + pileLabel(pile1, !"False".equals(faceDown)),
+                    "Pile 2: " + pileLabel(pile2, "True".equals(faceDown)));
             return askOne("pile", "Choose a pile" + srcAsk(sa) + ".", labels, null, 0) == 0;
         }
 
-        private String pileLabel(CardCollectionView pile, String faceUp) {
+        private String pileLabel(CardCollectionView pile, boolean hidden) {
             if (pile == null || pile.isEmpty()) return "(empty)";
-            if ("False".equals(faceUp)) return pile.size() + " face-down card" + (pile.size() == 1 ? "" : "s");
+            if (hidden) return pile.size() + " face-down card" + (pile.size() == 1 ? "" : "s");
             List<String> n = new ArrayList<>();
             for (Card c : pile) n.add(labelOf(c));
             return String.join(", ", n);
@@ -7568,7 +7676,7 @@ public final class LlmSpikeGui {
         public boolean confirmStaticApplication(Card hostCard, PlayerActionConfirmMode mode, String message, String logic) {
             clearLast();
             return askOne("confirm-static", (message == null || message.isEmpty() ? "Apply this optional effect?" : fit(message))
-                    + (hostCard != null ? " (" + labelOf(hostCard) + ")" : ""), java.util.Arrays.asList("Yes", "No"), null, 0) == 0;
+                    + (hostCard != null ? " (" + labelOf(hostCard) + ")" : ""), java.util.Arrays.asList("Yes", "No"), null, 1) == 0;   // no answer: No (critique A20)
         }
 
         /** "Discard N cards unless you discard a card of a type": the seat picks the cards. */
@@ -7579,13 +7687,20 @@ public final class LlmSpikeGui {
             List<Card> opts = new ArrayList<>(hand);
             String types = unlessTypes == null ? "" : String.join(" or ", unlessTypes).toLowerCase();
             List<String> labels = cardLabels(opts);
-            List<Integer> picks = askMany("discard-unless", "DISCARD" + srcAsk(sa) + ": discard " + num + " card"
-                    + (num == 1 ? "" : "s") + ", or a single " + types + " card instead. Choose the cards.", labels, 1,
-                    Math.min(num, opts.size()));
+            String dq = "DISCARD" + srcAsk(sa) + ": discard " + num + " card"
+                    + (num == 1 ? "" : "s") + ", or a single " + types + " card instead. Choose the cards.";
             CardCollection out = new CardCollection();
-            for (int i : picks) out.add(opts.get(i));
-            boolean single = out.size() == 1 && unlessTypes != null && out.getFirst().isValid(unlessTypes, getPlayer(), null, sa);
-            if (!single && out.size() < Math.min(num, opts.size())) {   // not a legal discard: fill to the count
+            boolean single = false;
+            // A set that is neither is asked once more with the reason before the harness completes it (critique A22).
+            for (int attempt = 0; attempt < (zeroModelArm() ? 1 : 2); attempt++) {
+                List<Integer> picks = askMany("discard-unless", attempt == 0 ? dq : dq + " Your last answer was neither one "
+                        + types + " card nor " + num + " cards.", labels, 1, Math.min(num, opts.size()));
+                out = new CardCollection();
+                for (int i : picks) out.add(opts.get(i));
+                single = out.size() == 1 && unlessTypes != null && out.getFirst().isValid(unlessTypes, getPlayer(), null, sa);
+                if (single || out.size() >= Math.min(num, opts.size())) break;
+            }
+            if (!single && out.size() < Math.min(num, opts.size())) {   // not a legal discard: the seat's picks, filled to the count
                 for (Card c : opts) { if (out.size() >= Math.min(num, opts.size())) break; if (!out.contains(c)) out.add(c); }
                 auto("discard-unless(short)->filled to " + out.size());
             }
@@ -7693,7 +7808,7 @@ public final class LlmSpikeGui {
                         return Math.max(0, value);
                     }
                 }
-            } catch (Exception e) { /* deterministic fallback below, never Forge AI */ }
+            } catch (Exception e) { hookError = e; }   // named on the fallback row below, never Forge AI (critique A25)
             auto("keyword-cost(unparsed)->0");
             return 0;
         }
@@ -7713,8 +7828,10 @@ public final class LlmSpikeGui {
                 List<String> labels = new ArrayList<>();
                 for (int n : powers) labels.add(n == 0 ? "0: tap no creature, pay the full cost"
                         : n + ": tap a creature with power " + n + ", the spell costs {" + n + "} less");
+                // No answer taps nothing it can avoid tapping: the smallest power (critique A20; it tapped the largest).
+                int least = powers.indexOf(java.util.Collections.min(powers));
                 pick = powers.get(askOne("harmonize", "HARMONIZE" + srcAsk(sa) + ": choose the power of the creature to tap.",
-                        labels, null, labels.size() - 1));
+                        labels, null, least));
             }
             harmonizeChosen = pick;
             return pick;
@@ -7743,7 +7860,7 @@ public final class LlmSpikeGui {
             List<String> labels = new ArrayList<>();
             for (int i = min; i <= max; i++) labels.add(String.valueOf(i));
             return min + Math.max(0, askOne("cost-reduction", "Choose how much to reduce the cost by" + srcAsk(sa) + ".",
-                    labels, null, labels.size() - 1));
+                    labels, null, 0));   // no answer: the least (critique A20)
         }
 
         /** Spellskite-style redirection: which target of which spell is redirected. */
@@ -7905,9 +8022,14 @@ public final class LlmSpikeGui {
                     // convokers, then convoked fewer, and the payment failed. Asked again once, then all convoke.
                     for (int attempt = 0; !restPayable(sa, assignConvoke(opts, picks, shards, creatures), shards); attempt++) {
                         if (attempt == 1) {
-                            picks = new ArrayList<>();
-                            for (int i = 0; i < max; i++) picks.add(i);
-                            auto("convoke(rest unpayable)->all " + max);
+                            // The seat's own picks, then others in order until the rest is payable (critique A22: it
+                            // tapped the first `max` in engine order, the creatures the seat meant to attack with too).
+                            List<Integer> filled = new ArrayList<>(zeroModelArm() ? List.<Integer>of() : picks);
+                            for (int i = 0; i < max && filled.size() < max
+                                    && (zeroModelArm() || !restPayable(sa, assignConvoke(opts, filled, shards, creatures), shards)); i++)
+                                if (!filled.contains(i)) filled.add(i);   // the floor and random arms: all, as the canary pins
+                            auto("convoke(rest unpayable)->yours plus " + (filled.size() - picks.size()) + ", " + filled.size() + " in all");
+                            picks = filled;
                             break;
                         }
                         picks = askMany("convoke", q + " With those, the rest cannot be paid by your other sources; choose more.",
@@ -7965,7 +8087,7 @@ public final class LlmSpikeGui {
             if (!legallyPayable(sa, getPlayer(), sa != null && sa.isTrigger())) { auto("combat-cost(cannot-pay)->no"); return false; }
             int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + costText(cost.toSimpleString()) : seatText(prompt))
                     + " for " + labelOf(card) + "? If you do not pay, it does not attack or block.",
-                    java.util.Arrays.asList("Pay", "Do not pay"), null, 0);
+                    java.util.Arrays.asList("Pay", "Do not pay"), null, 1);   // no answer: do not pay (critique A20)
             return c == 0 && super.payCombatCost(card, cost, sa, prompt);
         }
 
@@ -8193,7 +8315,8 @@ public final class LlmSpikeGui {
                     + (nb > 1 ? " and is blocked by " + nb + " creatures" : " to its blocker " + safeName(bl.get(0)))
                     + ". Divide it as you choose among the blockers" + (trample ? " and, with trample, the defending player" : "")
                     + ". Give an amount for each, in the order listed, summing to " + damageDealt + ".";
-            List<Integer> a = decideAllocation(fastOk() ? fast : smart, q, labels, damageDealt, rule);
+            boolean noModel = rnd == null && !smartOk() && !fastOk();   // no budget left: not asked (critique A29)
+            List<Integer> a = noModel ? null : decideAllocation(fastOk() ? fast : smart, q, labels, damageDealt, rule);
             boolean used = a != null && a.size() == labels.size() && a.stream().mapToInt(Integer::intValue).sum() == damageDealt
                     && rule.apply(a) == null;
             Map<Card, Integer> r = new java.util.HashMap<>();
@@ -8205,8 +8328,10 @@ public final class LlmSpikeGui {
                 for (int i = 0; i < nb; i++) { int v = Math.min(lethal.get(i), left); r.put(bl.get(i), v); left -= v; }
                 if (left > 0) { if (trample) r.put(null, left); else r.put(bl.get(nb - 1), r.get(bl.get(nb - 1)) + left); }
             }
-            evalDec("damage-assign", labels.size(), used ? 0 : -1, tierOf(!fastOk()), 0,
-                    used ? null : "damage-assign(unusable)->lethal-first", labels);
+            // The harness's split is an auto row, not the model's (critique A29).
+            if (!used) { autoPicks++; p("[AUTO-LEGAL] damage-assign(" + (noModel ? "no-budget" : "unusable") + ")->lethal-first"); }
+            evalDec("damage-assign", labels.size(), used ? 0 : -1, used ? tierOf(!fastOk()) : "auto", 0,
+                    used ? null : "damage-assign(" + (noModel ? "no-budget" : "unusable") + ")->lethal-first", labels);
             p("[ROUTER] damage-assign: " + r.entrySet().stream().map(e -> (e.getKey() == null ? String.valueOf(defender)
                     : safeName(e.getKey())) + "=" + e.getValue()).collect(java.util.stream.Collectors.joining(", ")));
             return r;
@@ -8335,7 +8460,7 @@ public final class LlmSpikeGui {
                     note = max < 99 ? " (up to " + max + ")" : "";
                 }
                 sa.setXManaCostPaid(announced(sa, "X", min, max, note));
-            } catch (Exception e) { p("[ROUTER] X: " + e + " -> engine default"); }
+            } catch (Exception e) { auto("announce-x(err:" + e.getClass().getSimpleName() + ")->as held" + srcOf(sa)); }
         }
 
         /** One announced value: forced when the range is one number, else the seat's ({@link #chooseNumber}). */
@@ -8438,6 +8563,8 @@ public final class LlmSpikeGui {
         // Short exponential backoff between retries (0.5s, 2s) — long enough to let a flaky route or a
         // CLI process recover, short enough not to stack into a real hang across up to 3 attempts.
         static final long[] BRIDGE_RETRY_BACKOFF_MS = { 500L, 2000L };
+        /** Decisions in a row lost to the bridge that trip the breaker (askModelUnstopped). */
+        static final int BREAKER_STREAK = 5;
         /** Every model call funnels through here — also the single capture point for the decision record:
          *  store the full prompt/reply/tier/finish_reason so evalDec can attach them (a retry overwrites,
          *  so the LAST attempt's prompt/raw_reply are what get logged). */
@@ -8750,6 +8877,13 @@ public final class LlmSpikeGui {
             // tool-answer decision is up to MAX_ROUNDS requests, each with its own deadline, so it could outlast the
             // grace and lose its row. Once the game has ended no request starts: the one in flight is the last, and
             // the decision takes its fixed legal option (audit B4).
+            // A decision whose state could not be rendered is not sent: the model would answer it blind (critique O12).
+            if (prompt != null && prompt.contains(STATE_UNAVAILABLE)) {
+                renderFailed = true;
+                p("[BRIDGE " + b.getLabel() + "] the state did not render: not asked; the decision takes its fixed legal option");
+                lastPrompt = prompt;
+                return null;
+            }
             String stop = askStop();
             if (stop != null) {
                 if (!stop.equals(stoppedBy))
@@ -8786,7 +8920,9 @@ public final class LlmSpikeGui {
             // as the new answer. API backends no-op the restart, so for them each retry is deliberately
             // just another HTTP attempt. Budget-wise this still counts as the one call bumped above
             // (multiple round-trips, one decision) — bounded, never loops indefinitely.
-            for (int attempt = 0; reply == null && attempt < BRIDGE_RETRY_BACKOFF_MS.length; attempt++) {
+            // A tripped breaker (BREAKER_STREAK decisions in a row lost to the bridge) makes one attempt per decision, no
+            // retries: a probe that closes it on the first reply. It used to change nothing but a log line (critique A8).
+            for (int attempt = 0; reply == null && !circuitBreakerTripped && attempt < BRIDGE_RETRY_BACKOFF_MS.length; attempt++) {
                 // A refused key or no credits does not pass in two seconds: asking again only spends the wait
                 // (audit B9). The decision takes its fixed legal option below, counted as lost to the bridge.
                 String stop = askStop();
@@ -8811,20 +8947,20 @@ public final class LlmSpikeGui {
                 reply = call.get();
                 subMs = System.currentTimeMillis() - tSub;
             }
-            // Per-seat health signal: observability for a bridge that's gone dark for many consecutive
-            // DECISIONS (e.g. an OpenRouter route degrading for the rest of a match) without changing
-            // behavior — callers still take their deterministic legal fallback either way. Fires the
-            // loud marker once per streak, not once per failed decision.
+            // Per-seat breaker for a bridge that has gone dark for many consecutive DECISIONS (an OpenRouter route
+            // degrading for the rest of a match): callers take their fixed legal option either way; once tripped,
+            // later decisions skip the retries above (each would wait out its own deadline), and the first reply
+            // closes it. The marker fires once per streak.
             if (reply == null) {
                 Integer routing1 = b.getRoutingRefusals();
                 if (routing0 != null && routing1 != null && routing1 > routing0) lostToRouting++;
                 consecutiveBridgeFailures++;
                 if (b.lastFailureWasTransport()) { bridgeDown.merge(seat, 1, Integer::sum); lostToTransport++; }
-                if (consecutiveBridgeFailures >= 5 && !circuitBreakerTripped) {
+                if (consecutiveBridgeFailures >= BREAKER_STREAK && !circuitBreakerTripped) {
                     circuitBreakerTripped = true;
                     breakerTrips.merge(seat, 1, Integer::sum);
                     p("[CIRCUIT-BREAKER] " + consecutiveBridgeFailures + " consecutive bridge failures on "
-                            + b.getLabel() + " -> deterministic fallback in effect until it recovers");
+                            + b.getLabel() + " -> one attempt per decision, no retries, until a reply comes back");
                 }
                 lastRetryMs += subMs; // the final sub-attempt of this ask() call also failed -> dead time
             } else {
@@ -8899,7 +9035,24 @@ public final class LlmSpikeGui {
             p("[FALLBACK->AI] " + where + "  (ai=" + aiDelegations + " smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + ")");
             evalDec(firstWord(where), -1, -1, "ai", 0, where);
         }
-        private void auto(String what) { autoPicks++; p("[AUTO-LEGAL] " + what); evalDec(firstWord(what), -1, -1, "auto", 0, what); }
+        private void auto(String what) {
+            // A hook whose code threw takes the same fallback, and its row says so: "(err:<class>)" in place of the cause.
+            if (hookError != null) {
+                what = what.replaceFirst("\\(([^)]*)\\)", java.util.regex.Matcher.quoteReplacement("(err:" + hookError.getClass().getSimpleName() + ")"));
+                hookError = null;
+            }
+            what = namedCause(what);
+            autoPicks++; p("[AUTO-LEGAL] " + what); evalDec(firstWord(what), -1, -1, "auto", 0, what);
+        }
+        /** "(bridge-down)" in a fallback renamed to what stopped the ask when the bridge was not down: the state did not
+         *  render (critique O12), or the game had ended (audit B4). */
+        private String namedCause(String fallback) {
+            if (fallback != null && fallback.contains("(bridge-down)") && (renderFailed || stoppedBy != null))
+                return fallback.replace("(bridge-down)", "(" + (renderFailed ? "render-failed" : stoppedBy) + ")");
+            return fallback;
+        }
+        /** The exception a hook caught before its fixed fallback; consumed by the next {@link #auto} row (critique A25). */
+        private Exception hookError;
 
         /** The prompt with the most recent play and the model's reasoning for it, placed just before the
          *  decision. Not on the play menu itself (that is where a new play is chosen), not on a legacy
@@ -9012,8 +9165,11 @@ public final class LlmSpikeGui {
             // wasted model round-trip's latency (it would pollute the ai/auto latency stats).
             if (ms <= 0 && lastPrompt != null && ("smart".equals(tier) || "fast".equals(tier))) ms = lastSuccessMs;
             // An ask refused because the game had ended is named so: the bridge was not down (audit B4).
-            if (stoppedBy != null && fallback != null && fallback.contains("(bridge-down)"))
-                fallback = fallback.replace("(bridge-down)", "(" + stoppedBy + ")");
+            fallback = namedCause(fallback);
+            // What was declared, as a field: the count in `choice` said how many, not which (critique C9, K7).
+            if ("attackers".equals(type) || "blockers".equals(type)) DECLARED_ROW.set(declaredField(getPlayer(), "blockers".equals(type)));
+            if (lastAnswer != null && lastAnswer.lostReason != null && "lost".equals(answerVia))
+                LOST_ROW.set(",\"lost_reason\":\"" + lastAnswer.lostReason + "\"");
             emitDecisionRow(getPlayer(), seat, type, nOptions, choice, tier, ms, fallback, options,
                     lastPrompt, lastReply, lastRetryMs, lastAttempts, lastFinishReason, lastFirstFailedReply,
                     lastPromptTokens, lastCompletionTokens, lastShadowChoice, lastPicks, answerVia, answerInvalid, lastCachedTokens, lastCacheWriteTokens);
@@ -12183,6 +12339,31 @@ public final class LlmSpikeGui {
     }
     /** The proposal fields of the next decision row (PROPOSE_ACTIONS), set by the play decision on its own thread. */
     static final ThreadLocal<String> PROPOSAL_ROW = new ThreadLocal<>();
+    /** The `declared` field of the next attackers or blockers row: what the combat holds for this seat once it decided. */
+    static final ThreadLocal<String> DECLARED_ROW = new ThreadLocal<>();
+    /** The `lost_reason` field of the next row whose tool answer was lost (AnswerTool.Ask#lostReason). */
+    static final ThreadLocal<String> LOST_ROW = new ThreadLocal<>();
+
+    /** `,"declared":[...]`: the attackers {@code me} declared ("name#id"), or the blocks its creatures make
+     *  ("blocker#id->attacker#id"), read from the game's combat. Engine ids are for the record only, never a prompt. */
+    static String declaredField(Player me, boolean blocks) {
+        List<String> out = new ArrayList<>();
+        try {
+            Combat combat = me.getGame().getCombat();
+            if (combat != null) {
+                for (Card a : combat.getAttackers()) {
+                    if (!blocks) { if (a.getController() == me) out.add(a.getName() + "#" + a.getId()); continue; }
+                    for (Card b : combat.getBlockers(a))
+                        if (b.getController() == me) out.add(b.getName() + "#" + b.getId() + "->" + a.getName() + "#" + a.getId());
+                }
+            }
+        } catch (RuntimeException e) {
+            return ",\"declared_error\":\"" + jsonEscape(e.getClass().getSimpleName()) + "\"";
+        }
+        StringBuilder sb = new StringBuilder(",\"declared\":[");
+        for (int i = 0; i < out.size(); i++) sb.append(i > 0 ? "," : "").append('"').append(jsonEscape(out.get(i))).append('"');
+        return sb.append(']').toString();
+    }
 
     /** `cachedTokens` / `cacheWriteTokens`: additive, written only when the provider reported them.
      *  `answerVia`: additive, present only when the ask offered the answer tool (AnswerTool): "tool",
@@ -12229,6 +12410,10 @@ public final class LlmSpikeGui {
             // PROPOSE_ACTIONS: the play's proposals, set by the play decision just before its row (additive fields).
             String proposals = PROPOSAL_ROW.get();
             if (proposals != null) { sb.append(proposals); PROPOSAL_ROW.remove(); }
+            String declared = DECLARED_ROW.get();
+            if (declared != null) { sb.append(declared); DECLARED_ROW.remove(); }
+            String lost = LOST_ROW.get();
+            if (lost != null) { sb.append(lost); LOST_ROW.remove(); }
             sb.append(cacheFields(cachedTokens, cacheWriteTokens));
             sb.append('}');
             // The write, the index increment, and the hook dispatch must be one atomic unit
