@@ -147,6 +147,13 @@ class TestVersionId(unittest.TestCase):
         with self.assertRaises(bv.VersionError):
             self.vid([game(engine_sha="a" * 40)])
 
+    def test_games_that_name_no_overlay_are_refused(self):
+        """E10: a direct JVM launch stamps overlay_sha "unknown"; such games say nothing of the code that played."""
+        for sha in ("unknown", ""):
+            with self.assertRaises(bv.VersionError) as e:
+                self.vid([game(overlay_sha=sha)])
+            self.assertIn("name no overlay", str(e.exception))
+
     def test_crashed_placeholders_carry_no_condition_and_are_ignored(self):
         self.assertEqual(self.vid([game(), {"t": "game", "_no_game_line": True}]), self.vid([game()]))
 

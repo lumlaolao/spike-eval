@@ -13539,6 +13539,40 @@ public final class LlmSpikeGui {
         } catch (Exception e) { return "unknown"; }
     }
 
+    /** The engine commit for the game line: ENGINE_SHA as run_batch.py sets it, else the commit of the checkout the
+     *  JVM runs in (its working directory, $FORGE_HOME), else "unknown" (critique E10: a direct launch wrote
+     *  "unknown" for what it could have read). */
+    static String engineSha(Map<String, String> env, java.io.File checkout) {
+        String set = env.get("ENGINE_SHA");
+        if (set != null && !set.isEmpty()) return set;
+        try {
+            java.io.File git = new java.io.File(checkout, ".git");
+            String head = new String(Files.readAllBytes(new java.io.File(git, "HEAD").toPath()), StandardCharsets.UTF_8).trim();
+            if (!head.startsWith("ref: ")) return head.matches("[0-9a-f]{40}") ? head : "unknown";
+            String ref = head.substring(5).trim();
+            java.io.File loose = new java.io.File(git, ref);
+            if (loose.isFile()) return new String(Files.readAllBytes(loose.toPath()), StandardCharsets.UTF_8).trim();
+            for (String line : Files.readAllLines(new java.io.File(git, "packed-refs").toPath(), StandardCharsets.UTF_8))
+                if (line.endsWith(" " + ref)) return line.substring(0, line.indexOf(' '));
+        } catch (Exception ignore) { }
+        return "unknown";
+    }
+
+    /** The deck hash for the game line: DECK_SHA as run_batch.py sets it (a cross panel's pair hash), else sha256[:12]
+     *  of DECK_A's file, as run_batch.py's _deck_sha makes it, else "unknown" (critique E10). */
+    static String deckSha(Map<String, String> env) {
+        String set = env.get("DECK_SHA");
+        if (set != null && !set.isEmpty()) return set;
+        String path = env.get("DECK_A");
+        if (path == null || path.isEmpty()) return "unknown";
+        try {
+            byte[] d = java.security.MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(Paths.get(path)));
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 6; i++) sb.append(String.format("%02x", d[i]));
+            return sb.toString();
+        } catch (Exception e) { return "unknown"; }
+    }
+
     /** sha256[:12] of the OPENROUTER_MODEL_CFG override JSON, or "builtin" when it is unset.
      *  The per-model max_tokens / timeout / reasoning-effort / temperature table is load-bearing for
      *  what the model was able to produce, and it lives entirely in an env var — without this hash two
@@ -13658,9 +13692,9 @@ public final class LlmSpikeGui {
                 + ",\"eval_log_write_failed\":" + EvalLog.writeFailed()
                 // The Forge AI profile of each seat, "" for the compiled AiProps defaults (issue #381): a condition.
                 + aiProfileStamp()
-                + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
+                + ",\"engine_sha\":\"" + jsonEscape(engineSha(System.getenv(), new java.io.File("."))) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
-                + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""
+                + ",\"deck_sha\":\"" + jsonEscape(deckSha(System.getenv())) + "\""
                 + ",\"discipline\":\"" + jsonEscape(System.getenv().getOrDefault("RUN_DISCIPLINE", "unspecified")) + "\""
                 // Additive (schema is additive-only): resolved model identity + sampling + seed bank.
                 + ",\"served_smart_a\":\"" + jsonEscape(servedModels.getOrDefault(nameA + "/smart", "unknown")) + "\""

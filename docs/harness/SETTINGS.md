@@ -61,7 +61,7 @@ Read by the code named; the table above holds the ones a game's condition is usu
 | `OPENROUTER_ALLOW_EGRESS` | `LlmSpikeGui.java` | unset | `1` is the user's consent to send game state to openrouter.ai; without it an `openrouter:` spec is refused. Never set by an agent (CLAUDE.md) |
 | `OPENROUTER_MAX_PRICE`, `OPENROUTER_QUANTIZATIONS` | `LlmSpikeGui.java` | none | a price ceiling and a precision filter in the provider routing (`puzzle_solve.py --max-price-at-list` / `--quantizations` set them); stamped on the row, scrubbed by a batch |
 | `OPENROUTER_HTTP_REFERER`, `OPENROUTER_HTTP_TITLE` | `LlmSpikeGui.java` | none | the `HTTP-Referer` and `X-Title` headers sent to OpenRouter (attribution only) |
-| `ENGINE_SHA`, `OVERLAY_SHA`, `DECK_SHA`, `CHECKPOINT_SHA` | `LlmSpikeGui.java`, `LlmSpikeFork.java` | `unknown` | provenance `run_batch.py` sets and the game line records; a fork compares them with its source game's |
+| `ENGINE_SHA`, `OVERLAY_SHA`, `DECK_SHA`, `CHECKPOINT_SHA` | `LlmSpikeGui.java`, `LlmSpikeFork.java` | `unknown`; unset, the JVM reads `ENGINE_SHA` from its checkout's git HEAD and `DECK_SHA` as sha256[:12] of `DECK_A` (critique E10) | provenance `run_batch.py` sets and the game line records; a fork compares them with its source game's. A panel refuses games whose `overlay_sha` is `unknown` (`benchmark_version`) |
 | `RUN_DISCIPLINE`, `SEED_BANK` | `LlmSpikeGui.java` | `unspecified`, `unregistered` | provenance `run_batch.py` sets (`discipline`, `seed_bank` on the game line) |
 | `MATCH_GAMES` | `LlmSpikeGui.java` | 3 | games per GUI match (1 for a best-of-one) |
 | `RULES_FILE` | `LlmSpikeGui.java` | found from the working directory | the Comprehensive Rules text the rules tool reads |

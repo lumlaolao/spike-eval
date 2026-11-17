@@ -184,6 +184,10 @@ def components(repo=REPO_ROOT, panels_path=None, games=None):
         if recorded != engine:
             raise VersionError("games were played on engine %s but FORGE_COMMIT is %s" % (recorded, engine))
         comp["overlay"] = single_value(real, "overlay_sha")
+        if comp["overlay"] in (None, "", "unknown", "(absent)"):
+            # Critique E10: a game line that names no overlay says nothing about the code that played it.
+            raise VersionError("games name no overlay (overlay_sha %r): play them through run_batch.py, which stamps "
+                               "it" % comp["overlay"])
         comp["observed"] = {f: single_value(real, f) for f in OBSERVED_FIELDS}
     else:
         comp["overlay"] = overlay_sha_of_checkout(repo)
