@@ -298,7 +298,7 @@ Since harness-epoch-39 all 44 are played by a golden check (`eval/play_gaps.txt`
   the text of the face being cast; the engine's description is only the cost and its reminder. The cost shown is the
   cost paid (a Defiler's reduction taken off), and alternative costs keep their printed names (Web-slinging).
 
-**The menus (harness-epoch-106, critique batch 5).** An attacker is named by its handle and state, as every other
+**The menus (harness-epoch-107, critique batch 5).** An attacker is named by its handle and state, as every other
 option is; a target list puts the opponents' objects first, then the rest, then the seat's own (`opponentsFirst`; the
 arms keep engine order); a multi-target play may be cancelled at its target ask, as a single-target one may; a play
 that failed (unpaid, forbidden, no target left) stays on the menu labelled for the rest of the window, and leaves it
@@ -321,7 +321,7 @@ tax is not paid, an optional static does not apply, harmonize taps the smallest 
 least (they were the "do it" option); an answer the harness cannot use is asked once more with the reason, then
 completed from the seat's own picks first (convoke, a discard-unless set, a priced mode set), and a crew pick short
 of the power is not paid; a hook that throws names the exception on its fallback row (`(err:<class>)`); an empty
-numeric range from the engine is answered with its minimum instead of an exception. Since harness-epoch-103 a
+numeric range from the engine is answered with its minimum instead of an exception. Since harness-epoch-104 a
 repeatable modal takes its fewest modes too (A32), a text-lane PICKS answer with an out-of-range number or too many
 picks is asked again rather than trimmed (A33), an unless-cost another player has paid is not asked (U8), and a
 number in the environment that does not read (`GAME_CAP_MS=30m`, a mistyped `GAME_SEED`, a cap of 0) stops the JVM
@@ -341,14 +341,14 @@ seat was shown the opposite, and the golden check encoded it).
 
 ## 4. What the model sees: the observation
 
-**Smaller and labelled for what it is (observation-faithful-v49, harness-epoch-105, critique batch 4).** A search of
+**Smaller and labelled for what it is (observation-faithful-v49, harness-epoch-106, critique batch 4).** A search of
 the seat's own library is one history line ("you looked through your library (N cards...)") and, from then on, one
 current `library (N cards, unordered, ...)` line under the hand: each search printed the whole library into GAME
 HISTORY and REVEALS TO YOU, and one "engine presented" line per card, re-sent at every later decision (two thirds of a
 turn-25 prompt; `OWN_LIBRARY_SEARCH`, `ownLibraryText`). "(was @k)" is printed the turn of the move only. A permanent
 shows every keyword the engine says it has (printed or "(granted)"), none of the casting-only ones (`CAST_ONLY`), and a
-changed P/T its base. Forge AI's arithmetic is headed ESTIMATES (it was FACTS), for every opponent. LANDS PLAYED lists
-only lands no longer in play; SPENT THIS TURN is on the seat's own turn only; a turn's digest keeps its order,
+changed P/T its base. Forge AI's arithmetic is headed ESTIMATES (it was FACTS), with one opponent or several (the
+per-opponent clocks came with the Commander seat, harness-epoch-103). LANDS PLAYED lists only lands no longer in play; SPENT THIS TURN is on the seat's own turn only; a turn's digest keeps its order,
 collapsing only repeats in a row.
 
 **`SeatObservation` (faithful profile, `CONTEXT_PROFILE=v4-faithful`).**
@@ -413,7 +413,7 @@ collapsing only repeats in a row.
 
 **Every block says where it comes from.**
 - The header of each block names its source:
-  - engine state: YOU, OPP, `STACK (engine, ...)`, COMBAT, `FACTS (engine estimates ...)`;
+  - engine state: YOU, OPP, `STACK (engine, ...)`, COMBAT, `ESTIMATES (Forge AI's arithmetic ...)`;
   - Forge's game log: `GAME HISTORY (Forge game log, ...)`, `SINCE YOUR LAST DECISION (Forge game log, ...)`,
     REVEALS TO YOU;
   - the card database: OPPONENT CARDS YOU HAVE SEEN, and, on a puzzle's solver seat, YOUR CARDS SINCE THE START;
@@ -450,7 +450,7 @@ battlefield (a suspended card's time counters, an adventure, foretold, plotted).
 - `<reference>`: terms and keywords, the same in every format and in a puzzle. It named the Legacy eval pool's
   archetypes until harness-epoch-30, which told only a Legacy seat what it could face (review 2026-10-16).
 
-**What an ask says is a fact, never advice (harness-epoch-103, critique batch 2).** Under the faithful profile:
+**What an ask says is a fact, never advice (harness-epoch-104, critique batch 2).** Under the faithful profile:
 the mulligan states the London rule the engine runs (7 new cards, N of them to the bottom, one more each time; no
 5-card floor, which exists only under `MULLIGAN_HEURISTIC=1`); no ask advises (the mulligan bottom, cleanup discard,
 hand strip, optional costs, reveal and edict sacrifice each carried a sentence of strategy; `AskContract.ADVICE`
@@ -461,7 +461,7 @@ once-only keyword cost is "Pay" / "Do not pay"; a card-name ask says its source,
 names the ability, not the card; a deck's `.plan` sidecar (strategy text) loads only with `PLAN_SIDECAR=1`. Legacy
 profiles keep their bytes.
 
-**Said once, not in every message (harness-epoch-104, critique batch 3).** The faithful profile asks for a plan only
+**Said once, not in every message (harness-epoch-105, critique batch 3).** The faithful profile asks for a plan only
 while the seat has none and for the opponent profile only while it is empty (the seat replaces either when it wants);
 the ANSWER line is one sentence (no `set_plan` and lookup reminders); the yield is explained by its field's
 description, not a hint on every play ask; the mana caveat, NOT VISIBLE's fixed sentences and what a plan is are in the
@@ -805,7 +805,7 @@ lookahead seat, declared on every ask. A call that does not apply gets an error 
 
 ## 7. What the model can look up or do: native tools
 
-**Batch 6 of the critique (harness-epoch-107; answer-tool-v23, seat-tools-v13, evidence-tools-v8, rules-tool-v3).**
+**Batch 6 of the critique (harness-epoch-108; answer-tool-v23, seat-tools-v13, evidence-tools-v8, rules-tool-v3).**
 `answer` reads slips of form as meant instead of spending a try on them (an unknown field is ignored, `options: [n]`
 answers an `option` decision, "true"/"false" text answers `keep`); `steps` is declared only under PLAN_EXECUTE.
 `memory_read` pages are 4000 characters; `report_unclear_decision` spends no lookup (50 a game); one wording for an
@@ -844,7 +844,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - *Why no MCP in the seat:* MCP is a transport for tools. The tools are already native definitions in
   the request, so a server would add latency and give no new capability.
 
-**A preview keeps what the seat knows (lookahead-preview-v19, harness-epoch-108, critique O4, U7).** `determinize`
+**A preview keeps what the seat knows (lookahead-preview-v19, harness-epoch-109, critique O4, U7).** `determinize`
 keeps the cards at the top of the seat's library that it knows in order (its library-top line) and only shuffles the
 rest, and keeps in an opponent's hand the cards KNOWN IN HIDDEN ZONES puts there, re-dealing only the rest from that
 hand plus library; every other player's hand is hidden, a teammate's too.
@@ -1177,7 +1177,7 @@ anything runs):
 `OPENROUTER_ALLOW_EGRESS` is consent for openrouter.ai and is not asked for. The lane's own consent is its explicit
 opt-in, `CLAUDE_CLI_SEAT=1` (owner, 2026-10-24).
 
-**Batch 8 of the critique (harness-epoch-109).** A reply truncated at `max_tokens` is retried once with the same
+**Batch 8 of the critique (harness-epoch-110).** A reply truncated at `max_tokens` is retried once with the same
 reasoning and twice the room (it was retried with reasoning off, so the hardest decisions were decided without
 thinking, unstamped; V2). `SMART_REASONING_EFFORT` sends an explicit effort for the smart tier and stamps it
 (`reasoning_effort_a/_b`, a condition in `aggregate.PROVENANCE_FIELDS`; V1); unset, no field is sent, as before. A
@@ -1289,12 +1289,22 @@ precons in `res/quest/commanderprecons` by name). `PLAYERS=3` or `4` seats C and
   lines' `game_format`).
 - `run_batch.py --players N --deck-c/-d --name-c/-d --controller-c/-d --ai-profile-c/-d`, and `--format commander`, are
   exploratory only: placement scoring is not built (the study's stage 5), and a panel is two-seat Constructed. Seats C
-  and D are zero-model seats there (ai, ai-log, random, floor) until the seat reads more than one opponent (stage 3);
-  seat A or B may be the model seat. `--pairs` is refused: a game of more seats is rotated, not swapped. The derived
-  cap is 30 minutes with no model seat and 120 + 90 a model seat (four Forge AI seats played 56-77 turns in 37-84 s;
-  the study estimates 70-100 minutes for one model seat among three AI).
-- The seat itself still reads one opponent in its observation, plan signature and prompt wording (the study's stage
-  3); only the attackers, who starts (harness-epoch-101) and the seat count are multiplayer so far.
+  and D are zero-model seats there (ai, ai-log, random, floor): the batch's model checks (pinned tiers, prices, budget,
+  egress) cover seats A and B, so the model seat is A or B. `--pairs` is refused: a game of more seats is rotated, not
+  swapped. The derived cap is 30 minutes with no model seat and 120 + 90 a model seat (four Forge AI seats played 56-77
+  turns in 37-84 s; the study estimates 70-100 minutes for one model seat among three AI).
+- What the seat reads with more than one opponent (harness-epoch-103, `multi_opponent_version` multi-opponent-v1 on
+  the game line; `MultiSeat.many`, a game of more than two players): the state already had an `OPP [name]` block per opponent; FACTS gives the clocks
+  and instant-speed mana against each opponent by name; an opponent's object is labelled with its owner (`[Battlefield,
+  Rival's]`, not `opponent's`); the attackers question names each opponent's life and poison and gives the engine
+  outlook against each; the plan signature covers every opponent; the mulligan ask states the multiplayer rules (the
+  first mulligan is free, every player draws on their first turn); the system prompt says how many opponents and how a
+  free-for-all is won; the proposal arm names an opponent instead of "your opponent" and refuses a bare "opponent";
+  the lookahead resolves the copy's stack with the seat's next opponent (index 1, kept for two players, may be the
+  seat itself; in a two-player game it is for seat B, not changed here). A Commander game (two seats too) states its rules in the system prompt, and each player line shows each
+  commander's casts and tax and the commander damage taken (n/21); the engine's "Commander Effect" object is left out
+  of the command zone. A two-player Constructed game asks and shows the same bytes. Not done: the v1 snapshot
+  (`buildSnapshot`, a legacy profile kept byte-identical) still reads the first opponent.
 - The `commander` acceptance stage plays two pinned four-seat games on four precons, four Forge AI seats and then a
   random seat A among three; both seeds replay to the same game.
 
