@@ -33,6 +33,9 @@
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and every
 #              eval/defect_analyzer.py hard invariant (docs/STANDARDS.md section 4)
+#   commander  two four-seat Commander games on Forge precons (GAME_FORMAT=commander PLAYERS=4, MultiSeat.java), four
+#              Forge AI seats, then a random seat among three: the pinned winner, turns, decision count and each
+#              seat's place, and every eval/defect_analyzer.py hard invariant
 #   gaming     empty-reply and garbage-reply LLM seats vs Forge AI must not beat the floor seat (seed 42); so must
 #              one whose provider answers 402 to every call, and its game line counts the decisions lost to the
 #              dead bridge, aggregate.py scores it invalid and defect_analyzer.py fails it on that invariant alone
@@ -91,7 +94,7 @@ JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 export JAVA_HOME JAVA
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-ALL_STAGES="preflight classpath compile javatests surfaces pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool cacheorder turnchat rules lines scoring"
+ALL_STAGES="preflight classpath compile javatests surfaces pytests canary commander gaming faketool faithful lookahead nativetool nativerefuse answertool cacheorder turnchat rules lines scoring"
 STAGES="${STAGES:-$ALL_STAGES}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
@@ -293,7 +296,7 @@ if [ -z "${ACC_CHILD:-}" ] && [ "$ACCEPTANCE_JOBS" -gt 1 ]; then
   # Without a build the units are not started: each stage then runs below, in this process, and fails on it.
   POOL_UNITS=""
   [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ] && [ -f "$CP_FILE" ] && \
-    POOL_UNITS="javatests+surfaces gaming scoring canary faketool nativerefuse rules faithful lines nativetool lookahead answertool cacheorder turnchat"
+    POOL_UNITS="javatests+surfaces commander gaming scoring canary faketool nativerefuse rules faithful lines nativetool lookahead answertool cacheorder turnchat"
   POOL_SIZE="${ACCEPTANCE_POOL:-$ACCEPTANCE_JOBS}"
   case "$POOL_SIZE" in ''|*[!0-9]*|0) fail parallel "ACCEPTANCE_POOL='$POOL_SIZE' must be a number >= 1"; POOL_SIZE=1;; esac
   JOBS="$EARLY_JOBS"; RUNNING="$EARLY_PIDS"
@@ -577,6 +580,45 @@ if has_stage canary; then
         fail "canary-$arm" "outcome winner=$W turns=$T decisions=$D differs from pinned winner=$EW turns=$ET decisions=$ED, $(pinset $arm) (re-pin deliberately if an auto/floor path changed)"
       else pass "canary-$arm" "seed $seed: winner=$W turns=$T decisions=$D as pinned ($(pinset $arm)); $AI $DROP; build verified via class-load log"; fi
     done
+  fi
+fi
+
+# ---------------------------------------------------------------- commander
+# Four seats, Commander rules, Forge's own precons: the engine path the multiplayer work stands on. The seeds replay
+# (two runs of each gave the same game), so the outcome and every seat's place are pinned like the canaries'.
+if has_stage commander; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail commander "no compiled classes"; else
+    PRE="$FORGE/forge-gui/res/quest/commanderprecons"
+    CPROBS=""; CFACTS=""
+    for arm in ai random; do
+      seed="$(want commander-$arm.seed)"
+      case "$seed" in ''|*[!0-9]*) CPROBS="$CPROBS $arm: seed pin '$seed' missing or not a number;"; continue;; esac
+      say "commander $arm seat A among three Forge AI seats, seed $seed"
+      play "commander-$arm" "$seed" GAME_FORMAT=commander PLAYERS=4 GAME_CAP_MS=600000 \
+          DECK_A="$PRE/Abzan Armor [TDC] [2025].dck" DECK_A_NAME="Abzan Armor" \
+          DECK_B="$PRE/Breed Lethality [C16] [2016].dck" DECK_B_NAME="Breed Lethality" \
+          DECK_C="$PRE/Coven Counters [MIC] [2021].dck" DECK_C_NAME="Coven Counters" \
+          DECK_D="$PRE/Dungeons of Death [AFC] [2021].dck" DECK_D_NAME="Dungeons of Death" \
+          CONTROLLER_A=$arm CONTROLLER_B=ai CONTROLLER_C=ai CONTROLLER_D=ai MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0
+      dir="$OUT/commander-$arm"
+      if ! check_build_loaded "$dir"; then CPROBS="$CPROBS $arm: the JVM did not load this build;"; continue; fi
+      facts="$(game_facts "$dir")"; set -- $facts
+      if [ "$1" = ERR ]; then CPROBS="$CPROBS $arm: $facts (exit $(cat "$dir/exit_code"));"; continue; fi
+      PLACES="$(python3 - "$dir" <<'EOF'
+import glob, json, sys
+g = [json.loads(l) for f in glob.glob(sys.argv[1] + "/game-*.jsonl") for l in open(f) if '"t":"game"' in l]
+print(" ".join("%s%s" % (p["seat"], p["place"]) for p in g[0].get("players", [])) if g else "none")
+EOF
+)"
+      ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+      got="winner=$1 turns=$2 decisions=$3 places=$(echo $PLACES | tr ' ' ,)"
+      pin="winner=$(want commander-$arm.winner) turns=$(want commander-$arm.turns) decisions=$(want commander-$arm.decisions) places=$(want commander-$arm.places)"
+      if [ $ARC -ne 0 ]; then CPROBS="$CPROBS $arm: defect_analyzer rc=$ARC (see $dir/defects.txt);"
+      elif [ "$got" != "$pin" ]; then CPROBS="$CPROBS $arm: $got differs from pinned $pin (re-pin deliberately);"
+      else CFACTS="$CFACTS $arm seed $seed $got;"; fi
+    done
+    if [ -n "$CPROBS" ]; then fail commander "$CPROBS"
+    else pass commander "$CFACTS hard invariants clean; build verified via class-load log"; fi
   fi
 fi
 

@@ -6,7 +6,6 @@ import forge.GuiDesktop;
 import forge.game.Game;
 import forge.game.GameEndReason;
 import forge.game.GameRules;
-import forge.game.GameType;
 import forge.game.Match;
 import forge.game.player.RegisteredPlayer;
 import forge.gui.GuiBase;
@@ -77,9 +76,11 @@ public final class LlmSpikeHeadless {
         LlmSpikeGui.EvalLog.init(seed);
         List<RegisteredPlayer> players = LlmSpikeGui.buildPlayers();
 
-        GameRules rules = new GameRules(GameType.Constructed);
+        // Constructed as before, or Commander (GAME_FORMAT=commander); more seats with PLAYERS (MultiSeat).
+        GameRules rules = MultiSeat.rules(MultiSeat.commander(System.getenv()));
         Match match = new Match(rules, players, "LlmHeadless");
         final Game game = match.createGame();
+        if (MultiSeat.placed(System.getenv())) MultiSeat.places = new MultiSeat.Places(game);
 
         long t0 = System.currentTimeMillis();
         System.out.println("[HEADLESS] game starting (cap=" + (capMs / 60000) + "min)");

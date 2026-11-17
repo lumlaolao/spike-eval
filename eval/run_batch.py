@@ -122,6 +122,10 @@ RUN_DEFINING_KEYS = (
     "SMART_MODEL", "FAST_MODEL",
     "SMART_MODEL_A", "SMART_MODEL_B", "FAST_MODEL_A", "FAST_MODEL_B",
     "GAME_SEED", "SWAP_SEATS", "EVAL_OUT", "GAME_CAP_MS",
+    # A game of more seats (PLAYERS) and its seats C and D (multiplayer_args): only their flags set them.
+    "PLAYERS", "DECK_C", "DECK_D", "DECK_C_NAME", "DECK_D_NAME", "CONTROLLER_C", "CONTROLLER_D",
+    "SMART_MODEL_C", "SMART_MODEL_D", "FAST_MODEL_C", "FAST_MODEL_D", "AI_PROFILE_C", "AI_PROFILE_D",
+    "PLAN_C", "PLAN_D",
     "ENGINE_SHA", "OVERLAY_SHA", "DECK_SHA", "RUN_DISCIPLINE",
     "CHECKPOINT_SHA", "SEED_BANK",
     # A price ceiling and a precision filter: only puzzle_solve.py --max-price-at-list / --quantizations set them. A
@@ -165,7 +169,13 @@ CONDITION_KEYS = (
     "propose_audit", "propose_terse", "propose_notebook", "ai_profile_a", "ai_profile_b",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides", "fake_policy", "ambient_env",
+    # The format and the seats (Commander, PLAYERS=3/4): a directory holds one format and one seat count.
+    "game_format", "players", "seats_cd",
 )
+# The seats a game of more than two seats adds after A and B.
+EXTRA_SEATS = ("c", "d")
+# Forge's Commander precons, under the checkout's res/ (a --deck-x that is not a file names one: commander_deck).
+PRECON_DIR = "forge-gui/res/quest/commanderprecons"
 # --env values that must never be written to a manifest on disk.
 SECRET_KEY_HINTS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
 
@@ -330,6 +340,8 @@ def build_env(args, seed, swap, out_dir):
     # change the opponent unrecorded.
     env["AI_PROFILE_A"] = ai_profile(args, "a")
     env["AI_PROFILE_B"] = ai_profile(args, "b")
+    # The seat count and seats C and D (a two-seat game sets none of them: its environment is as before).
+    env.update(multiplayer_env(args))
     # The checker audit is a diagnostic of the gauntlet (keyword_gauntlet.sh), never of a batch: pinned off, so a shell's
     # PROPOSE_AUDIT=1 cannot change a game's handles unrecorded (pr-review of #342).
     env["PROPOSE_AUDIT"] = "0"
@@ -384,6 +396,100 @@ def build_env(args, seed, swap, out_dir):
     for k, v in (getattr(args, "loopback_env", None) or {}).items():
         env[k] = v
     return env
+
+
+def players(args):
+    """The seat count: --players, 2 when not given."""
+    return getattr(args, "players", None) or 2
+
+
+def is_commander(args):
+    return (getattr(args, "format", None) or "").strip().lower() == "commander"
+
+
+def placed(args):
+    """A game whose line carries n_players and players: more than two seats, or Commander."""
+    return players(args) > 2 or is_commander(args)
+
+
+def multiplayer_env(args):
+    """PLAYERS and each seat C, D's DECK_X, DECK_X_NAME, CONTROLLER_X, SMART_MODEL_X, FAST_MODEL_X and AI_PROFILE_X;
+    empty for two seats."""
+    n = players(args)
+    if n <= 2:
+        return {}
+    env = {"PLAYERS": str(n)}
+    for ident in EXTRA_SEATS[:n - 2]:
+        up = ident.upper()
+        for key, val in (("DECK_" + up, getattr(args, "deck_" + ident, None)),
+                         ("DECK_%s_NAME" % up, getattr(args, "name_" + ident, None)),
+                         ("CONTROLLER_" + up, getattr(args, "controller_" + ident, None) or "ai"),
+                         ("SMART_MODEL_" + up, getattr(args, "smart_" + ident, None)),
+                         ("FAST_MODEL_" + up, getattr(args, "fast_" + ident, None))):
+            if val is not None:
+                env[key] = val
+        env["AI_PROFILE_" + up] = ai_profile(args, ident)
+    return env
+
+
+def seats_cd(args):
+    """Seats C and D as the manifest records them ({} for two seats)."""
+    out = {}
+    for ident in EXTRA_SEATS[:max(0, players(args) - 2)]:
+        deck = getattr(args, "deck_" + ident, None)
+        out[ident] = {"deck": deck, "deck_sha": _deck_sha(deck) if deck else None,
+                      "name": getattr(args, "name_" + ident, None),
+                      "controller": getattr(args, "controller_" + ident, None) or "ai",
+                      "smart": getattr(args, "smart_" + ident, None), "fast": getattr(args, "fast_" + ident, None),
+                      "ai_profile": ai_profile(args, ident)}
+    return out
+
+
+def commander_deck(spec, forge_home):
+    """A Commander deck: a file as given, else the Forge precon (res/quest/commanderprecons) whose file name is
+    `spec` or starts with `spec [` ("Abzan Armor" is "Abzan Armor [TDC] [2025].dck"). (path, None) or (None, why)."""
+    p = os.path.abspath(os.path.expanduser(spec))
+    if os.path.isfile(p):
+        return p, None
+    d = Path(forge_home) / PRECON_DIR
+    if not d.is_dir():
+        return None, "%s is not a file and %s holds no precons" % (spec, d)
+    want = spec[:-4] if spec.lower().endswith(".dck") else spec
+    hits = sorted(f for f in os.listdir(d) if f.endswith(".dck")
+                  and (f[:-4].lower() == want.lower() or f.lower().startswith(want.lower() + " [")))
+    if len(hits) == 1:
+        return str(d / hits[0]), None
+    if not hits:
+        return None, "no Commander precon is named %r (in %s)" % (spec, d)
+    return None, "%r names %d precons: %s; name one in full" % (spec, len(hits), ", ".join(h[:-4] for h in hits))
+
+
+def multiplayer_refusal(args):
+    """Why this batch's seats or format cannot launch, or None. More than two seats and Commander are exploratory
+    (placement scoring is not built: docs/harness/ARCHITECTURE.md), every seat names a deck, seats C and D are
+    zero-model seats, and two-seat --pairs is no rotation."""
+    n = players(args)
+    if not 2 <= n <= 4:
+        return "--players must be 2, 3 or 4 (got %d)" % n
+    used = [i for i in EXTRA_SEATS if any(getattr(args, "%s_%s" % (f, i), None) for f in
+                                          ("deck", "name", "controller", "smart", "fast", "ai_profile"))]
+    extra = [i for i in used if EXTRA_SEATS.index(i) >= n - 2]
+    if extra:
+        return "--players %d seats no %s: drop its flags or raise --players" % (n, ", ".join(i.upper() for i in extra))
+    if not placed(args):
+        return None
+    if not getattr(args, "exploratory", False):
+        return ("a Commander or %d-seat batch is exploratory: placement scoring is not built yet, so pass "
+                "--exploratory" % n)
+    if getattr(args, "pairs", False):
+        return "--pairs swaps two seats; a game of more seats is not swapped"
+    for ident in EXTRA_SEATS[:n - 2]:
+        if not getattr(args, "deck_" + ident, None):
+            return "--players %d needs --deck-%s" % (n, ident)
+        if (getattr(args, "controller_" + ident, None) or "ai") == "llm":
+            return ("seat %s is a model seat: seats C and D are zero-model seats (ai, ai-log, random, floor) until the "
+                    "seat reads more than one opponent (Commander plan, C2)" % ident.upper())
+    return None
 
 
 def run_one(args, seed, swap, out_dir):
@@ -564,6 +670,10 @@ def resume_expectation(args):
     tft = normalize_tier_fast_types(getattr(args, "tier_fast_types", None))
     utft = normalize_tier_fast_types(getattr(args, "unstamped_tier_fast_types", None))
     expect["tier_fast_types"] = [tft] if tft != utft else [tft, ABSENT]
+    # The format and the seat count: a two-seat Constructed line carries no n_players.
+    fmt = game_format(args)
+    expect["game_format"] = [fmt, ABSENT] if fmt == "legacy" else [fmt]
+    expect["n_players"] = [players(args)] if placed(args) else [ABSENT]
     for field, val in (("controller_a", args.controller_a), ("controller_b", args.controller_b),
                        ("smart_a", args.smart_a), ("smart_b", args.smart_b),
                        ("fast_a", args.fast_a), ("fast_b", args.fast_b)):
@@ -698,7 +808,15 @@ def batch_condition(args, cited):
                           if not k.startswith(CTX_OVERRIDE_PREFIX)},
         # The shell's values of AMBIENT_CONDITION_KEYS an exploratory game inherits (cited mode scrubs them).
         "ambient_env": {} if cited else ambient_condition_env(),
+        "game_format": game_format(args),
+        "players": players(args),
+        "seats_cd": seats_cd(args),
     }
+
+
+def game_format(args):
+    """The format as the JVM stamps it (PlayerControllerLLM.gameFormat): lowercased, legacy when unset."""
+    return (getattr(args, "format", None) or "").strip().lower() or "legacy"
 
 
 def ambient_condition_env():
@@ -767,12 +885,12 @@ def ai_profile_refusal(args):
     """Why --ai-profile-a / -b cannot run with this batch, or None. The benchmark's opponent stays Forge's compiled
     defaults, so a profile is exploratory and never a panel; it belongs to a Forge AI seat (the JVM refuses a name
     Forge did not load, and a profile on any other seat)."""
-    for ident in ("a", "b"):
+    for ident in ("a", "b") + EXTRA_SEATS:
         p = ai_profile(args, ident)
         if p and (getattr(args, "panel", None) or not getattr(args, "exploratory", False)):
             return ("--ai-profile-%s is an exploratory condition, never a cited run or a panel: the benchmark's "
                     "opponent is Forge's compiled defaults" % ident)
-        ctl = getattr(args, "controller_" + ident, None)
+        ctl = getattr(args, "controller_" + ident, None) or ("ai" if ident in EXTRA_SEATS else None)
         if p and ctl not in ("ai", "ai-log"):
             return ("--ai-profile-%s %s with --controller-%s %s: a profile configures a Forge AI seat (ai, ai-log)"
                     % (ident, p, ident, ctl))
@@ -974,6 +1092,10 @@ def condition_diff_norm(m, k):
         return {e: v for e, v in env.items() if e not in PROMOTED_ENV_KEYS}
     if k == "ambient_env":
         return m.get(k) or {}         # a manifest from before the field recorded none
+    if k == "players":
+        return m.get(k) or 2          # a manifest from before the field seated two
+    if k == "seats_cd":
+        return m.get(k) or {}
     return m.get(k)
 
 
@@ -1074,7 +1196,13 @@ def check_resume_condition(out_dir, condition, cited):
         proven = ("lookahead" not in recorded and not condition_diff_norm(recorded, "lookahead")
                   and stamps and all(s == want_la for s in stamps))
         diff = [d for d in condition_diff(recorded, condition)
-                if not ((proven and d[0] == "lookahead") or (lines and d[0] == "native_tools"))]
+                if not ((proven and d[0] == "lookahead") or (lines and d[0] == "native_tools")
+                        or (d[0] == "game_format" and "game_format" not in recorded))]
+        # A manifest from before the field did not record the format: each game line's stamp says it.
+        if "game_format" not in recorded:
+            seen = sorted({rec.get("game_format", "legacy") for rec in iter_game_lines(out_dir)})
+            if seen and seen != [condition.get("game_format")]:
+                diff.append(("game_format", seen, condition.get("game_format")))
         if lines and lines["fields"]["native_tools"] != [bool(condition.get("native_tools"))]:
             diff.append(("native_tools", lines["fields"]["native_tools"], bool(condition.get("native_tools"))))
         la = lookahead_problem(out_dir, unstamped_lookahead(manifest), condition)
@@ -1152,6 +1280,18 @@ def write_manifest(out_dir, condition, seeds, pairs, jobs, argv=None):
 def format_guard(args):
     """--format: every deck must be legal in it by the pinned engine's format data, or nothing launches."""
     if not getattr(args, "format", None):
+        return
+    if is_commander(args):
+        # A Commander deck is a Forge .dck naming its commander; the engine checks the rest when it seats it.
+        for d in {getattr(args, "deck_" + i, None) for i in ("a", "b") + EXTRA_SEATS} - {None}:
+            try:
+                text = Path(d).read_text(encoding="utf-8", errors="replace")
+            except OSError as e:
+                text = "(unreadable: %s)" % e
+            if not d.lower().endswith(".dck") or "[Commander]" not in text:
+                print("run_batch: REFUSING: %s is not a Commander deck: a Forge .dck with a [Commander] section (or a "
+                      "precon's name)" % d, file=sys.stderr)
+                sys.exit(2)
         return
     import deck_legality
     forge = deck_legality.forge_home()
@@ -1435,8 +1575,16 @@ def warn_reserved_seeds(seeds):
 def derive_cap_minutes(args):
     """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240; all-haiku llm -> 120; anything else
     llm -> 240 (conservative). The opus and haiku branches match any spec naming those models (a claude-cli: spec,
-    or an openrouter: anthropic slug); every other model, Luna included, takes the 240 branch."""
+    or an openrouter: anthropic slug); every other model, Luna included, takes the 240 branch.
+
+    A Commander or more-seat game is longer: 30 with no llm seat (four Forge AI seats played 56-77 turns in 37-84 s;
+    a random seat among three, 72 turns in 46 s), else 120 + 90 a model seat. The study's estimate is 70-100 minutes
+    for one model seat among three AI (330-450 decisions at 12.9 s) and 4.7-6.5 hours for four (audit/COMMANDER.md
+    Part D, by the per-decision figures of 32 Luna games)."""
     models = effective_llm_models(args)
+    if placed(args):
+        seats = [i for i in ("a", "b") if (getattr(args, "controller_" + i, None) or "llm") == "llm"]
+        return 30.0 if not models else 120.0 + 90.0 * len(seats)
     if not models:
         return 15.0
     if any("opus" in m for m in models):
@@ -1530,7 +1678,9 @@ def build_parser():
     ap.add_argument("--format", default=None,
                     help="GAME_FORMAT the decks are built for (legacy, modern, standard, pauper). Told to the seat "
                          "and recorded on the game line; a deck that is not legal in it by the engine's own format "
-                         "data (eval/deck_legality.py) is refused.")
+                         "data (eval/deck_legality.py) is refused. commander plays Forge's Commander game: each "
+                         "deck a .dck with a [Commander] section or a precon's name (res/quest/commanderprecons); "
+                         "exploratory only.")
     ap.add_argument("--deck-a", help="DECK_A path")
     ap.add_argument("--deck-b", help="DECK_B path")
     ap.add_argument("--name-a", help="DECK_A_NAME (identity key; cited default Identity-A)")
@@ -1544,6 +1694,18 @@ def build_parser():
                     help="CONTROLLER_A")
     ap.add_argument("--controller-b", choices=["llm", "random", "floor", "ai", "ai-log"],
                     help="CONTROLLER_B")
+    ap.add_argument("--players", type=int, default=None,
+                    help="seats at the table, 2 (default) to 4: seats C and D take --deck-c/-d, --name-c/-d, "
+                         "--controller-c/-d (default ai; zero-model seats only), --ai-profile-c/-d. Exploratory only.")
+    for ident in EXTRA_SEATS:
+        ap.add_argument("--deck-" + ident, help="DECK_%s path (with --format commander, a .dck or a precon's name)"
+                        % ident.upper())
+        ap.add_argument("--name-" + ident, help="DECK_%s_NAME (default: the deck file's name)" % ident.upper())
+        ap.add_argument("--controller-" + ident, choices=["random", "floor", "ai", "ai-log", "llm"],
+                        help="CONTROLLER_%s (default ai; llm is refused until the seat reads several opponents)"
+                        % ident.upper())
+        ap.add_argument("--smart-" + ident, help=argparse.SUPPRESS)
+        ap.add_argument("--fast-" + ident, help=argparse.SUPPRESS)
     ap.add_argument("--plan-a", help="PLAN_A (forbidden in cited mode)")
     ap.add_argument("--plan-b", help="PLAN_B (forbidden in cited mode)")
     ap.add_argument("--shadow-ai", action="store_true",
@@ -1645,7 +1807,7 @@ def build_parser():
                     help="PROPOSE_NOTEBOOK=1, with --propose-actions: each play, attack and blocks decision lists the "
                          "game's earlier refused proposals the seat was told, as it was told them (REFUSED EARLIER). "
                          "A separate condition that must live in its own --out.")
-    for ident in ("a", "b"):
+    for ident in ("a", "b") + EXTRA_SEATS:
         ap.add_argument("--ai-profile-" + ident, metavar="NAME", default=None,
                         help="AI_PROFILE_%s=<name>: a shipped Forge AI profile (Cautious, Default, Experimental, "
                              "Reckless) for identity %s's ai seat. Default: the compiled AiProps, the STR-AI "
@@ -1703,9 +1865,11 @@ def main(argv=None):
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")
     if args.one_tier and args.two_tier:
         raise SystemExit("run_batch: --one-tier and --two-tier contradict each other")
-    refusal = propose_refusal(args) or ai_profile_refusal(args)
+    refusal = propose_refusal(args) or ai_profile_refusal(args) or multiplayer_refusal(args)
     if refusal:
         raise SystemExit("run_batch: " + refusal)
+    if args.panel and placed(args):
+        raise SystemExit("run_batch: a panel is two-seat Constructed; --players and --format commander are not")
     for kv in args.env or []:
         refusal = env_refusal(kv.split("=", 1)[0])
         if refusal:
@@ -1774,10 +1938,15 @@ def run_block(args):
     # because Forge's desktop code starts an AWT thread, the JVM does NOT exit when buildPlayers
     # throws: the game lingers and burns the entire --cap-minutes before timing out. Refuse a
     # missing file now instead of losing the cap (seen 2026-10-13).
-    for _k in ("deck_a", "deck_b"):
+    for _k in ("deck_a", "deck_b") + tuple("deck_" + i for i in EXTRA_SEATS):
         _v = getattr(args, _k, None)
         if not _v:
             continue
+        if is_commander(args):
+            # A Commander deck may be named: a Forge precon (commander_deck).
+            _v, _why = commander_deck(_v, Path(args.forge_home).expanduser())
+            if _why:
+                _refuse("--%s: %s" % (_k.replace("_", "-"), _why))
         _ap = os.path.abspath(os.path.expanduser(_v))
         if not os.path.isfile(_ap):
             _refuse("--%s %s does not exist (paths must resolve; the game runs from the Forge tree)"

@@ -53,7 +53,9 @@ Read by the code named; the table above holds the ones a game's condition is usu
 | `NO_COACHING` | `LlmSpikeGui.java` | 0 | 1: the system prompt leaves out PRINCIPLES and the static reference (the harness's own advice); an assistance condition, stamped `no_coaching` |
 | `ANSWER_TOOL_STRICT` | `AnswerTool.java` | 0 | 1: the `answer` schema is sent as strict (per OpenRouter endpoint); the harness validates every call either way |
 | `TIER_FAST_TYPES` | `LlmSpikeGui.java` | empty | comma-separated decision types sent to the fast tier when two tiers run; a condition |
-| `GAME_FORMAT` | `LlmSpikeGui.java` | `legacy` | the format the seat is told the decks are built for, recorded on the game line (the engine plays any deck) |
+| `GAME_FORMAT` | `LlmSpikeGui.java` | `legacy` | the format the seat is told the decks are built for, recorded on the game line (the engine plays any deck); `commander` also plays Forge's Commander game (`MultiSeat.java`) |
+| `PLAYERS` | `MultiSeat.java` | 2 | the seats at the table, 2 to 4; 3 and 4 seat C and D. A game of more seats, or Commander, adds `n_players` and `players` to its game line |
+| `DECK_C/D`, `DECK_C_NAME/D_NAME`, `CONTROLLER_C/D`, `SMART_MODEL_C/D`, `FAST_MODEL_C/D`, `AI_PROFILE_C/D`, `PLAN_C/D` | `MultiSeat.java` | none; name: the deck file's; controller `ai` | seats C and D, as their A and B counterparts (`run_batch.py --deck-c` and the rest; zero-model seats there) |
 | `CTX_RECENT_EVENTS`, `CTX_RECENT_EVENTS_MAX`, `CTX_INTEL_CAP`, `CTX_YARD_CAP`, `CTX_EXILE_CAP`, `CTX_CAST_HISTORY_CAP`, `CTX_DIGEST_TURNS`, `CTX_DIGEST_PER_TURN`, `CTX_COMPACT_TURNS_PER_LINE` | `LlmSpikeGui.java` (`ContextProfile.withEnvOverrides`) | the profile's | overrides of one window or cap of the observation; each changes what the seat sees, so a run with one is its own condition |
 | `OPENROUTER_API_KEY` | `LlmSpikeGui.java` | none | the provider key (`secrets.env`); never sent to a loopback endpoint and never recorded |
 | `OPENROUTER_ALLOW_EGRESS` | `LlmSpikeGui.java` | unset | `1` is the user's consent to send game state to openrouter.ai; without it an `openrouter:` spec is refused. Never set by an agent (CLAUDE.md) |
