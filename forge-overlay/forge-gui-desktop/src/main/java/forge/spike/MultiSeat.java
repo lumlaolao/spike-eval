@@ -25,6 +25,15 @@ import forge.game.player.RegisteredPlayer;
 final class MultiSeat {
     private MultiSeat() {}
 
+    /** What a seat reads and is asked in a game of more than two players or a Commander game, beyond the two-player
+     *  stamps (which do not move: a two-player Constructed game reads the same bytes). Stamped as
+     *  {@code multi_opponent_version} on such a game's line only.
+     *  v1 (2026-11-16, Commander plan C2): FACTS per opponent by name, owner-named labels, the attack outlook against
+     *  each opponent, the plan signature over every opponent, the multiplayer mulligan ask and system prompt; Commander's
+     *  rules in the system prompt, commander tax and damage on each player line, no "Commander Effect" in the command
+     *  zone. */
+    static final String VERSION = "multi-opponent-v1";
+
     /** The seat ids, in seat order: the game line's {@code winner} and each {@code players} entry use them. */
     static final String[] IDS = {"A", "B", "C", "D"};
 
@@ -139,6 +148,47 @@ final class MultiSeat {
         synchronized Integer lostTurn(Player p) { return lostAt.get(p); }
     }
 
+    /** A game of more than two players: the seat reads several opponents (each named where one used to be "the
+     *  opponent"). A two-player game, Commander included, reads as before. */
+    static boolean many(Game g) {
+        try { return g != null && g.getRegisteredPlayers().size() > 2; } catch (Exception e) { return false; }
+    }
+
+    /** The seat count the system prompt states, from the environment the seats are built from. */
+    static int playersFromEnv() {
+        try {
+            String v = LlmSpikeGui.env("PLAYERS");
+            return v == null || v.trim().isEmpty() ? 2 : Integer.parseInt(v.trim());
+        } catch (Exception e) { return 2; }
+    }
+
+    /** The system prompt's opening clause after the seat's name: "against one opponent" in a two-player game, else
+     *  how many and how a free-for-all is won; a Commander game adds its own rules (the engine enforces them). */
+    static String opponentsClause(int players, String format) {
+        String who = players > 2
+                ? "against " + (players - 1) + " opponents, every player against every other: a player who loses leaves "
+                  + "the game, and the last player left wins. Your goal is to be that player."
+                : "against one opponent. Your goal is to win the game.";
+        if (!"commander".equals(format)) return who;
+        return who + " Commander rules: each player starts at 40 life with a commander in the command zone; a player "
+                + "dealt 21 or more combat damage by one commander loses; each time you cast your commander from the "
+                + "command zone it costs {2} more for each earlier time.";
+    }
+
+    /** The faithful mulligan ask in a game of more than two players, where the rules differ from two-player: the
+     *  first mulligan is free (Forge's MulliganService: a game of more than two players), and no player skips the
+     *  draw of their first turn (CR 103.8c). A free mulligan is the first, from a full hand of seven. */
+    static String mulliganPrompt(int size, int lands, String handNames, boolean onThePlay) {
+        boolean free = size >= 7;
+        return "MULLIGAN: you " + (onThePlay ? "take the first turn" : "do not take the first turn")
+                + " (in a game of more than two players every player draws on their first turn). This hand has " + size
+                + " cards, " + lands + " of them lands: " + handNames + ". A mulligan gives you a new hand of "
+                + (free ? size + " cards (the first mulligan is free in a game of more than two players; each later one "
+                          + "costs one card" : Math.max(0, size - 1) + " cards (each mulligan after the first costs one card")
+                + ", and you cannot go below 5); keeping plays this hand. Keep or mulligan? End with exactly one word: KEEP "
+                + "or MULLIGAN.";
+    }
+
     /** Set by the headless runner for a placed game. */
     static volatile Places places;
 
@@ -173,7 +223,8 @@ final class MultiSeat {
         }
         Places pl = places;
         if (pl != null) pl.note();
-        StringBuilder b = new StringBuilder(",\"n_players\":" + n + ",\"players\":[");
+        StringBuilder b = new StringBuilder(",\"n_players\":" + n + ",\"multi_opponent_version\":\"" + VERSION + "\""
+                + ",\"players\":[");
         for (int i = 0; i < n; i++) {
             String id = IDS[i];
             Player p = byId.get(id);
