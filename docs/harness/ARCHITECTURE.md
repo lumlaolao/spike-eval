@@ -313,7 +313,7 @@ tax is not paid, an optional static does not apply, harmonize taps the smallest 
 least (they were the "do it" option); an answer the harness cannot use is asked once more with the reason, then
 completed from the seat's own picks first (convoke, a discard-unless set, a priced mode set), and a crew pick short
 of the power is not paid; a hook that throws names the exception on its fallback row (`(err:<class>)`); an empty
-numeric range from the engine is answered with its minimum instead of an exception. Since harness-epoch-103 a
+numeric range from the engine is answered with its minimum instead of an exception. Since harness-epoch-104 a
 repeatable modal takes its fewest modes too (A32), a text-lane PICKS answer with an out-of-range number or too many
 picks is asked again rather than trimmed (A33), an unless-cost another player has paid is not asked (U8), and a
 number in the environment that does not read (`GAME_CAP_MS=30m`, a mistyped `GAME_SEED`, a cap of 0) stops the JVM
@@ -432,7 +432,7 @@ battlefield (a suspended card's time counters, an adventure, foretold, plotted).
 - `<reference>`: terms and keywords, the same in every format and in a puzzle. It named the Legacy eval pool's
   archetypes until harness-epoch-30, which told only a Legacy seat what it could face (review 2026-10-16).
 
-**What an ask says is a fact, never advice (harness-epoch-103, critique batch 2).** Under the faithful profile:
+**What an ask says is a fact, never advice (harness-epoch-104, critique batch 2).** Under the faithful profile:
 the mulligan states the London rule the engine runs (7 new cards, N of them to the bottom, one more each time; no
 5-card floor, which exists only under `MULLIGAN_HEURISTIC=1`); no ask advises (the mulligan bottom, cleanup discard,
 hand strip, optional costs, reveal and edict sacrifice each carried a sentence of strategy; `AskContract.ADVICE`
