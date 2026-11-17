@@ -266,7 +266,7 @@ public class SeatObservationTest {
         card("Grizzly Bears", me, ZoneType.Battlefield);
         SeatObservation o = observerFor(g, 0);
         String r = render(o, "");
-        Assert.assertTrue(r.contains("FACTS (engine estimates, not truth):"), r);
+        Assert.assertTrue(r.contains("ESTIMATES (Forge AI's arithmetic, not certain):"), r);
         Assert.assertTrue(r.contains("your next combat:"), r);
         Assert.assertTrue(r.contains("if none is blocked; their life"), r);
         Assert.assertTrue(r.contains("instant speed"), r);

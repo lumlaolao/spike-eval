@@ -157,6 +157,14 @@ final class PlayerLookahead {
     }
 
     /** The copy's version of mana ability {@code live}: the host's mana ability with the same description. */
+    /** The seat's next opponent in turn order on the copy (the live seat's copy, then the player after it). */
+    static Player nextOpponent(GameSimulator sim, Player seat) {
+        Player copySeat = (Player) sim.getGameCopier().find(seat);
+        Game g = copySeat.getGame();
+        Player next = g.getNextPlayerAfter(copySeat);
+        return next == null || next == copySeat ? g.getPlayers().get(1) : next;
+    }
+
     static forge.game.spellability.SpellAbility manaAbilityOnCopy(forge.game.spellability.SpellAbility live, GameSimulator sim) {
         try {
             forge.game.card.Card copyHost = (forge.game.card.Card) sim.getGameCopier().find(live.getHostCard());
@@ -555,7 +563,9 @@ final class PlayerLookahead {
                     stopped = label;
                     break;
                 }
-                GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
+                // The engine resolves with an AI controller for one opponent. Index 1 in a two-player game, as before;
+                // with more players, the seat's next opponent on the copy (index 1 may be the seat).
+                GameSimulator.resolveStack(simGame, MultiSeat.many(simGame) ? nextOpponent(sim, seat) : simGame.getPlayers().get(1));
                 b.append(i == 0 ? "" : ", then ")
                  .append(isLand ? "play " : (o.isSpell() ? "cast " : "activate ")).append(label)
                  .append(assumed.isEmpty() ? "" : " " + ASSUMING + assumed + "]");
