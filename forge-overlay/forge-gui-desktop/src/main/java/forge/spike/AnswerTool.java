@@ -75,8 +75,10 @@ final class AnswerTool {
      *  open is told it must be a function call (it was told no lookups were left).
      *  v21 (2026-11-17, critique batch 2): the preamble says what happens to an answer that is never given (one more
      *  call after an illegal one, two reminders for no call, then the do-nothing option); the yield's description says
-     *  an attack does not wake a yielded seat (one text, YIELD_RULE, for the schema and the hint). */
-    static final String VERSION = "answer-tool-v21";
+     *  an attack does not wake a yielded seat (one text, YIELD_RULE, for the schema and the hint).
+     *  v22 (2026-11-17, critique P7): the ANSWER line no longer ends every ask with "Call `set_plan` too ..." and
+     *  "Lookups do not count against the answer." (the tool descriptions and the preamble say them). */
+    static final String VERSION = "answer-tool-v22";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -1151,8 +1153,9 @@ final class AnswerTool {
                     + "blocks (an empty list for no blocks)"; break;
             default: how = "the decision's values"; break;
         }
-        return "ANSWER: call `answer` with " + how + "." + (plan ? " Call `set_plan` too if your plan is new or has changed." : "")
-                + " Lookups do not count against the answer.\n";
+        // The two sentences that ended every ask ("Call `set_plan` too ...", "Lookups do not count ...") are the tool
+        // descriptions' and the preamble's, said once (critique P7).
+        return "ANSWER: call `answer` with " + how + ".\n";
     }
 
     /** The text-format instructions in a decision text, removed from a tool ask: its one answer line is the

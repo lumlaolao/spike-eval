@@ -460,8 +460,13 @@ public final class LlmSpikeGui {
      *  answer never given takes the do-nothing option, as the preamble now says; the yield says an attack does not
      *  wake it; order, trigger, multi-target, keyword-cost, card-name, cost and convoke asks say what they are; a
      *  deck's strategy sidecar no longer loads by default (PLAN_SIDECAR=1); a rules puzzle's brief says how it is judged.
+     *  Epoch 104 (2026-11-17, critique batch 3): less said more than once. The plan is asked for only while the seat has
+     *  none, the profile only while empty; the ANSWER line, the yield hint, the mana caveat, NOT VISIBLE's fixed text and
+     *  the plan paragraph are no longer in every message; lookup counts come with each lookup's result; no glossary in
+     *  the faithful profile; a zone-change, a long type list and the mana pool are asked in the harness's words; a model
+     *  seat with no CONTEXT_PROFILE is refused.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-103";
+    static final String HARNESS_EPOCH = "harness-epoch-104";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */
@@ -1485,6 +1490,19 @@ public final class LlmSpikeGui {
             this(game, p, lp, seat, deckPlan, pair[0], pair[1], mode);
         }
 
+        /** A seat a model plays (an openrouter:, claude-cli: or jev: spec) names its observation profile: with none set the
+         *  JVM fell back to v1-compat, the legacy profile the code calls the single worst information defect, and only
+         *  the launchers set another (critique E9). A harness arm (script:, greedy:, replay:) asks no model and is exempt;
+         *  a test sets the profile in-process (TEST_PROFILE_OVERRIDE). */
+        static void requireProfileForModel(String spec, String seat) {
+            if (spec == null || TEST_PROFILE_OVERRIDE != null) return;
+            boolean model = spec.startsWith("openrouter:") || spec.startsWith("claude-cli:") || spec.startsWith("jev:");
+            String want = env("CONTEXT_PROFILE");
+            if (model && (want == null || want.trim().isEmpty()))
+                throw new IllegalStateException(seat + ": a model seat (" + spec.substring(0, spec.indexOf(':') + 1)
+                        + "...) needs CONTEXT_PROFILE (v4-faithful for the benchmark's seat; v1-compat names the legacy one)");
+        }
+
         /** The smart and fast bridges: one shared smart bridge under ONE_TIER, else one per tier. */
         private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel, String mode) {
             // A model seat on the Claude CLI is the development lane: the operator chose it. A retired bare name is refused.
@@ -1497,6 +1515,7 @@ public final class LlmSpikeGui {
             if (!"llm".equals(mode))
                 return new LLMBridge[] {LLMBridgeFactory.placeholder(seat + "/smart", smartModel),
                         LLMBridgeFactory.placeholder(seat + "/fast", fastModel)};
+            requireProfileForModel(smartModel, seat);
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
             if ((ChatSessionBridge.ON || ChatSessionBridge.TURN) && smartB instanceof OpenRouterBridge)
                 smartB = new ChatSessionBridge((OpenRouterBridge) smartB, !ChatSessionBridge.ON);
@@ -2090,7 +2109,9 @@ public final class LlmSpikeGui {
                     + "<reading_the_state>\n" + SeatObservation.guide(profile()) + "</reading_the_state>\n"
                     // Terms and keywords, the same for every format and for a puzzle (2026-10-16 review: the Legacy-only
                     // reference also named the eval pool's archetypes, which no other format's seat was told).
-                    + (coaching ? "\n<reference>\n" + TERMS_REFERENCE + "</reference>\n" : "");
+                    // Not in the faithful profiles: a Legacy-flavoured glossary sent in every format and in puzzles, which
+                    // card text and rules_lookup cover (critique P19).
+                    + (coaching && !profile().faithfulObservation ? "\n<reference>\n" + TERMS_REFERENCE + "</reference>\n" : "");
         }
         /** How the turn moves on (critique P5, O14): what PASS does and the order of the steps, which the state's header
          *  names by the engine's step names. Said once here, not in each ask. */
@@ -2798,12 +2819,11 @@ public final class LlmSpikeGui {
          *  stated, so the model can read what happened since in RECENT EVENTS and judge it. */
         static String revisablePlanText(String turnPlan, String planWhen, int planTurn, int nowTurn) {
             if (turnPlan == null || turnPlan.isEmpty()) return "";
-            return "YOUR PLAN (yours, stated " + (planWhen == null || planWhen.isEmpty() ? "at T" + planTurn : "at " + planWhen)
-                    + (planTurn == nowTurn ? ", this turn" : ", an earlier turn")
-                    + "; events after that happened since. It is a note, not a commitment: check it against the state above at "
-                    + "this decision, and when it no longer fits, write a new "
-                    + "`PLAN: GOAL: <what you are working toward> NEXT: <the steps>` line before your answer): "
-                    + turnPlan + "\n";
+            // How old the plan is, as a fact; what a plan is and when to replace it is the guide's, said once (critique
+            // M3, P8: the paragraph was in every message, and named the text grammar's PLAN: line on the tool lane).
+            int age = Math.max(0, nowTurn - planTurn);
+            return "YOUR PLAN (stated " + (planWhen == null || planWhen.isEmpty() ? "at T" + planTurn : "at " + planWhen)
+                    + (age == 0 ? ", this turn" : ", " + age + (age == 1 ? " turn" : " turns") + " ago") + "): " + turnPlan + "\n";
         }
 
         static String buildSnapshot(Player me, String seat, java.util.Collection<String> intel, String turnPlan, int planTurn) {
@@ -4624,10 +4644,13 @@ public final class LlmSpikeGui {
                 int choice = -1;
                 // First main-phase decision of OUR turn: also ask for a one-line turn plan (piggybacked —
                 // costs zero extra calls). It rides in the snapshot for every later decision this turn.
-                boolean askPlan = !landOnly && planTurn != turn && b == smart; // once per turn, EITHER player's turn
+                // Faithful: a plan is asked for only while the seat has none; it replaces it with set_plan when it wants to
+                // (critique P6: the request came every turn, even at upkeep, above the plan the seat already had).
+                boolean askPlan = !landOnly && planTurn != turn && b == smart && (observer == null || turnPlan.isEmpty());
                 // The opponent read is refreshed rarely (empty, or >=5 turns old) and rides the same ask,
                 // so it never costs an extra model call.
-                boolean askProfile = askPlan && (oppProfile.isEmpty() || turn - profileTurn >= PROFILE_REFRESH_TURNS);
+                // Faithful: asked once, while empty; the seat updates it when it wants (critique P9, M9: a five-turn timer).
+                boolean askProfile = askPlan && (oppProfile.isEmpty() || (observer == null && turn - profileTurn >= PROFILE_REFRESH_TURNS));
                 String asks = askPlan
                         ? (observer != null
                            // Faithful (v22): a goal and the steps toward it, replaceable at any decision.
@@ -4746,7 +4769,8 @@ public final class LlmSpikeGui {
                     String prompt = (attempt == 0
                             ? (propose ? proposePromptPrefix(snapshot() + notebook, phh.getPhase(), ownMain) : playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr))
                               + (note != null && attempt == 0 ? "NOTE: " + note + "\n" : "")
-                              + (!SKIP_HEUR && observer != null && attempt == 0 ? (playTool ? YIELD_TOOL_HINT : YIELD_HINT) : "")
+                              // On the tool lane the `yield` field's description says it: not re-sent with every play ask (P8).
+                              + (!SKIP_HEUR && observer != null && attempt == 0 && !playTool ? YIELD_HINT : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             // The retry carries the WHOLE decision again. It used to be this one sentence
                             // alone ("...from the list above") sent to a stateless backend with no list
@@ -5065,11 +5089,30 @@ public final class LlmSpikeGui {
         public Card chooseSingleCardForZoneChange(ZoneType destination, List<ZoneType> origin, SpellAbility sa,
                 CardCollection fetchList, DelayedReveal delayedReveal, String selectPrompt, boolean isOptional, Player decider) {
             boolean again = isOptional && sa != null && sa == keptSearching;
+            zoneOrigin = origin;
             Card r = pickForZoneChange(destination, sa, fetchList, delayedReveal, selectPrompt, isOptional, again);
             boolean declined = r == null && fetchList != null && !fetchList.isEmpty();
             declinedPick = declined ? sa : null;
             keptSearching = declined && again ? sa : null;
             return r;
+        }
+
+        /** The zones the current zone-change pick draws from (chooseSingleCardForZoneChange), for its question. */
+        private List<ZoneType> zoneOrigin;
+
+        /** The faithful zone-change question in the harness's words (critique P24): Forge's GUI title ("Select a card from
+         *  your library") with " -> Battlefield" appended said neither where the card goes in words nor which pick of how
+         *  many it is. */
+        private String zoneQuestion(ZoneType destination, String selectPrompt) {
+            String from = zoneOrigin == null || zoneOrigin.isEmpty() ? "" : " from " + zoneOrigin.stream()
+                    .map(z -> z == ZoneType.Library ? "a library" : z == ZoneType.Graveyard ? "a graveyard" : z == ZoneType.Hand ? "a hand"
+                         : z.name().toLowerCase(java.util.Locale.ROOT)).distinct().collect(java.util.stream.Collectors.joining(" or "));
+            String to = destination == ZoneType.Battlefield ? "onto the battlefield" : destination == ZoneType.Hand ? "into your hand"
+                    : destination == ZoneType.Library ? "into a library" : destination == ZoneType.Graveyard ? "into a graveyard"
+                    : "into " + destination.name().toLowerCase(java.util.Locale.ROOT);
+            java.util.regex.Matcher kn = selectPrompt == null ? null : java.util.regex.Pattern.compile("\\((\\d+) / (\\d+)\\)").matcher(selectPrompt);
+            String which = kn != null && kn.find() ? " (pick " + kn.group(1) + " of " + kn.group(2) + ")" : "";
+            return "Choose a card" + from + " to put " + to + which;
         }
 
         private Card pickForZoneChange(ZoneType destination, SpellAbility sa, CardCollection fetchList,
@@ -5092,8 +5135,8 @@ public final class LlmSpikeGui {
                 java.util.regex.Matcher kn = selectPrompt == null ? null : java.util.regex.Pattern.compile("\\((\\d+) / \\d+\\)").matcher(selectPrompt);
                 boolean later = kn != null && kn.find() && !kn.group(1).equals("1") && sa != null && sa == zonePicksFor;
                 if (!later) { zonePicks.clear(); zonePicksFor = sa; }
-                String q = (selectPrompt == null || selectPrompt.isEmpty() ? "Choose a card" : selectPrompt)
-                        + " -> " + destination + srcAsk(sa)
+                String q = (observer != null ? zoneQuestion(destination, selectPrompt)
+                        : (selectPrompt == null || selectPrompt.isEmpty() ? "Choose a card" : selectPrompt) + " -> " + destination) + srcAsk(sa)
                         // "reanimate your biggest threat" was appended to Brainstorm, Aether Vial and
                         // Stoneforge picks alike; the faithful profile states the choice and nothing else.
                         + (observer != null ? "." : " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).")
@@ -7075,6 +7118,37 @@ public final class LlmSpikeGui {
             return firstColorMask(colors);
         }
 
+        /** Above this many legal types the seat names one instead of picking a number (chooseSomeType). */
+        static final int TYPE_MENU_MAX = 20;
+
+        /** A type named freely and checked against {@code legal}: the ones on the seat's own cards are listed first as a
+         *  fact; one retry; null when no legal name came back. */
+        private String askTypeName(String kindOfType, SpellAbility sa, List<String> legal) {
+            java.util.Set<String> own = new java.util.LinkedHashSet<>();
+            for (Card c : getPlayer().getAllCards())
+                for (String t : c.getType().getCreatureTypes()) if (legal.contains(t)) own.add(t);
+            String q = snapshot() + "\nDECISION: Name a " + kindOfType.toLowerCase(Locale.ROOT) + " type" + srcAsk(sa) + ". "
+                    + legal.size() + " are legal" + (own.isEmpty() ? "" : "; the ones on your own cards: " + String.join(", ", own))
+                    + ". End with EXACTLY: CARD: <the type>";
+            for (int attempt = 0; attempt < 2; attempt++) {
+                AnswerTool.Spec spec = AnswerTool.Spec.card();
+                spec.check(a -> legal.stream().anyMatch(t -> t.equalsIgnoreCase(a.card == null ? "" : a.card.trim())) ? null
+                        : "\"" + a.card + "\" is not a legal " + kindOfType.toLowerCase(Locale.ROOT) + " type here.");
+                offerAnswer(smart, spec.about("some-type"));
+                String reply = ask(smart, q);
+                noteAnswerVia(attempt);
+                if (reply == null) return null;
+                AnswerTool.Answer ta = toolAnswer();
+                String got = ta != null ? ta.card : textSegment(reply, "CARD:");
+                if (got != null)
+                    for (String t : legal) if (t.equalsIgnoreCase(got.replace("\"", "").trim())) {
+                        evalDec("some-type", legal.size(), legal.indexOf(t), tierOf(true), 0, null, null);
+                        return t;
+                    }
+            }
+            return null;
+        }
+
         /** Type/card naming (Cavern of Souls, Engineered Plague, Meddling Mage-style). Legal set from
          *  the engine. Deterministic fallback: the first valid type. */
         @Override
@@ -7083,6 +7157,14 @@ public final class LlmSpikeGui {
             try {
                 if (validTypes != null && validTypes.size() >= 2 && smartOk()) {
                     List<String> opts = new ArrayList<>(validTypes);
+                    // A long list (Cavern of Souls: every creature type, about 300 lines) is named, not numbered: the
+                    // types on the seat's own cards first, then a free answer checked against the legal list (P33).
+                    if (observer != null && opts.size() > TYPE_MENU_MAX) {
+                        String named = askTypeName(kindOfType, sa, opts);
+                        if (named != null) return named;
+                        auto("some-type(unparsed)->first of " + opts.size() + " legal");
+                        return opts.get(0);
+                    }
                     // Cavern of Souls read "Choose a Creature to name": it asks for a creature TYPE (runs/loop/g04, g05).
                     int pick = decideOne(smart, "some-type", (observer != null
                             ? "Choose a " + kindOfType.toLowerCase(Locale.ROOT) + " type"
@@ -8043,16 +8125,27 @@ public final class LlmSpikeGui {
         public forge.game.mana.Mana chooseManaFromPool(List<forge.game.mana.Mana> manaChoices) {
             clearLast();
             if (manaChoices == null || manaChoices.isEmpty()) return null;
-            java.util.Set<String> kinds = new java.util.HashSet<>();
-            for (forge.game.mana.Mana m : manaChoices) kinds.add(m.toString());
+            // Mana is alike only if its colour, its source and what spending it does are alike: two red, one of them from
+            // Cavern of Souls ("can't be countered") or restricted, were taken as alike and the first spent (critique P32).
+            java.util.Map<String, List<forge.game.mana.Mana>> kinds = new java.util.LinkedHashMap<>();
+            for (forge.game.mana.Mana m : manaChoices) {
+                String kind = m + (m.getSourceCard() == null ? "" : " (from " + safeName(m.getSourceCard()) + ")")
+                        + (m.isRestricted() ? " [can be spent only on some spells]" : "")
+                        + (payingFor != null && m.addsNoCounterMagic(payingFor) ? " [makes the spell uncounterable]" : "");
+                kinds.computeIfAbsent(kind, k -> new ArrayList<>()).add(m);
+            }
             if (kinds.size() == 1) return manaChoices.get(0);   // all alike: nothing to choose
             // Pricing (the menu, the hand tags) takes the first without asking: an ask builds a snapshot, whose
             // pricing reached this ask again (floating {R}{G} from Lukka's +1: StackOverflowError, keyword gauntlet).
             if (PRICING_FOR_SNAPSHOT || !payingForReal) return manaChoices.get(0);
             List<String> labels = new ArrayList<>();
-            for (forge.game.mana.Mana m : manaChoices)
-                labels.add(m + (m.getSourceCard() == null ? "" : " (from " + safeName(m.getSourceCard()) + ")"));
-            return manaChoices.get(askOne("mana-from-pool", "MANA POOL: choose which floating mana pays.", labels, null, 0));
+            List<forge.game.mana.Mana> firsts = new ArrayList<>();
+            for (Map.Entry<String, List<forge.game.mana.Mana>> e : kinds.entrySet()) {
+                labels.add(e.getKey() + (e.getValue().size() > 1 ? " x" + e.getValue().size() : ""));
+                firsts.add(e.getValue().get(0));
+            }
+            String what = payingCost != null && payingFor != null ? " to pay " + payingCost + " for " + labelOf(payingFor) : "";
+            return firsts.get(askOne("mana-from-pool", "MANA POOL: choose which floating mana pays" + what + ".", labels, null, 0));
         }
 
         /** True while this seat's real mana payment runs (payManaCost). The engine also calls the convoke chooser

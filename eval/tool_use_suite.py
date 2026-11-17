@@ -509,7 +509,7 @@ def answer_tool(n=None):
 
 
 # AnswerTool.instruction(ONE) and its rephrase of the decision's format line.
-ANSWER_LINE = "ANSWER: call `answer` with `option`: one number from the list. Lookups do not count against the answer.\n"
+ANSWER_LINE = "ANSWER: call `answer` with `option`: one number from the list.\n"
 ANSWER_TAIL = re.compile(r"(?:Reason briefly, then |Then |Now |[Tt]hen )?(?:end|End|reply|Reply) with (?:EXACTLY|exactly)[^\n]*")
 ANSWER_CALL = "Reason briefly, then call `answer` (`option`: one number from the list)."
 CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`."

@@ -106,7 +106,9 @@ final class SeatObservation {
     // v46 (2026-11-07, #408): the guide says the player line shows only the keywords the engine names.
     // v47 (2026-11-17, critique P4): FACTS' combat line says what attackers would deal "if none is blocked" beside the
     // defender's life, never "= LETHAL" (it ignored blockers and read as a verdict).
-    static final String VERSION = "observation-faithful-v47";
+    // v48 (2026-11-17, critique P8, M3): the mana caveat, NOT VISIBLE's fixed sentences and the plan banner's paragraph
+    // are said once, in the guide; the plan line says how many turns ago it was stated.
+    static final String VERSION = "observation-faithful-v48";
 
     /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
      *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
@@ -208,7 +210,8 @@ final class SeatObservation {
             + "play. OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n"
             + ACTIVATE_GUIDE
             + "- STACK lists what is waiting to resolve, top first (the top resolves first); COMBAT describes attackers and "
-            + "blockers; NOT VISIBLE names what is hidden from you.\n"
+            + "blockers; NOT VISIBLE names what is hidden from you. Continuous effects are applied to the shown P/T, types, "
+            + "counters and keywords but are not listed separately. Only the decision at the end of a message is pending for you.\n"
             + "- SINCE YOUR LAST DECISION is the engine's log of what happened since you last chose, oldest first; [E<n>] ids "
             + "can be searched in your archive. REVEALS TO YOU are hidden cards you were shown.\n"
             + "- \"library top (known to you)\" under your hand lists the cards you put or saw on top of your library, top "
@@ -219,7 +222,8 @@ final class SeatObservation {
             + "- FACTS is the engine's arithmetic (the next combat's damage, the mana they can make at instant speed): "
             + "estimates, not guarantees.\n"
             + "- YOUR PLAN, YOUR OPPONENT PROFILE and YOUR CARD INTERACTIONS are notes you wrote yourself earlier, with the turn "
-            + "you wrote them. They are not verified; replace them when they are out of date.\n"
+            + "you wrote them and how long ago that was. They are not verified and not commitments: events since then have "
+            + "happened, so check a note against the state, and replace it when it no longer fits.\n"
             + "Where each part comes from, so nothing is mistaken for someone's message: the state (YOU, OPP, STACK, COMBAT, "
             + "FACTS, the hand tags, mana available) is read from the Forge engine. GAME HISTORY, SINCE YOUR LAST DECISION and "
             + "REVEALS TO YOU are lines of Forge's game log, in the engine's own words, about what each player did, you included: "
@@ -295,9 +299,8 @@ final class SeatObservation {
         // No source at all read "{} up to 0 mana (0 untapped sources; each counts its mana under every colour ...)"
         // (runs/loop/g05-g09, 149 rows, mostly the opening turns).
         if (m.startsWith("{}") && m.contains("up to 0 mana")) return "none (no untapped mana sources)";
-        return m.replace(" untapped sources",
-                " untapped sources; each counts its mana under every colour it can make, so the colours add up to more than can"
-                + " be spent");
+        // The caveat (a source counts under every colour it makes) is the guide's, said once (critique P8).
+        return m;
     }
 
     void setProfile(String p) { this.profile = p == null ? "" : p; }
@@ -1603,8 +1606,9 @@ final class SeatObservation {
              .append(p.getCardsIn(ZoneType.Library).size()).append("); ");
         }
         b.append("your library (").append(viewer.getCardsIn(ZoneType.Library).size()).append(", order unknown); ");
-        b.append("face-down identities you may not look at. Continuous effects are applied to the shown P/T, types, ")
-         .append("counters and keywords but are not enumerated separately. Only the decision below is pending for you.");
+        // The fixed sentences ("continuous effects are applied ...", "only the decision below is pending") are the guide's,
+        // said once (critique P8).
+        b.append("face-down identities you may not look at.");
         for (String o : omissions) b.append(' ').append(o).append('.');
         return b.toString();
     }

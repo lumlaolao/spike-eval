@@ -443,6 +443,18 @@ once-only keyword cost is "Pay" / "Do not pay"; a card-name ask says its source,
 names the ability, not the card; a deck's `.plan` sidecar (strategy text) loads only with `PLAN_SIDECAR=1`. Legacy
 profiles keep their bytes.
 
+**Said once, not in every message (harness-epoch-104, critique batch 3).** The faithful profile asks for a plan only
+while the seat has none and for the opponent profile only while it is empty (the seat replaces either when it wants);
+the ANSWER line is one sentence (no `set_plan` and lookup reminders); the yield is explained by its field's
+description, not a hint on every play ask; the mana caveat, NOT VISIBLE's fixed sentences and what a plan is are in the
+guide, and the plan line says how many turns ago it was stated; what is left of the lookup budget comes with each
+lookup's result, and the archive lines show each reveal once and every note (`NOTES_SHOWN`); the `<reference>`
+glossary is not sent in the faithful profiles; a zone-change pick says where the card goes and which pick it is, a
+type list longer than `TYPE_MENU_MAX` is named (the types on the seat's own cards listed first) and checked against the
+legal list, and the mana-pool ask says what it pays and tells restricted or uncounterable mana apart. A model seat
+(`openrouter:`, `claude-cli:`, `jev:`) with no `CONTEXT_PROFILE` is refused: the JVM's v1-compat default is named
+explicitly where a stage wants it.
+
 A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told. For a Forge puzzle that is
 Forge's description from its goal line on (goal, turn limit, text; the name and difficulty label are dropped since
 epoch 69, the neutral brief of BENCHMARK-V2 section 3); a rules puzzle (an `[acceptance]` section) gets only its

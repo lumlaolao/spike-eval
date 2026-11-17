@@ -716,7 +716,8 @@ if has_stage faketool; then
     if [ -z "$PORT" ]; then fail faketool "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
       say "faketool: LLM seat A on loopback fake model at port $PORT (B = floor), MEMORY_TOOLS=1, one 9s stall vs 4s deadline"
       play faketool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
-          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" OPENROUTER_TIMEOUT_MS=4000 MEMORY_TOOLS=1 NATIVE_TOOLS=0 SMART_BUDGET=60 FAST_BUDGET=60
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" OPENROUTER_TIMEOUT_MS=4000 MEMORY_TOOLS=1 NATIVE_TOOLS=0 SMART_BUDGET=60 FAST_BUDGET=60 \
+          CONTEXT_PROFILE=v1-compat
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail faketool "JVM did not load LlmSpikeGui from $CLASSES"; else
         ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
@@ -784,7 +785,7 @@ if has_stage lookahead; then
     if [ -z "$PORT" ]; then fail lookahead "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
       say "lookahead: LLM seat A on loopback fake model (policy simulate), LOOKAHEAD=1 (burn mirror)"
       play lookahead 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
-          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" LOOKAHEAD=1 ANSWER_TOOL=0 GAME_CAP_MS=120000 \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" LOOKAHEAD=1 ANSWER_TOOL=0 GAME_CAP_MS=120000 CONTEXT_PROFILE=v1-compat \
           DECK_A="$REPO/eval/decks/burn.txt" DECK_B="$REPO/eval/decks/burn.txt" DECK_A_NAME=Burn DECK_B_NAME=BurnB
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail lookahead "JVM did not load LlmSpikeGui from $CLASSES"; else
@@ -861,7 +862,7 @@ else:
     if game.get("native_tools_version")!="seat-tools-v12": problems.append("native_tools_version=%r (expected seat-tools-v12; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     for k in ("decisions_bridge_version_a", "decisions_bridge_version_b", "claude_cli_bridge_version_a", "claude_cli_bridge_version_b", "claude_cli_thinking_tokens_a", "claude_cli_thinking_tokens_b", "dev_lane"):
         if k in game: problems.append("%s=%r on a game with no jev: or claude-cli: seat (it is stamped only where one plays)"%(k, game.get(k)))
-    if game.get("memory_tools_version")!="evidence-tools-v6": problems.append("memory_tools_version=%r (expected evidence-tools-v6; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
+    if game.get("memory_tools_version")!="evidence-tools-v7": problems.append("memory_tools_version=%r (expected evidence-tools-v7; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v18" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v18; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
 calls=[r for r in rows if r.get("t")=="context_call"]
@@ -1008,9 +1009,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
-    if game.get("answer_tool_version")!="answer-tool-v21": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
+    if game.get("answer_tool_version")!="answer-tool-v22": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-103": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-104": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -1098,7 +1099,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("context_profile")!="v5-cache": problems.append("context_profile=%r"%game.get("context_profile"))
-    if game.get("observation_version")!="observation-faithful-v47+cache-v2":
+    if game.get("observation_version")!="observation-faithful-v48+cache-v2":
         problems.append("observation_version=%r (move this pin WITH SeatObservation.VERSION/CACHE_VERSION)"%game.get("observation_version"))
 model=[r for r in rows if r.get("t")=="decision" and r.get("tier") in ("smart","fast")]
 if len(model)<10: problems.append("only %d model decisions"%len(model))
@@ -1117,7 +1118,7 @@ if late: problems.append("%d messages with a record lack the archive lines after
 early=[p for p in asks if "<archive>\n" in p and "== Turn " not in p.split("<archive>\n")[0]]
 if early: problems.append("%d messages put the archive lines before the state"%len(early))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v47+cache-v2 " not in log: problems.append("observer never announced the cache order in the log")
+if "[OBSERVATION] observation-faithful-v48+cache-v2 " not in log: problems.append("observer never announced the cache order in the log")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
 if "[TEXT-PARSE]" in log: problems.append("[TEXT-PARSE] in log")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
@@ -1173,7 +1174,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-103": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-104": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -1204,7 +1205,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v47" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v48" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
@@ -1377,7 +1378,7 @@ except Exception as e:
     print("no result rows: %s" % e); sys.exit()
 r = rows[-1] if rows and isinstance(rows[-1], dict) else {}
 p = []
-if r.get("harness_epoch") != "harness-epoch-103": p.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)" % r.get("harness_epoch"))
+if r.get("harness_epoch") != "harness-epoch-104": p.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)" % r.get("harness_epoch"))
 for k in ("model_calls", "prompt_tokens", "completion_tokens", "model_ms", "lookups"):
     if not isinstance(r.get(k), int): p.append("%s=%r" % (k, r.get(k)))
 if isinstance(r.get("model_calls"), int) and r["model_calls"] < 1: p.append("model_calls=0 for a played line")

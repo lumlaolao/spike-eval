@@ -23,7 +23,9 @@ final class ContextMemory {
     // v5 (2026-11-14, audit B3): a search result whose match lies past the entry's first 240 characters shows the 240
     // around it (an archived prompt's head is the same turn and life header in every state).
     // v6 (2026-11-14, audit B3): within one match quality a search lists reveals and notes before the archived states.
-    static final String VERSION = "evidence-tools-v6";
+    // v7 (2026-11-17, critique T9, M5): what is left of the lookup budget is said in each lookup's result, not at the
+    // top of every message; the archive lines show each reveal once and every note (up to NOTES_SHOWN).
+    static final String VERSION = "evidence-tools-v7";
     static final int TOOLS_PER_ASK = 16;
     static final int TOOLS_PER_GAME = 1000;
     static final int PAGE_CHARS = 20000;
@@ -283,21 +285,30 @@ final class ContextMemory {
     String nativeBrief(int id) {
         StringBuilder out = new StringBuilder("This decision is saved as archive entry M").append(id).append(". The archive holds ")
                 .append(entries.size()).append(" entries (earlier states, events and reveals); search it with memory_search and "
-                + "read an entry with memory_read. Lookups left: ").append(Math.min(TOOLS_PER_ASK, TOOLS_PER_GAME - toolsUsed))
-                .append(" for this decision, ").append(TOOLS_PER_GAME - toolsUsed).append(" this game.\n");
+                + "read an entry with memory_read. Each decision allows ").append(Math.min(TOOLS_PER_ASK, TOOLS_PER_GAME - toolsUsed))
+                .append(" lookups.\n");
+        // The latest reveals, each text once: the same reveal ("named Lightning Bolt") filled two of the four lines while
+        // an older revealed hand was cut (critique M5).
         int shown = 0;
+        java.util.Set<String> seen = new java.util.HashSet<>();
         for (int i = entries.size() - 1; i >= 0 && shown < 4; i--) {
             Entry e = entries.get(i);
-            if (!"historical reveal".equals(e.kind)) continue;
+            if (!"historical reveal".equals(e.kind) || !seen.add(snippet(e.text))) continue;
             out.append("Earlier reveal [M").append(i + 1).append("]: ").append(snippet(e.text)).append('\n');
             shown++;
         }
         if (!notes.isEmpty()) {
-            out.append("Your notebook (your own unverified notes; latest 4 of ").append(notes.size()).append("):\n");
-            for (int i = Math.max(0, notes.size() - 4); i < notes.size(); i++) out.append(notes.get(i)).append('\n');
+            // Every note (they are short and the seat's own), up to NOTES_SHOWN (critique M5: "latest 4").
+            int from = Math.max(0, notes.size() - NOTES_SHOWN);
+            out.append("Your notebook (your own unverified notes").append(from > 0 ? "; latest " + NOTES_SHOWN + " of " + notes.size() : "")
+               .append("):\n");
+            for (int i = from; i < notes.size(); i++) out.append(notes.get(i)).append('\n');
         }
         return out.toString();
     }
+
+    /** The most notebook notes the archive lines show. */
+    static final int NOTES_SHOWN = 20;
 
     /** One native ask's lookup state: calls spent, and the once-per-ask preview and report. */
     final class NativeAsk {
@@ -315,7 +326,13 @@ final class ContextMemory {
         return new AnswerTool.Lookups() {
             public JsonArray definitions() { return NativeTools.definitions(inspector != null, rulesLookup != null, previews || simulate != null); }
             public boolean open(int round) { return st.open(round); }
-            public String serve(NativeTools.Call c, boolean open) { return ContextMemory.this.serve(c, st, open); }
+            public String serve(NativeTools.Call c, boolean open) {
+                // What is left is said in the result of each lookup, not at the top of every message, where it changed
+                // the message's prefix on every decision (critique T9).
+                String r = ContextMemory.this.serve(c, st, open);
+                return r.startsWith("ERROR:") ? r : r + "\n(Lookups left: " + Math.min(TOOLS_PER_ASK - st.used, TOOLS_PER_GAME - toolsUsed)
+                        + " for this decision, " + (TOOLS_PER_GAME - toolsUsed) + " this game.)";
+            }
         };
     }
 
