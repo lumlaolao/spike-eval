@@ -62,8 +62,11 @@ EXIT_HARNESS_DECIDED_GATE = 4
 EXIT_SANITY_VIOLATION = 5
 EXIT_SANITY_MISSING = 6
 # The harness-decided share: decisions the harness made when the model could have (match_review's
-# TAKEN and LOST, and any Forge-AI row), over the llm identities' decisions. Forced picks (one legal
-# option) are not counted; the fallback rate above counts them, which hides this number.
+# TAKEN and LOST, and any Forge-AI row), over the llm identities' decisions that chose something: a play window the
+# seat passed is not counted (critique E7: hundreds of passes made 2% of all decisions most of those that mattered).
+# Forced picks (one legal option) are not counted; the fallback rate above counts them, which hides this number.
+# Besides the share, any harness-decided row in a turn where the seat cast or activated something fails the gate:
+# that is the turn a lost decision costs most (a combo turn).
 DEFAULT_MAX_HARNESS_DECIDED_RATE = 0.02
 
 # Default for fields the harness did not yet emit when the line was written.
@@ -1157,7 +1160,8 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
                 if name is not None:
                     llm_names.add(name)
 
-    denom = numer = harness = 0
+    denom = numer = harness = chose = 0
+    acting_turns, harness_turns = set(), set()
     for d in decisions:
         seat = d.get("seat")
         if seat not in llm_names:
@@ -1168,12 +1172,21 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
             numer += 1
         elif tier in ("smart", "fast") and d.get("fallback") is not None:
             numer += 1
+        turn = (d.get("_file"), seat, d.get("turn"))
         if harness_decided(d):
             harness += 1
+            chose += 1
+            harness_turns.add(turn)
+        elif not passed(d):
+            chose += 1
+        if acted(d):
+            acting_turns.add(turn)
     rate = (numer / denom) if denom else None
     failed = bool(any_llm_arm and rate is not None and rate > max_rate)
-    hrate = (harness / denom) if denom else None
-    hfailed = bool(any_llm_arm and hrate is not None and hrate > max_harness_rate)
+    hrate = (harness / chose) if chose else None
+    lost_acting = sorted("%s %s turn %s" % t for t in harness_turns & acting_turns
+                         if all(x is not None for x in t))
+    hfailed = bool(any_llm_arm and ((hrate is not None and hrate > max_harness_rate) or lost_acting))
     return {
         "max_fallback_rate": max_rate,
         "any_llm_arm": any_llm_arm,
@@ -1185,9 +1198,24 @@ def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT
         "failed": failed,
         "max_harness_decided_rate": max_harness_rate,
         "n_harness_decided": harness,
+        "n_choosing_decisions": chose,
         "harness_decided_rate": hrate,
+        "harness_decided_in_acting_turns": lost_acting,
         "harness_failed": hfailed,
     }
+
+
+def passed(d):
+    """A play window the seat passed: the play menu does not list PASS, so its choice is -1."""
+    return d.get("type") == "play" and isinstance(d.get("choice"), int) and d["choice"] < 0
+
+
+def acted(d):
+    """A play decision that cast, activated or played something (the option chosen)."""
+    opts, ch = d.get("options") or [], d.get("choice")
+    if d.get("type") != "play" or not isinstance(ch, int) or not 0 <= ch < len(opts):
+        return False
+    return str(opts[ch]).split(" ", 1)[0] in ("CAST", "ACTIVATE", "PLAY")
 
 
 def harness_decided(d):
@@ -1707,9 +1735,12 @@ def print_fallback_gate(s):
         print("fallbacks: %d/%d = %s of llm-identity decisions (auto+ai plus "
               "smart/fast with a fallback reason)"
               % (fg["n_fallback"], fg["n_llm_decisions"], fmt_pct(fg["fallback_rate"])))
-        print("harness-decided: %d/%d = %s (TAKEN + LOST + Forge AI; forced picks excluded; ceiling %s)"
-              % (fg["n_harness_decided"], fg["n_llm_decisions"], fmt_pct(fg["harness_decided_rate"]),
+        print("harness-decided: %d/%d = %s of the decisions that chose something (TAKEN + LOST + Forge AI; passes "
+              "and forced picks excluded; ceiling %s)"
+              % (fg["n_harness_decided"], fg["n_choosing_decisions"], fmt_pct(fg["harness_decided_rate"]),
                  fmt_pct(fg["max_harness_decided_rate"])))
+        for t in fg["harness_decided_in_acting_turns"]:
+            print("  harness-decided in a turn the seat acted: %s" % t)
     print("gate: %s" % ("FAILED" if fg["failed"] or fg.get("harness_failed") else "passed"))
 
 
@@ -1954,6 +1985,8 @@ def main():
         print("FAILED HARNESS-DECIDED GATE: the harness made %s of the llm identities' choices "
               "(ceiling %s). The score measures the harness as much as the model."
               % (fmt_pct(fg["harness_decided_rate"]), fmt_pct(fg["max_harness_decided_rate"])), file=sys.stderr)
+        for t in fg.get("harness_decided_in_acting_turns") or ():
+            print("  and decided in a turn the seat acted: %s" % t, file=sys.stderr)
         print("!" * 60, file=sys.stderr)
     if fg["failed"]:
         sys.exit(EXIT_FALLBACK_GATE)

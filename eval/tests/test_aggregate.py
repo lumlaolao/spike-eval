@@ -567,6 +567,32 @@ def test_harness_decided_gate():
         check("the fallback gate itself passes", fg["failed"] is False, str(fg))
 
 
+def test_harness_decided_share_is_of_the_decisions_that_chose():
+    """E7: 2 LOST rows among 400 passed windows and 50 choices were 0.4% of all decisions, under the 2% ceiling; they
+    are 4% of the decisions that chose something. A LOST row in a turn the seat cast fails the gate on its own."""
+    def run(rows):
+        with tempfile.TemporaryDirectory() as d:
+            g = game_line(3, False, "A")
+            g["deck_a"], g["deck_b"] = "Identity-A", "Identity-B"
+            write_jsonl(d, "game-3-1000.jsonl", [g] + rows)
+            return aggregate.build_summary(Path(d), 200, 1)["fallback_gate"]
+    passes = [{"t": "decision", "seat": "Identity-A", "tier": "smart", "type": "play", "turn": 1, "choice": -1,
+               "options": ["CAST X @1"], "fallback": None}] * 400
+    picks = [{"t": "decision", "seat": "Identity-A", "tier": "smart", "type": "target", "turn": 1, "choice": 0,
+              "options": ["a"], "fallback": None}] * 50
+    lost = [{"t": "decision", "seat": "Identity-A", "tier": "smart", "type": "play", "turn": 2, "choice": -1,
+             "options": ["CAST X @1"], "fallback": "play(unparsed)->PASS"}] * 2
+    fg = run(passes + picks + lost)
+    check("passes are not in the denominator", fg["n_choosing_decisions"] == 52, str(fg))
+    check("2 of 52 is over the ceiling", fg["harness_failed"] is True, str(fg))
+    cast = {"t": "decision", "seat": "Identity-A", "tier": "smart", "type": "play", "turn": 2, "choice": 0,
+            "options": ["CAST X @1"], "fallback": None}
+    fg = run(passes + picks * 4 + lost[:1] + [cast])
+    check("1 of 202 is under the ceiling", fg["harness_decided_rate"] < 0.02, str(fg))
+    check("but it was in a turn the seat cast", fg["harness_decided_in_acting_turns"] == ["game-3-1000.jsonl Identity-A turn 2"], str(fg))
+    check("which fails the gate", fg["harness_failed"] is True, str(fg))
+
+
 def test_strict_score_counts_every_started_game():
     """A game that never finished is not dropped from the strict score (a stall cannot erase a loss)."""
     games = [{"winner": "A", "controller_a": "llm", "controller_b": "ai"},
@@ -1053,6 +1079,7 @@ def main():
     test_decision_round_trip()
     test_fallback_gate()
     test_harness_decided_gate()
+    test_harness_decided_share_is_of_the_decisions_that_chose()
     test_strict_score_counts_every_started_game()
     test_a_file_with_no_game_line_scores_zero_in_the_strict_score()
     test_a_crash_beside_its_replay_is_not_a_second_game()
