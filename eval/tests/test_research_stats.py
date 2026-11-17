@@ -156,7 +156,10 @@ class TestPatternsAreTheSource(unittest.TestCase):
                 source += f.read()
         for name, fragments in rs.FAILURE_PATTERNS:
             for fragment in fragments:
-                self.assertIn(fragment, source, "%s: %r is no longer in the sources" % (name, fragment))
+                if fragment in rs.RETIRED_FRAGMENTS:
+                    self.assertNotIn(fragment, source, "%s: %r is printed again; it is not retired" % (name, fragment))
+                else:
+                    self.assertIn(fragment, source, "%s: %r is no longer in the sources" % (name, fragment))
 
 
 class TestFailedDecisions(unittest.TestCase):
