@@ -33,6 +33,13 @@ class FactCitationsTest(unittest.TestCase):
         # one lethal prompt among the late decisions makes the game lethal
         self.assertEqual(fc.clock_group([decision(CLOCK, ""), decision(LETHAL, "")]), "lethal")
 
+    def test_the_line_without_a_verdict_is_grouped_by_its_numbers(self):
+        """Since harness-epoch-104 the FACTS line gives the damage and the life, not "= LETHAL" (critique P4)."""
+        line = "FACTS (engine estimates, not truth): your next combat: 2 attacker(s) dealing %d if none is blocked; their life 4"
+        self.assertEqual(fc.clock_group([decision(line % 7, "")]), "lethal")
+        self.assertEqual(fc.clock_group([decision(line % 4, "")]), "lethal")
+        self.assertEqual(fc.clock_group([decision(line % 3, "")]), "clock")
+
     def test_only_turn_one_after_combat_counts(self):
         rows = [decision(LETHAL, "x", phase="MAIN1"), decision(LETHAL, "x", turn=2),
                 {"t": "decision", "turn": 1, "phase": "MAIN2"}, decision(LETHAL, "x", phase="END_OF_TURN")]

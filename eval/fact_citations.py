@@ -5,7 +5,8 @@
 
 1. The FACTS clock after a 1-turn puzzle's combat (#398). A game is counted when it has a turn-1 decision in MAIN2 or
    END_OF_TURN. It is grouped by the solver's clause in those decisions' prompts: `lethal` (some prompt reads
-   `your next combat: ... = LETHAL`), `clock` (a clock that is never lethal) or `none` (no clock). It "cites a later
+   `your next combat: ... = LETHAL`, or since harness-epoch-104 `dealing N if none is blocked; their life L` with
+   N >= L), `clock` (a clock that is never lethal) or `none` (no clock). It "cites a later
    combat" when one of those decisions' `raw_reply` matches CITES_LATER_COMBAT.
 2. Yield-passed windows in the seat's own main phase (#399): `t: window` rows whose reason starts `yield:`, with
    `active` true, phase MAIN1 or MAIN2, something on the stack and something castable.
@@ -20,6 +21,8 @@ import re
 import sys
 
 LETHAL_CLOCK = re.compile(r"your next combat: [^|]*= LETHAL")
+# The line since harness-epoch-104 (critique P4): the damage and the life, with no verdict.
+CLOCK_SINCE_104 = re.compile(r"your next combat: [^|]*?dealing (\d+) if none is blocked; their life (-?\d+)")
 CITES_LATER_COMBAT = re.compile(
     r"next combat|next attack|next turn|combat estimate|attack for lethal|lethal (in|next) combat"
     r"|future turn|following turn", re.I)
@@ -36,6 +39,10 @@ def clock_group(decisions):
     """`lethal`, `clock` or `none`, from the solver's FACTS clause in these decisions."""
     if any(LETHAL_CLOCK.search(r["prompt"]) for r in decisions):
         return "lethal"
+    for r in decisions:
+        m = CLOCK_SINCE_104.search(r["prompt"])
+        if m and int(m.group(1)) >= int(m.group(2)):
+            return "lethal"
     if any("your next combat:" in r["prompt"] for r in decisions):
         return "clock"
     return "none"
