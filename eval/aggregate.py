@@ -169,6 +169,9 @@ PROVENANCE_FIELDS = (
     ("prompt_cache", MISSING),
     # The format the decks are built for (GAME_FORMAT). A line without it was Legacy: the only format then.
     ("game_format", "legacy"),
+    # The seats at the table (PLAYERS, MultiSeat.java): a two-seat line carries none. A game of more seats is a
+    # placement, never pooled with a two-seat one.
+    ("n_players", 2),
     # Two opt-in switches that change how the seat plays (issue #117): PLAN_EXECUTE makes the harness
     # play steps of the model's own stated turn plan, TIER_FAST_TYPES moves decision types off the
     # reasoning tier. Neither was stamped, keyed or pinned, so games played with them on and off pooled
