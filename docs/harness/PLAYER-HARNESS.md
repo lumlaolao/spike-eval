@@ -230,7 +230,7 @@ costs no extra model call. One shared `planText` helper is used by both renderer
 one test covers the boundary (`thePlanSurvivesTheTurnBoundaryAndIsMarkedStale`).
 
 **2026-10-13 — engine facts (`observation-faithful-v6`).** The faithful renderer now prints a
-`FACTS (engine estimates, not truth):` line built from Forge's OWN arithmetic: each side's
+`ESTIMATES (Forge AI's arithmetic, not certain):` line built from Forge's OWN arithmetic: each side's
 next-combat clock (`CombatUtil.canAttackNextTurn` + `ComputerUtilCombat.sumDamageIfUnblocked`, so it
 is meaningful at every priority window, not only inside declare-attackers) and the opponent's
 instant-speed mana (`ComputerUtilMana.getAvailableManaEstimate`). It uses only public primitives and

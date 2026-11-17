@@ -487,8 +487,9 @@ def multiplayer_refusal(args):
         if not getattr(args, "deck_" + ident, None):
             return "--players %d needs --deck-%s" % (n, ident)
         if (getattr(args, "controller_" + ident, None) or "ai") == "llm":
-            return ("seat %s is a model seat: seats C and D are zero-model seats (ai, ai-log, random, floor) until the "
-                    "seat reads more than one opponent (Commander plan, C2)" % ident.upper())
+            return ("seat %s is a model seat: seats C and D are zero-model seats here (ai, ai-log, random, floor), since "
+                    "the batch's model checks (pinned tiers, prices, budget, egress) cover seats A and B; put the model "
+                    "seat in A or B" % ident.upper())
     return None
 
 
@@ -1702,7 +1703,7 @@ def build_parser():
                         % ident.upper())
         ap.add_argument("--name-" + ident, help="DECK_%s_NAME (default: the deck file's name)" % ident.upper())
         ap.add_argument("--controller-" + ident, choices=["random", "floor", "ai", "ai-log", "llm"],
-                        help="CONTROLLER_%s (default ai; llm is refused until the seat reads several opponents)"
+                        help="CONTROLLER_%s (default ai; llm is refused: the model seat is A or B)"
                         % ident.upper())
         ap.add_argument("--smart-" + ident, help=argparse.SUPPRESS)
         ap.add_argument("--fast-" + ident, help=argparse.SUPPRESS)

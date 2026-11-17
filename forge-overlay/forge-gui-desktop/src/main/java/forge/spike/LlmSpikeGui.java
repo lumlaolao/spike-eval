@@ -454,28 +454,33 @@ public final class LlmSpikeGui {
      *  the turn's guard passes (no land drop) and attacks with nothing; a target ask of a play not yet made that gets
      *  no answer cancels the play (it aimed at candidate 1); a Phyrexian payment with no answer takes its first option
      *  (it was the engine's); a decision whose state did not render is not asked; a tripped breaker stops retrying.
-     *  Epoch 103 (2026-11-17, critique batch 2): what the asks say is true and plain. The mulligan states the London
+     *  Epoch 103 (2026-11-17, Commander plan C2): in a game of more than two players the seat reads every opponent by
+     *  name (FACTS per opponent, the plan signature, labels and the proposal arm's player references), the attackers
+     *  question gives the outlook against each, the mulligan ask states the multiplayer rules, and the system prompt
+     *  says how many opponents; a Commander game's prompt states its rules and each player line its commander tax and
+     *  damage (multi-opponent-v1). A two-player Constructed game asks and shows the same bytes.
+     *  Epoch 104 (2026-11-17, critique batch 2): what the asks say is true and plain. The mulligan states the London
      *  rule and no 5-card floor; no coaching sentence in the faithful profile (bottom, cleanup, strip, optional costs,
      *  reveal, sacrifice); no "LETHAL" label; PASS says what it does and the system prompt gives the step order; an
      *  answer never given takes the do-nothing option, as the preamble now says; the yield says an attack does not
      *  wake it; order, trigger, multi-target, keyword-cost, card-name, cost and convoke asks say what they are; a
      *  deck's strategy sidecar no longer loads by default (PLAN_SIDECAR=1); a rules puzzle's brief says how it is judged.
-     *  Epoch 104 (2026-11-17, critique batch 3): less said more than once. The plan is asked for only while the seat has
+     *  Epoch 105 (2026-11-17, critique batch 3): less said more than once. The plan is asked for only while the seat has
      *  none, the profile only while empty; the ANSWER line, the yield hint, the mana caveat, NOT VISIBLE's fixed text and
      *  the plan paragraph are no longer in every message; lookup counts come with each lookup's result; no glossary in
      *  the faithful profile; a zone-change, a long type list and the mana pool are asked in the harness's words; a model
      *  seat with no CONTEXT_PROFILE is refused.
-     *  Epoch 105 (2026-11-17, critique batch 4): the state is smaller and says what it is (observation-faithful-v49): a
+     *  Epoch 106 (2026-11-17, critique batch 4): the state is smaller and says what it is (observation-faithful-v49): a
      *  library search is one line, not the library in the history and in REVEALS TO YOU at every later decision.
-     *  Epoch 106 (2026-11-17, critique batch 5): the menus. An attacker is named by its handle and state; target lists
+     *  Epoch 107 (2026-11-17, critique batch 5): the menus. An attacker is named by its handle and state; target lists
      *  put the opponents' objects first; a multi-target play can be cancelled; a play that failed once stays on the menu,
      *  labelled (twice in a window, it leaves); the seat is told why a forbidden or target-less play vanished; a pile
      *  split's single card is asked; X is searched past 99; convoke symbols are matched to the most picks.
-     *  Epoch 107 (2026-11-17, critique batch 6): the tools. `answer` reads slips of form as meant; `steps` only under
+     *  Epoch 108 (2026-11-17, critique batch 6): the tools. `answer` reads slips of form as meant; `steps` only under
      *  PLAN_EXECUTE; read pages of 4000 characters; a report is free; `simulate` says what its copy leaves out; rules
      *  search finds every word, and its results name the function.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-107";
+    static final String HARNESS_EPOCH = "harness-epoch-108";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */
@@ -1706,7 +1711,10 @@ public final class LlmSpikeGui {
          *  a menu of eight creatures, six of them its own, none marked. */
         private String whose(Card c) {
             boolean controlled = c.isInPlay() || c.getZone() != null && c.getZone().is(ZoneType.Stack);
-            return (controlled ? c.getController() : c.getOwner()) == getPlayer() ? "yours" : "opponent's";
+            Player p = controlled ? c.getController() : c.getOwner();
+            if (p == getPlayer()) return "yours";
+            // With several opponents, which one (a two-player label is unchanged).
+            return MultiSeat.many(getGame()) && p != null ? p.getName() + "'s" : "opponent's";
         }
         /** The source of an ask, for the question text. Faithful: the card's rules text and who the
          *  spell targets, because a number, yes/no or pick asked by name alone ("Search your hand?
@@ -2120,7 +2128,7 @@ public final class LlmSpikeGui {
                       + "The position below was set up by the puzzle's author; meet its goal within its turn limit, or you lose.\n\n"
                       + "<puzzle>\n" + puzzle.trim() + "\n</puzzle>\n\n"
                     : "You are playing Magic: The Gathering, " + formatName(format) + " format, as the player \"" + seat
-                      + "\" against one opponent. Your goal is to win the game.\n\n";
+                      + "\" " + MultiSeat.opponentsClause(MultiSeat.playersFromEnv(), format) + "\n\n";
             return opening
                     // PLAN_A=""/PLAN_B="" (and DECKLIST=0) give an arm with no deck information.
                     + (plan == null || plan.isEmpty() ? "" : "<your_deck>\n" + plan.trim() + "\n</your_deck>\n\n")
@@ -3360,7 +3368,9 @@ public final class LlmSpikeGui {
             String sep = observer != null ? "; " : ", ";
             for (Card c : hand) { if (n.length() > 0) n.append(sep); n.append(c.getName()); }
             // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same builder).
-            String basePrompt = observer != null
+            String basePrompt = MultiSeat.many(getGame()) && observer != null
+                    ? MultiSeat.mulliganPrompt(size, lands, n.toString(), getPlayer() == firstPlayer)
+                    : observer != null
                     ? buildMulliganPrompt(size, lands, n.toString(), getPlayer() == firstPlayer, true,
                             nextMulliganBottom(cardsToReturn), player.getMaxHandSize())
                     : buildMulliganPrompt(size, lands, n.toString(), getPlayer() == firstPlayer, false);
@@ -9924,12 +9934,14 @@ public final class LlmSpikeGui {
          *  step would invalidate the plan that ordered it. */
         private String oppPlanSig() {
             try {
-                Player opp = null;
-                for (Player o : getPlayer().getOpponents()) { opp = o; break; }
-                if (opp == null) return "";
-                return opp.getName() + "|" + opp.getLife() + "|" + opp.getCardsIn(ZoneType.Hand).size()
-                        + "|" + opp.getCardsIn(ZoneType.Battlefield).size()
-                        + "|" + getGame().getStack().size();
+                // Every opponent, in turn order (one opponent: the same signature as before).
+                StringBuilder sig = new StringBuilder();
+                for (Player opp : getPlayer().getOpponents())
+                    sig.append(opp.getName()).append('|').append(opp.getLife()).append('|')
+                       .append(opp.getCardsIn(ZoneType.Hand).size()).append('|')
+                       .append(opp.getCardsIn(ZoneType.Battlefield).size()).append('|');
+                if (sig.length() == 0) return "";
+                return sig.append(getGame().getStack().size()).toString();
             } catch (Exception e) { return ""; }
         }
 
@@ -10375,7 +10387,8 @@ public final class LlmSpikeGui {
             if (cands.isEmpty()) return null;
             forge.game.GameObject t = cands.get(0);
             if (t instanceof Card) { observer.describe((Card) t, false); return List.of("@" + observer.handleOf((Card) t)); }
-            if (t instanceof Player) return List.of(t == getPlayer() ? "you" : "opponent");
+            if (t instanceof Player) return List.of(t == getPlayer() ? "you"
+                    : MultiSeat.many(getGame()) ? ((Player) t).getName() : "opponent");
             return null;
         }
 
@@ -10592,8 +10605,10 @@ public final class LlmSpikeGui {
             if (m.find()) return observer == null ? null : observer.currentCard(Integer.parseInt(m.group(1)));
             String low = n.toLowerCase(java.util.Locale.ROOT);
             if (low.equals("you") || low.equals("me") || low.equals("myself") || n.equals(me.getName())) return me;
+            boolean many = MultiSeat.many(me.getGame());
             for (Player o : me.getGame().getPlayers())
-                if (o != me && (low.equals("opponent") || low.equals("the opponent") || n.equalsIgnoreCase(o.getName()))) return o;
+                if (o != me && (!many && (low.equals("opponent") || low.equals("the opponent")) || n.equalsIgnoreCase(o.getName())))
+                    return o;
             return null;
         }
 
@@ -10601,7 +10616,7 @@ public final class LlmSpikeGui {
          *  protection, a Leyline), the zone, or the kind of object the card's text targets, which restates the
          *  card, not the legal set. Always "ILLEGAL (target)". */
         private String targetRejection(SpellAbility part, Object t, Player me, String what) {
-            String ref = t instanceof Card ? refOf((Card) t) : t == me ? "you" : "your opponent";
+            String ref = t instanceof Card ? refOf((Card) t) : t == me ? "you" : entityRef((GameEntity) t, me);
             try {
                 forge.game.staticability.StaticAbility sta =
                         forge.game.staticability.StaticAbilityCantTarget.cantTarget((forge.game.GameEntity) t, part);
@@ -10968,12 +10983,14 @@ public final class LlmSpikeGui {
         /** What a proposed attack names: nothing or "opponent" (the defending player), a player's name, or a handle. */
         private GameEntity defenderNamed(String name, Player me, Combat combat) {
             String n = name == null ? "" : name.trim();
-            if (n.isEmpty()) { for (Player p : combat.getDefendingPlayers()) return p; return null; }
+            // Nothing named: the defending player, when there is one (several opponents must be named).
+            if (n.isEmpty()) return combat.getDefendingPlayers().size() == 1 ? combat.getDefendingPlayers().get(0) : null;
             Object t = targetNamed(n.matches("\\d+") ? "@" + n : n, me);
             return t instanceof GameEntity ? (GameEntity) t : null;
         }
 
         private String entityRef(GameEntity e, Player me) {
+            if (e instanceof Player && e != me && MultiSeat.many(me.getGame())) return "your opponent " + ((Player) e).getName();
             return e == me ? "you" : e instanceof Card ? refOf((Card) e) : e instanceof Player ? "your opponent" : String.valueOf(e);
         }
 
@@ -11494,8 +11511,8 @@ public final class LlmSpikeGui {
 
         /** The attackers question. Against one opponent it is {@link #buildAttackersQuestion} with that opponent's
          *  numbers, byte for byte. Against more it names every opponent's life and poison (each attacker's target
-         *  is asked after, as "Where does ... attack?"); the engine outlook is the one-opponent text, so it is left
-         *  out there. {@code outlook} adds the lookahead outlook where the seat shows it. */
+         *  is asked after, as "Where does ... attack?") and gives the engine outlook against each, from the
+         *  attackers that may attack that one. {@code outlook} adds the lookahead outlook where the seat shows it. */
         static String attackersQuestion(Combat combat, CardCollection legal, boolean outlook) {
             List<Player> defenders = new ArrayList<>(combat.getDefendingPlayers());
             boolean anyInfect = false;
@@ -11514,9 +11531,20 @@ public final class LlmSpikeGui {
                 b.append(i == 0 ? "" : "; ").append(d.getName()).append(" (life ").append(d.getLife()).append(", ")
                         .append(poisonOf(d)).append("/10 poison)");
             }
-            return b.append(". Choose which creatures attack; you may attack with none. Where each attacker goes is asked")
-                    .append(" next. An opponent at 0 life or 10 poison loses")
-                    .append(anyInfect ? " (infect attackers deal poison, not life loss)" : "").append(".").toString();
+            b.append(". Choose which creatures attack; you may attack with none. Where each attacker goes is asked")
+             .append(" next. An opponent at 0 life or 10 poison loses")
+             .append(anyInfect ? " (infect attackers deal poison, not life loss)" : "").append(".");
+            // The engine outlook against each opponent, from the attackers that may attack that one.
+            if (outlook) {
+                for (Player d : defenders) {
+                    CardCollection can = new CardCollection();
+                    for (Card c : legal) if (CombatUtil.canAttack(c, d)) can.add(c);
+                    String o = attackersCeiling(can, d, combat);
+                    if (!o.isEmpty()) b.append(o.replace(" OUTLOOK (engine, all unblocked):",
+                            " OUTLOOK against " + d.getName() + " (engine, all unblocked):"));
+                }
+            }
+            return b.toString();
         }
 
         private static int poisonOf(Player p) {
@@ -13715,11 +13743,19 @@ public final class LlmSpikeGui {
         if (d == null) return "";
         try {
             java.util.TreeMap<String, String> lines = new java.util.TreeMap<>();
-            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.getMain()) {
+            // A Commander deck's commander first, marked (it is in no main deck: critique U10); none in other decks.
+            java.util.List<String> commanders = new java.util.ArrayList<>();
+            java.util.List<java.util.Map.Entry<forge.item.PaperCard, Integer>> cards = new java.util.ArrayList<>();
+            if (d.has(DeckSection.Commander)) for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.get(DeckSection.Commander)) {
+                cards.add(e);
+                commanders.add(e.getKey().getName());
+            }
+            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.getMain()) cards.add(e);
+            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : cards) {
                 forge.item.PaperCard pc = e.getKey();
                 String n = pc.getName();
                 if (n == null || n.isEmpty() || lines.containsKey(n)) continue;
-                StringBuilder b = new StringBuilder("  ").append(n);
+                StringBuilder b = new StringBuilder("  ").append(n).append(commanders.contains(n) ? " (your commander)" : "");
                 try {
                     forge.card.CardRules r = pc.getRules();
                     if (r != null) {
@@ -13740,6 +13776,7 @@ public final class LlmSpikeGui {
             }
             if (lines.isEmpty()) return "";
             StringBuilder b = new StringBuilder();
+            for (String c : commanders) if (lines.containsKey(c)) b.append(lines.remove(c)).append('\n');
             for (String l : lines.values()) b.append(l).append('\n');
             return b.toString();
         } catch (Exception e) { return ""; }
@@ -13752,8 +13789,16 @@ public final class LlmSpikeGui {
                 counts.merge(e.getKey().getName(), e.getValue(), Integer::sum);
             }
             StringBuilder b = new StringBuilder();
+            // A Commander deck names its commander first (it is in no main deck: critique U10); no other deck changes.
+            if (d.has(DeckSection.Commander)) {
+                StringBuilder c = new StringBuilder();
+                for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.get(DeckSection.Commander))
+                    c.append(c.length() == 0 ? "" : ", ").append(e.getKey().getName());
+                if (c.length() > 0) b.append("commander: ").append(c).append("; main deck: ");
+            }
+            int head = b.length();
             for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
-                if (b.length() > 0) b.append(", ");
+                if (b.length() > head) b.append(", ");
                 b.append(e.getValue()).append("x ").append(e.getKey());
             }
             return b.toString();

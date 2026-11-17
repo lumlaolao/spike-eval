@@ -104,6 +104,8 @@ final class SeatObservation {
     // v45 (2026-11-07, #368): a keyword granted to a player is on its line ("| has hexproof"), and the engine's
     // "Keyword Effects" object is left out of the command zone, where it was listed with a handle like a card.
     // v46 (2026-11-07, #408): the guide says the player line shows only the keywords the engine names.
+    // A game of more than two players, or Commander, reads more (per-opponent FACTS, commander tax and damage): that is
+    // MultiSeat.VERSION, stamped on such a game's line; a two-player Constructed state is unchanged by it.
     // v47 (2026-11-17, critique P4): FACTS' combat line says what attackers would deal "if none is blocked" beside the
     // defender's life, never "= LETHAL" (it ignored blockers and read as a verdict).
     // v48 (2026-11-17, critique P8, M3): the mana caveat, NOT VISIBLE's fixed sentences and the plan banner's paragraph
@@ -699,25 +701,41 @@ final class SeatObservation {
      *  search), nor mutates the live game. canAttackNextTurn is used so the race is meaningful at
      *  every priority window, not only inside the declare-attackers step. */
     private String facts() {
-        List<Player> opps = new ArrayList<>();
-        for (Player o : viewer.getOpponents()) opps.add(o);
-        if (opps.isEmpty()) return "";
-        // Every opponent, named when there is more than one (critique U2: the first opponent only).
-        boolean many = opps.size() > 1;
+        if (MultiSeat.many(game)) return factsEach();
+        Player opp = null;
+        for (Player o : viewer.getOpponents()) { opp = o; break; }
+        if (opp == null) return "";
         StringBuilder b = new StringBuilder();
-        for (Player opp : opps) {
-            String vs = many ? " (" + opp.getName() + ")" : "";
-            clock(viewer, opp, "your next combat" + vs, b);
-            clock(opp, viewer, (many ? opp.getName() + "'s" : "their") + " next combat", b);
+        clock(viewer, opp, "your next combat", b);
+        clock(opp, viewer, "their next combat", b);
+        try {
+            int mana = forge.ai.ComputerUtilMana.getAvailableManaEstimate(opp);
+            if (b.length() > 0) b.append(" | ");
+            b.append("they can make up to ").append(mana).append(" mana at instant speed right now");
+        } catch (Exception ignore) { }
+        return estimates(b);
+    }
+
+    /** Named for what it is: Forge AI's estimators (sumDamageIfUnblocked, getAvailableManaEstimate), not facts of the
+     *  rules engine (critique O8: it was headed "FACTS (engine estimates, not truth)"). */
+    private static String estimates(StringBuilder b) {
+        return b.length() == 0 ? "" : "ESTIMATES (Forge AI's arithmetic, not certain): " + b + '\n';
+    }
+
+    /** {@link #facts} with several opponents: the clocks between you and each one, and each one's instant-speed mana,
+     *  each opponent named. */
+    private String factsEach() {
+        StringBuilder b = new StringBuilder();
+        for (Player opp : viewer.getOpponents()) {
+            clock(viewer, opp, "your next combat against " + opp.getName(), b);
+            clock(opp, viewer, opp.getName() + "'s next combat against you", b);
             try {
                 int mana = forge.ai.ComputerUtilMana.getAvailableManaEstimate(opp);
                 if (b.length() > 0) b.append(" | ");
-                b.append(many ? opp.getName() : "they").append(" can make up to ").append(mana).append(" mana at instant speed right now");
+                b.append(opp.getName()).append(" can make up to ").append(mana).append(" mana at instant speed right now");
             } catch (Exception ignore) { }
         }
-        // Named for what it is: Forge AI's estimators (sumDamageIfUnblocked, getAvailableManaEstimate), not facts of the
-        // rules engine (critique O8: "FACTS (engine estimates, not truth)").
-        return b.length() == 0 ? "" : "ESTIMATES (Forge AI's arithmetic, not certain): " + b + '\n';
+        return estimates(b);
     }
 
     /** Unblocked damage a side could deal in its NEXT combat, and the life left after it. */
@@ -737,7 +755,8 @@ final class SeatObservation {
             // What it would deal if nothing blocks, beside the life it would meet: never "= LETHAL", which ignored
             // blockers (critique P4).
             b.append(label).append(": ").append(legal.size()).append(" attacker(s) dealing ").append(dmg)
-             .append(" if none is blocked; ").append(to == viewer ? "YOUR" : "their").append(" life ").append(to.getLife());
+             .append(" if none is blocked; ").append(to == viewer ? "YOUR" : MultiSeat.many(game) ? to.getName() + "'s" : "their")
+             .append(" life ").append(to.getLife());
         } catch (Exception ignore) { }
     }
 
@@ -1378,6 +1397,29 @@ final class SeatObservation {
         }
     }
 
+    /** A Commander game's facts on a player's line: each of their commanders and what its next cast from the command
+     *  zone costs more (commander tax, {2} a cast), and the combat damage each commander has dealt them (21 from one
+     *  loses). Empty outside Commander, so no other line changes. */
+    static String commanderFacts(Player p) {
+        StringBuilder b = new StringBuilder();
+        try {
+            for (Card c : p.getCommanders()) {
+                int casts = p.getCommanderCast(c);
+                b.append(" | commander ").append(c.getName()).append(" cast ").append(casts).append(casts == 1 ? " time" : " times")
+                 .append(" (next cast from the command zone costs {").append(2 * casts).append("} more)");
+            }
+            StringBuilder dmg = new StringBuilder();
+            for (java.util.Map.Entry<Card, Integer> e : p.getCommanderDamage()) {
+                if (e.getValue() == null || e.getValue() <= 0) continue;
+                dmg.append(dmg.length() == 0 ? "" : ", ").append(e.getKey().getName()).append(" (")
+                   .append(e.getKey().getOwner() == null ? "?" : e.getKey().getOwner().getName()).append("'s) ")
+                   .append(e.getValue()).append("/21");
+            }
+            if (dmg.length() > 0) b.append(" | commander damage taken: ").append(dmg);
+        } catch (Exception ignore) { }
+        return b.toString();
+    }
+
     private String playerLine(Player p) {
         StringBuilder b = new StringBuilder("life ").append(p.getLife());
         int poison = 0;
@@ -1403,6 +1445,7 @@ final class SeatObservation {
         b.append(" | mana pool ").append(manaPool(p));
         try { b.append(" | spells cast this turn ").append(p.getSpellsCastThisTurn()); } catch (Exception ignore) { }
         try { if (p.isMonarch()) b.append(" | monarch"); } catch (Exception ignore) { }
+        b.append(commanderFacts(p));
         // The initiative and the city's blessing were not shown, though the monarch was (surface check).
         try { if (p.hasInitiative()) b.append(" | has the initiative"); } catch (Exception ignore) { }
         try { if (p.hasBlessing()) b.append(" | has the city's blessing"); } catch (Exception ignore) { }
@@ -1425,7 +1468,10 @@ final class SeatObservation {
     static List<Card> commandCards(Player p) {
         List<Card> out = new ArrayList<>();
         for (Card c : p.getCardsIn(ZoneType.Command))
-            if (!(c.getGamePieceType() == forge.card.GamePieceType.EFFECT && "Keyword Effects".equals(c.getName())))
+            // The engine's own rule objects: a player's granted keywords, and Commander's rules ("Commander Effect",
+            // listed with a handle beside each commander in a four-seat game, C2), which the system prompt states.
+            if (!(c.getGamePieceType() == forge.card.GamePieceType.EFFECT
+                    && ("Keyword Effects".equals(c.getName()) || "Commander Effect".equals(c.getName()))))
                 out.add(c);
         return out;
     }

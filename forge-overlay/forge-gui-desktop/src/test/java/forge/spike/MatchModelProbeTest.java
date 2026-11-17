@@ -110,7 +110,7 @@ public class MatchModelProbeTest {
         Player me = g.getPlayers().get(0);
         SeatObservationTest.card("Grizzly Bears", me, ZoneType.Battlefield);
         String r = SeatObservationTest.render(SeatObservationTest.observerFor(g, 0), "");
-        Assert.assertTrue(r.contains("FACTS (engine estimates, not truth):"), r);
+        Assert.assertTrue(r.contains("ESTIMATES (Forge AI's arithmetic, not certain):"), r);
         Assert.assertTrue(r.contains("your next combat:"), "the seat must be given its own clock");
         Assert.assertTrue(r.contains("instant speed"), "the opponent's instant-speed ceiling must be stated");
     }
