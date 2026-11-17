@@ -169,7 +169,11 @@ public final class LlmSpikePuzzle {
             int goal = forgeDescription.indexOf("\n\nGoal: ", warning.length());
             return goal < 0 ? forgeDescription : warning + forgeDescription.substring(goal + 2);
         }
-        return warning + "Turns Limit: " + turnLimit(sections) + "\n\n"
+        // What ends the attempt and how it is judged (critique P42): Forge's bare "Turns Limit: N" did not say the
+        // current turn counts, nor that the state is checked when the limit ends, whoever has won.
+        int turns = turnLimit(sections);
+        return warning + "Turns Limit: " + turns + " (" + (turns == 1 ? "this turn only" : "this turn and the next "
+                + (turns - 1)) + "). The attempt is judged on the state when the last of them ends, whoever has won by then.\n\n"
                 + sectionValue(sections.get("metadata"), "Description", "").replace("\\n", "\n");
     }
 
@@ -420,8 +424,7 @@ public final class LlmSpikePuzzle {
     }
 
     public static void run(String spec) throws Exception {
-        long capMs = 10 * 60 * 1000L; // a puzzle is <=3 turns; 3h would hide a hang, not survive one
-        try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) {}
+        long capMs = LlmSpikeGui.envLong("GAME_CAP_MS", 10 * 60 * 1000L, 1); // a puzzle is <=3 turns; 3h would hide a hang
 
         File file = resolve(spec, searchDirs());
         String id = file.getName().replaceAll("\\.pzl$", "");
@@ -517,10 +520,10 @@ public final class LlmSpikePuzzle {
             probeRun(file, id, sections, probe.trim(), bounded, pzlSha, ctlA, ctlB, smartA, fastA, seed, capMs);
             return;
         }
-        int budget = intOr(System.getenv().getOrDefault("PZL_SEARCH_BUDGET", "2000"), 2000);
+        int budget = (int) LlmSpikeGui.envLong("PZL_SEARCH_BUDGET", 2000, 0);
         // Lines tried per choice point before it is given up: 4 gave up on RP_034 (four Fiery Confluence lines, each
         // beaten by Welding Jar) where 40 proved it; the budget bounds the total either way.
-        int lines = intOr(System.getenv().getOrDefault("PZL_SEARCH_LINES", "32"), 32);
+        int lines = (int) LlmSpikeGui.envLong("PZL_SEARCH_LINES", 32, 0);
         System.out.println("[PZL] search " + id + " opponent=" + ctlB + " seed=" + seed + " budget=" + budget);
         final int[] n = {0};
         final boolean[] broken = {false};
@@ -657,7 +660,7 @@ public final class LlmSpikePuzzle {
             throws Exception {
         if (sections.get("acceptance") == null)
             throw new IllegalArgumentException("PZL_PROBE needs a puzzle with an [acceptance] section: " + id);
-        int completionSeed = intOr(System.getenv().getOrDefault("PZL_PROBE_COMPLETION_SEED", "0"), 0);
+        int completionSeed = (int) LlmSpikeGui.envLong("PZL_PROBE_COMPLETION_SEED", 0, 0);
         List<PuzzleArms.Step> prefix = PuzzleSearch.parseLine(probeLine);
         long t0 = System.currentTimeMillis();
         PuzzleArms.Line line = new PuzzleArms.Line(prefix, completionSeed);
@@ -1322,8 +1325,8 @@ public final class LlmSpikePuzzle {
         List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
         final long seed = seeds != null && !seeds.isEmpty() ? seeds.get(0) : LlmSpikeGui.applySeed();
         int k = Integer.parseInt(System.getenv("REPLAY_HANDOVER").trim());
-        int budget = intOr(System.getenv().getOrDefault("PZL_SEARCH_BUDGET", "2000"), 2000);
-        int lines = intOr(System.getenv().getOrDefault("PZL_SEARCH_LINES", "32"), 32);
+        int budget = (int) LlmSpikeGui.envLong("PZL_SEARCH_BUDGET", 2000, 0);
+        int lines = (int) LlmSpikeGui.envLong("PZL_SEARCH_LINES", 32, 0);
         String force = System.getenv().getOrDefault("REPLAY_FORCE", "").trim();
         List<StepResult> out = new ArrayList<>();
         if (force.isEmpty()) out.add(stepSearch(file, id, sections, bounded, spec, seed, k, null, budget, lines, capMs));

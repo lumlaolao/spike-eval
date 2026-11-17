@@ -103,8 +103,9 @@ ANSWER_INSTRUCTIONS = (
     "asks for: `option` (one number from its list), `options` (several numbers), `blocks`, `amounts`, "
     "`keep`, `number` or `card`. Each decision ends by saying which field it takes and what is legal. Think "
     "first, then call it once; the call ends the decision. If the values are not legal you are told why and "
-    "may call again once. Set or replace your plan with `set_plan` (a goal and the next steps) at any "
-    "decision, alongside the answer.\n")
+    "may call once more; a reply that calls nothing is reminded twice. A decision still unanswered after that "
+    "takes its do-nothing option (pass, no attack, decline), or its first option where one is required. Set or "
+    "replace your plan with `set_plan` (a goal and the next steps) at any decision, alongside the answer.\n")
 ANSWER_FORMAT = {
     "smart": "FORMAT: at most two short sentences of reasoning, then call `answer` with your choice.",
     "fast": "FORMAT: call `answer` at once; no reasoning text — every extra token slows the game down.",

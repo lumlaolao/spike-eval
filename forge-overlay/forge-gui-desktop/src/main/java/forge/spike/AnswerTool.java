@@ -72,8 +72,11 @@ final class AnswerTool {
      *  once the stack is empty, and end-of-turn through this turn's end step.
      *  v20 (2026-11-14, audit B8/B10): a set_plan `goal` or `next` longer than its schema's maxLength is refused, by
      *  field and length (it was kept and carried in every later prompt); a tool call written as text while lookups are
-     *  open is told it must be a function call (it was told no lookups were left). */
-    static final String VERSION = "answer-tool-v20";
+     *  open is told it must be a function call (it was told no lookups were left).
+     *  v21 (2026-11-17, critique batch 2): the preamble says what happens to an answer that is never given (one more
+     *  call after an illegal one, two reminders for no call, then the do-nothing option); the yield's description says
+     *  an attack does not wake a yielded seat (one text, YIELD_RULE, for the schema and the hint). */
+    static final String VERSION = "answer-tool-v21";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -215,14 +218,21 @@ final class AnswerTool {
         return String.join(",", out);
     }
 
+    /** What a yield skips, said in one place (critique P16: three wordings; C4: an attack does not wake a yielded seat,
+     *  and "anything they cast or activate always asks you" read as "anything they do"). */
+    static final String YIELD_RULE = "you are not asked in windows where nothing of your opponent's is on the stack "
+            + "(anything they cast or activate always asks you; an attack does not, though you are still asked how to "
+            + "block; your own main phase asks again once the stack is empty; end-of-turn lasts through this turn's end step).";
+
     /** What the system preamble says about answering, in place of the text format rules. */
     static String instructions() {
         return "ANSWERS: you answer every decision by calling the `answer` function, giving the field that decision "
                 + "asks for: `option` (one number from its list), `options` (several numbers), `blocks`, `amounts`, "
                 + "`keep`, `number` or `card`. Each decision ends by saying which field it takes and what is legal. Think "
                 + "first, then call it once; the call ends the decision. If the values are not legal you are told why and "
-                + "may call again once. Set or replace your plan with `set_plan` (a goal and the next steps) at any "
-                + "decision, alongside the answer.\n"
+                + "may call once more; a reply that calls nothing is reminded twice. A decision still unanswered after that "
+                + "takes its do-nothing option (pass, no attack, decline), or its first option where one is required. Set or "
+                + "replace your plan with `set_plan` (a goal and the next steps) at any decision, alongside the answer.\n"
                 + (proposeActions() ? proposeInstructions() : "");
     }
 
@@ -531,9 +541,7 @@ final class AnswerTool {
         steps.add("items", obj("type", "integer"));
         props.add("steps", steps);
         JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision. \"none\" (the default): "
-                + "you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in "
-                + "windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you; "
-                + "your own main phase asks again once the stack is empty; end-of-turn lasts through this turn's end step).");
+                + "you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then " + YIELD_RULE);
         JsonArray e = new JsonArray();
         // "none" first: a model that fills every field takes the first value (Luna did, 175 of 189 answers).
         e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
@@ -691,9 +699,7 @@ final class AnswerTool {
         }
         if (s.yield) {
             JsonObject y = obj("type", "string", "description", "Optional, with PASS only. \"none\" (the default): you are asked "
-                    + "as usual. Otherwise, until then you are not asked in windows where nothing of your opponent's is on the stack "
-                    + "(anything they cast or activate always asks you; your own main phase asks again once the stack is empty; "
-                    + "end-of-turn lasts through this turn's end step).");
+                    + "as usual. Otherwise, until then " + YIELD_RULE);
             JsonArray e = new JsonArray();
             e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
             y.add("enum", e);

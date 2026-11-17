@@ -353,9 +353,9 @@ public class SurfaceResolutionChoicesTest {
         SpellAbility mana = island.getManaAbilities().iterator().next();
         mana.setActivatingPlayer(me);
         ctrl.playSpellAbilityNoStack(mana, true);
-        Assert.assertTrue(model.asked("Accept this optional triggered ability"),
+        Assert.assertTrue(model.asked("Use this optional triggered ability"),
                 "the may was asked: " + decisionsTail(model));
-        String ask = PromptFidelityTest.promptWith(model, "Accept this optional triggered ability");
+        String ask = PromptFidelityTest.promptWith(model, "Use this optional triggered ability");
         Assert.assertTrue(ask.contains("Whenever an Island is tapped for mana"), "the trigger's own text was missing:\n" + ask);
         boolean snowfallMana = false;
         for (forge.game.mana.Mana m : me.getManaPool())

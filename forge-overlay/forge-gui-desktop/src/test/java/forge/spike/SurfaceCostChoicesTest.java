@@ -92,7 +92,7 @@ public class SurfaceCostChoicesTest {
         Script model = new Script("CHOICE: 1")
                 .on("You have priority", choice("CAST Rooftop Nuisance"))
                 .on("Choose the TARGET", choice("Lantern Kami"))
-                .on("Pay for Casualty", choice("1"))
+                .on("Do not pay", choice("Pay"))
                 .on("must SACRIFICE", picks("Grizzly Bears"));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
@@ -133,7 +133,7 @@ public class SurfaceCostChoicesTest {
         Script model = new Script("CHOICE: 1")
                 .on("You have priority", choice("CAST Rooftop Nuisance"))
                 .on("Choose the TARGET", choice("Lantern Kami"))
-                .on("Pay for Casualty", choice("0"));
+                .on("Do not pay", choice("Do not pay"));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r);
@@ -205,7 +205,7 @@ public class SurfaceCostChoicesTest {
 
     private static List<String> casualtyAsks(Script model) {
         List<String> out = new ArrayList<>();
-        for (String q : model.prompts) if (q.contains("Pay for Casualty")) out.add(q);
+        for (String q : model.prompts) if (q.contains("Do not pay") && q.contains("Casualty")) out.add(q);
         return out;
     }
 

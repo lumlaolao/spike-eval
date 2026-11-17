@@ -1423,12 +1423,11 @@ public class LlmSpikeTest {
         // Non-infect: life-based lethal hint, poisonNeeded = 10 - oppPoison, no infect parenthetical.
         String got = LlmSpikeGui.PlayerControllerLLM.buildAttackersQuestion("Bob", 18, 0, false);
         String expect = "COMBAT: declare attackers against Bob (life 18). Choose which creatures attack; you may attack "
-                + "with none. LETHAL: they are at 18 life and 0/10 poison, so 18 damage or 10 poison wins.";
+                + "with none. To win by damage: 18 (or 10 poison).";
         Assert.assertEquals(got, expect, "attackers question template drifted");
         // Infect present + existing poison: parenthetical appears, poisonNeeded reflects counters.
         String gotInf = LlmSpikeGui.PlayerControllerLLM.buildAttackersQuestion("Bob", 20, 3, true);
-        Assert.assertTrue(gotInf.contains("20 life and 3/10 poison, so 20 damage or 7 poison wins"
-                + " (infect attackers deal poison, not life loss)"),
+        Assert.assertTrue(gotInf.contains("To win by damage: 20 (or 7 poison; infect attackers deal poison, not life loss)."),
                 "infect attackers add the poison parenthetical and correct poisonNeeded");
     }
 

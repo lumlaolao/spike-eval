@@ -313,7 +313,11 @@ tax is not paid, an optional static does not apply, harmonize taps the smallest 
 least (they were the "do it" option); an answer the harness cannot use is asked once more with the reason, then
 completed from the seat's own picks first (convoke, a discard-unless set, a priced mode set), and a crew pick short
 of the power is not paid; a hook that throws names the exception on its fallback row (`(err:<class>)`); an empty
-numeric range from the engine is answered with its minimum instead of an exception.
+numeric range from the engine is answered with its minimum instead of an exception. Since harness-epoch-103 a
+repeatable modal takes its fewest modes too (A32), a text-lane PICKS answer with an out-of-range number or too many
+picks is asked again rather than trimmed (A33), an unless-cost another player has paid is not asked (U8), and a
+number in the environment that does not read (`GAME_CAP_MS=30m`, a mistyped `GAME_SEED`, a cap of 0) stops the JVM
+with exit 2 (`envLong`, A36).
 
 **An either-or confirm shows the engine's two captions** (Discover: "Cast" / "Hand"; a library position: "Top" /
 "Bottom"), as the human controller does; YES/NO only for a yes-or-no question (critique C21). **A pile is hidden only
@@ -421,15 +425,29 @@ battlefield (a suspended card's time counters, an adventure, foretold, plotted).
 **System message, fixed for the whole game** (`seatFraming`):
 - the role;
 - `<your_deck>`: the deck's plan and list;
-- `<how_this_works>`: the engine, the tools, answering by call;
+- `<how_this_works>`: the engine, the step order and what PASS does (`PRIORITY_RULES`: passing on an empty stack moves
+  the game on, so to attack the seat passes in its first main phase; passing with something on the stack lets it
+  resolve; an attack does not use the stack), the tools, answering by call and what an answer never given becomes;
 - `<reading_the_state>`: the guide;
 - `<reference>`: terms and keywords, the same in every format and in a puzzle. It named the Legacy eval pool's
   archetypes until harness-epoch-30, which told only a Legacy seat what it could face (review 2026-10-16).
 
+**What an ask says is a fact, never advice (harness-epoch-103, critique batch 2).** Under the faithful profile:
+the mulligan states the London rule the engine runs (7 new cards, N of them to the bottom, one more each time; no
+5-card floor, which exists only under `MULLIGAN_HEURISTIC=1`); no ask advises (the mulligan bottom, cleanup discard,
+hand strip, optional costs, reveal and edict sacrifice each carried a sentence of strategy; `AskContract.ADVICE`
+lints them); the attack ask states what wins ("To win by damage: 20 (or 10 poison)."), never a "LETHAL:" label, and
+FACTS gives what attackers would deal "if none is blocked" beside the life; PASS says what it does in its window; an
+ordered move says the last card listed ends on top; an optional trigger says its targets and costs come next; a
+once-only keyword cost is "Pay" / "Do not pay"; a card-name ask says its source, constraint and target once; a cost
+names the ability, not the card; a deck's `.plan` sidecar (strategy text) loads only with `PLAN_SIDECAR=1`. Legacy
+profiles keep their bytes.
+
 A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told. For a Forge puzzle that is
 Forge's description from its goal line on (goal, turn limit, text; the name and difficulty label are dropped since
 epoch 69, the neutral brief of BENCHMARK-V2 section 3); a rules puzzle (an `[acceptance]` section) gets only its
-turn limit and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its Forge goal is just the turn bound
+turn limit (said in words since epoch 103: which turns, and that the state is judged when the last ends, whoever has
+won) and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its Forge goal is just the turn bound
 (148 of the 526 converted puzzles in `eval/puzzles/rules-pilot/manifest.jsonl` say `Goal:Survive` and have `life p1 <= 0`
 in their `[acceptance]` section, 2026-10-20) and its name states the rule it tests. The
 Puzzle Goal card, which `inspect` reads, carries the same brief (`tellGoalCard`), and Forge's HumanControl warning

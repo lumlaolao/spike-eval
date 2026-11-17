@@ -151,7 +151,7 @@ final class LlmCostDecision extends AiCostDecision {
             need = amount;
 
             String from = (cost.zoneRestriction == 1 ? "your " : "any player's ") + zonesInWords(cost.getFrom());
-            CardCollectionView pick = ask(typeList, amount, "exile", "COST: to pay for " + source.getName()
+            CardCollectionView pick = ask(typeList, amount, "exile", "COST: to pay for " + costFor()
                     + " you must EXILE " + amount + " of these cards from " + from
                     + ". They leave now, as the cost is paid. Choose which");
             if (pick != null) return PaymentDecision.card(pick);
@@ -194,7 +194,7 @@ final class LlmCostDecision extends AiCostDecision {
             if (typeList.size() == amount) return forced(typeList, "discard");
             candidates = typeList;
             need = amount;
-            CardCollectionView pick = ask(typeList, amount, "discard", "COST: to pay for " + source.getName()
+            CardCollectionView pick = ask(typeList, amount, "discard", "COST: to pay for " + costFor()
                     + " you must DISCARD " + amount + " of these cards from your hand. Choose which");
             if (pick != null) return PaymentDecision.card(pick);
             if (cancelled) return null;
@@ -223,7 +223,7 @@ final class LlmCostDecision extends AiCostDecision {
             candidates = typeList;
             need = amount;
 
-            CardCollectionView pick = ask(typeList, amount, "return", "COST: to pay for " + source.getName()
+            CardCollectionView pick = ask(typeList, amount, "return", "COST: to pay for " + costFor()
                     + " you must RETURN " + amount
                     + " of these permanents to your hand. They leave the battlefield now, as the cost is paid. Choose which");
             if (pick != null) return PaymentDecision.card(pick);
@@ -262,7 +262,7 @@ final class LlmCostDecision extends AiCostDecision {
             // creature this payment taps (Llanowar Elves feeding a Signet): one tap for two jobs.
             if (typeList.size() == amount) return reserve(typeList);
 
-            CardCollectionView pick = ask(typeList, amount, "tap", "COST: to pay for " + source.getName()
+            CardCollectionView pick = ask(typeList, amount, "tap", "COST: to pay for " + costFor()
                     + (manaFor == null ? "" : " (making mana for " + manaFor + ")") + " you must TAP " + amount
                     + " of these untapped permanents. A tapped creature cannot attack or block until it untaps. Choose which");
             if (pick != null) return reserve(pick);
@@ -343,7 +343,7 @@ final class LlmCostDecision extends AiCostDecision {
             if (CardLists.getTotalPower(list, ability) < need) return null;
             offer();
             CardCollectionView pick = player.getController().chooseCardsForEffect(list, ability, "COST: to pay for "
-                    + source.getName() + " you must TAP untapped creatures with total power " + need + " or more."
+                    + costFor() + " you must TAP untapped creatures with total power " + need + " or more."
                     + " A tapped creature cannot attack or block until it untaps. Choose which", 1, list.size(), false, null);
             if (tookCancel()) return null;
             if (pick != null && CardLists.getTotalPower(new CardCollection(pick), ability) >= need) return reserve(pick);
@@ -360,7 +360,7 @@ final class LlmCostDecision extends AiCostDecision {
             }
             if (pick != null) {
                 offer();
-                pick = player.getController().chooseCardsForEffect(list, ability, "COST: to pay for " + source.getName()
+                pick = player.getController().chooseCardsForEffect(list, ability, "COST: to pay for " + costFor()
                         + " you must TAP untapped creatures with total power " + need + " or more; the ones you chose have "
                         + CardLists.getTotalPower(new CardCollection(pick), ability) + ". Choose again", 1, list.size(), false, null);
                 if (tookCancel()) return null;
@@ -373,7 +373,7 @@ final class LlmCostDecision extends AiCostDecision {
         final CardCollection able = list;
         CardCollection sharing = CardLists.filter(able, c -> CardLists.count(able, CardPredicates.sharesCreatureTypeWith(c)) > 1);
         if (sharing.size() < amount) return null;
-        CardCollectionView pick = ask(sharing, amount, "tap", "COST: to pay for " + source.getName() + " you must TAP "
+        CardCollectionView pick = ask(sharing, amount, "tap", "COST: to pay for " + costFor() + " you must TAP "
                 + amount + " untapped creatures that share a creature type. Choose which");
         if (pick == null) return null;
         boolean ok = true;
@@ -440,6 +440,14 @@ final class LlmCostDecision extends AiCostDecision {
         if (seat != null) seat.offerCostCancel = false;
         if (seat != null && seat.costCancelled) cancelled = true;
         return cancelled;
+    }
+
+    /** What the cost is paid for: the ability as the seat's other asks name it (its handle and text), not the card's
+     *  name, which does not tell two abilities or two copies apart (critique P39). */
+    private String costFor() {
+        LlmSpikeGui.PlayerControllerLLM seat = seat();
+        try { if (seat != null && ability != null) return seat.labelOf(ability); } catch (RuntimeException ignore) { }
+        return source.getName();
     }
 
     private LlmSpikeGui.PlayerControllerLLM seat() {

@@ -213,7 +213,7 @@ final class GameHistory {
         int n = Math.min(gap, ctx.recentEventsMax);
         if (n <= 0) return "";
         StringBuilder s = new StringBuilder("RECENT EVENTS (oldest->newest):\n");
-        if (gap > n) s.append("  - (...older events this turn omitted...)\n");
+        if (gap > n) s.append("  - (...older events omitted...)\n");
         for (int i = evs.size() - n; i < evs.size(); i++) {
             s.append("  - ").append(evs.get(i).msg).append('\n');
         }

@@ -1029,8 +1029,7 @@ public final class LlmSpikeFork {
      *  FORK_DECISION_SEQ, so decision indices are per-game in emission order for every mode. */
     private static GameRunResult playDeterministicGame(LlmSpikeGui.ForkHook hook,
             LlmSpikeGui.ForkForcer forcer) throws Exception {
-        long capMs = 3 * 60 * 60 * 1000L;
-        try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) { }
+        long capMs = LlmSpikeGui.envLong("GAME_CAP_MS", 3 * 60 * 60 * 1000L, 1);
 
         initForgeOnce();
         LlmSpikeGui.FORK_HOOK = hook;

@@ -104,7 +104,9 @@ final class SeatObservation {
     // v45 (2026-11-07, #368): a keyword granted to a player is on its line ("| has hexproof"), and the engine's
     // "Keyword Effects" object is left out of the command zone, where it was listed with a handle like a card.
     // v46 (2026-11-07, #408): the guide says the player line shows only the keywords the engine names.
-    static final String VERSION = "observation-faithful-v46";
+    // v47 (2026-11-17, critique P4): FACTS' combat line says what attackers would deal "if none is blocked" beside the
+    // defender's life, never "= LETHAL" (it ignored blockers and read as a verdict).
+    static final String VERSION = "observation-faithful-v47";
 
     /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
      *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
@@ -684,10 +686,10 @@ final class SeatObservation {
             if (legal.isEmpty()) return;
             int dmg = forge.ai.ComputerUtilCombat.sumDamageIfUnblocked(legal, to);
             if (b.length() > 0) b.append(" | ");
+            // What it would deal if nothing blocks, beside the life it would meet: never "= LETHAL", which ignored
+            // blockers (critique P4).
             b.append(label).append(": ").append(legal.size()).append(" attacker(s) dealing ").append(dmg)
-             .append(" unblocked; ").append(to == viewer ? "YOUR" : "their").append(" life ")
-             .append(to.getLife()).append(" -> ").append(Math.max(0, to.getLife() - dmg));
-            if (dmg > 0 && dmg >= to.getLife()) b.append(" = LETHAL");
+             .append(" if none is blocked; ").append(to == viewer ? "YOUR" : "their").append(" life ").append(to.getLife());
         } catch (Exception ignore) { }
     }
 

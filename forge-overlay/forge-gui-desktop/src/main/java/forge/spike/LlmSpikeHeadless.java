@@ -50,8 +50,7 @@ public final class LlmSpikeHeadless {
             return; // unreachable: LlmSpikeFork.run always exits the JVM itself
         }
 
-        long capMs = 3 * 60 * 60 * 1000L;
-        try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) {}
+        long capMs = LlmSpikeGui.envLong("GAME_CAP_MS", 3 * 60 * 60 * 1000L, 1);
 
         // PZL axis: PUZZLE=<id|path> runs one Forge puzzle instead of a match. Read BEFORE model
         // init so a typo'd id fails in a second rather than after a 30s card-script load, but

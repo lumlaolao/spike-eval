@@ -65,6 +65,9 @@ final class AskContract {
 
     /** Words of one eval deck's line (noAskCoachesOneDecksLine); no question may carry them. */
     static final String[] COACHING = {"Griselbrand", "reanimat", "Reanimat", "Petal", "Grixis", "Entomb", "Force of Will"};
+    /** Generic advice the harness wrote into faithful asks (critique P3, P22, P30): "facts, not advice". */
+    static final String[] ADVICE = {"game plan", "your plan", "worth paying", "keep your best", "Keep your best", "usually go under",
+            "most threatens", "least exposes", "LETHAL"};
 
     static void check(String test, List<String> asked) {
         for (String p : new ArrayList<>(asked)) checkOne(test, p);
@@ -100,6 +103,7 @@ final class AskContract {
         // naming the source is not coaching. Only the harness's own words are checked.
         String own = question.replaceAll("\\[[^\\]]*\\]", "[]");
         for (String w : COACHING) Assert.assertFalse(own.contains(w), test + ": the question coaches a deck's line (" + w + "): " + question);
+        for (String w : ADVICE) Assert.assertFalse(own.contains(w), test + ": the question gives advice (" + w + "): " + question);
         Assert.assertFalse(decision.contains("CARDNAME") || decision.contains("NICKNAME"), test + ": an engine placeholder is shown instead of the card's name: " + decision);
         Matcher filter = ENGINE_FILTER.matcher(decision);
         if (filter.find()) Assert.fail(test + ": the engine's filter syntax is shown (" + filter.group() + "): " + decision);

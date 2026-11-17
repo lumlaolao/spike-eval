@@ -1648,7 +1648,7 @@ public class GoldenChecksTest {
             lands(me, "Mountain", "Mountain", "Mountain", "Mountain");
             if (goblins) { card("Raging Goblin", me, ZoneType.Battlefield); card("Raging Goblin", me, ZoneType.Battlefield); }
             card("Burn Trail", me, ZoneType.Hand);
-            Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Burn Trail")).on("Conspire", p -> "CHOICE: 2");
+            Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Burn Trail")).on("Conspire", choice("Pay"));
             playAndResolve(seat(g, model, model), g, "Burn Trail, goblins=" + goblins);
             Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).anyMatch(c -> c.getName().equals("Burn Trail")), "goblins=" + goblins + ": cast");
             boolean asked = model.prompts.stream().anyMatch(p -> p.contains("Conspire"));
@@ -1663,11 +1663,12 @@ public class GoldenChecksTest {
         card("Galadhrim Brigade", me, ZoneType.Hand);
         String[] squad = new String[1];
         Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Galadhrim Brigade"))
-                .on("Squad", p -> { squad[0] = p; return "CHOICE: 2"; });
+                .on("Squad", p -> { squad[0] = p; return "CHOICE: 1"; });
         playAndResolve(seat(g, model, model), g, "Galadhrim Brigade with squad");
         Assert.assertNotNull(squad[0], "squad asked");
-        Assert.assertTrue(squad[0].contains("1) 0") && squad[0].contains("2) 1") && !squad[0].contains("3) 2"),
-                "five Forests pay the {2}{G} and one {1}{G} squad: 0 or 1 offered: " + squad[0]);
+        // Once or not at all is asked as pay or not (critique P31).
+        Assert.assertTrue(squad[0].contains("1) Pay {1}{G}") && squad[0].contains("2) Do not pay") && !squad[0].contains("3) "),
+                "five Forests pay the {2}{G} and one {1}{G} squad: pay it once or not: " + squad[0]);
         Assert.assertEquals(me.getCreaturesInPlay().stream().filter(c -> c.getName().equals("Galadhrim Brigade")).count(), 2L, "one squad copy");
     }
 
@@ -2769,7 +2770,7 @@ public class GoldenChecksTest {
         List<SpellAbility> modes = new ArrayList<>();
         for (SpellAbility sa : fi.getAllSpellAbilities()) if (sa.isSpell()) { sa.setActivatingPlayer(me); modes.add(sa); }
         Assert.assertTrue(modes.size() >= 2, modes.toString());
-        Script model = new Script("CHOICE: 1").on("Choose HOW to play", p -> "CHOICE: 2");
+        Script model = new Script("CHOICE: 1").on("Choose how to play", p -> "CHOICE: 2");
         Assert.assertSame(seat(g, model, model).getAbilityToPlay(fi, modes, null), modes.get(1));
     }
 
@@ -2907,8 +2908,7 @@ public class GoldenChecksTest {
     private static final String START_ASK = "DECISION: You won the roll. Play first, or draw first?\nOptions:\n"
             + "  1) Play first\n  2) Draw first";
     private static final String ATTACK_ASK = "DECISION: COMBAT: declare attackers against Rival (life 20). Choose which "
-            + "creatures attack; you may attack with none. LETHAL: they are at 20 life and 0/10 poison, so 20 damage or 10 "
-            + "poison wins.\nChoose between 0 and 2 of these (by number):\n  1) Grizzly Bears (2/2)\n  2) Llanowar Elves (1/1)";
+            + "creatures attack; you may attack with none. To win by damage: 20 (or 10 poison).\nChoose between 0 and 2 of these (by number):\n  1) Grizzly Bears (2/2)\n  2) Llanowar Elves (1/1)";
 
     /** The DECISION question and its options, without the answer instruction (text or tool form) after them. */
     private static String decisionOf(String prompt) {
@@ -4386,7 +4386,7 @@ public class GoldenChecksTest {
             @Override public String ask(String prompt) {
                 prompts.add(prompt);
                 // The free-form ask (either protocol) says in words what the name must be.
-                if (prompt.contains("(it must be the name of a nonland card)")) return free++ == 0 ? "Something with an activated ability." : "CARD: Grim Lavamancer";
+                if (prompt.contains("Name a nonland card.")) return free++ == 0 ? "Something with an activated ability." : "CARD: Grim Lavamancer";
                 return "CHOICE: " + opt(prompt, "Thoughtseize");
             }
         };

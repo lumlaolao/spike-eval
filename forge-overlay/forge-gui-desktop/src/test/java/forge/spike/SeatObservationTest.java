@@ -268,7 +268,7 @@ public class SeatObservationTest {
         String r = render(o, "");
         Assert.assertTrue(r.contains("FACTS (engine estimates, not truth):"), r);
         Assert.assertTrue(r.contains("your next combat:"), r);
-        Assert.assertTrue(r.contains("unblocked; their life"), r);
+        Assert.assertTrue(r.contains("if none is blocked; their life"), r);
         Assert.assertTrue(r.contains("instant speed"), r);
     }
 
@@ -286,7 +286,7 @@ public class SeatObservationTest {
         SeatObservation o = observerFor(g, 0);
         g.getPhaseHandler().devModeSet(PhaseType.MAIN2, me, 1);
         String game = render(o, "");
-        Assert.assertTrue(game.contains("your next combat: 2 attacker(s) dealing 3 unblocked; their life 2 -> 0 = LETHAL"), game);
+        Assert.assertTrue(game.contains("your next combat: 2 attacker(s) dealing 3 if none is blocked; their life 2"), game);
         try {
             LlmSpikeGui.puzzleLastTurn = 1;
             g.getPhaseHandler().devModeSet(PhaseType.COMBAT_END, me, 1);
@@ -298,13 +298,13 @@ public class SeatObservationTest {
             Assert.assertFalse(after.contains("= LETHAL"), after);
             g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me, 1);
             String before = render(o, "");
-            Assert.assertTrue(before.contains("your next combat: 2 attacker(s) dealing 3 unblocked; their life 2 -> 0 = LETHAL"), before);
+            Assert.assertTrue(before.contains("your next combat: 2 attacker(s) dealing 3 if none is blocked; their life 2"), before);
             Assert.assertTrue(before.contains("their next combat: none before the puzzle's turn limit"), before);
             LlmSpikeGui.puzzleLastTurn = 2;
             g.getPhaseHandler().devModeSet(PhaseType.MAIN2, me, 1);
             String next = render(o, "");
             Assert.assertTrue(next.contains("your next combat: none before the puzzle's turn limit"), next);
-            Assert.assertTrue(next.contains("their next combat: 1 attacker(s) dealing 2 unblocked; YOUR life 2 -> 0 = LETHAL"), next);
+            Assert.assertTrue(next.contains("their next combat: 1 attacker(s) dealing 2 if none is blocked; YOUR life 2"), next);
         } finally {
             LlmSpikeGui.puzzleLastTurn = -1;
         }
@@ -1307,11 +1307,13 @@ public class SeatObservationTest {
     @Test
     public void theLegacyFaithfulStateAndGuideKeepTheirBytes() {
         String r = pinnedState().render("seat", ContextProfile.V4_FAITHFUL, PINNED_HISTORY, "hold up mana", 1);
-        Assert.assertEquals(sha12(r), "77ce3d34c686", r);
+        // 2026-11-17 (critique P4, observation-faithful-v47): FACTS' combat line changed for every faithful profile.
+        Assert.assertEquals(sha12(r), "86a081a1d891", r);
         Assert.assertEquals(sha12(SeatObservation.guide()), "79f4023f6055", SeatObservation.guide());
         Assert.assertEquals(SeatObservation.guide(ContextProfile.V4_FAITHFUL), SeatObservation.guide());
         Assert.assertEquals(SeatObservation.version(ContextProfile.V4_FAITHFUL), SeatObservation.VERSION);
-        Assert.assertEquals(ContextProfile.V4_FAITHFUL.sha(), "6a7daaaaef43", "v4-faithful's context_sha moved");
+        // 2026-11-17: moved with observation-faithful-v47 (critique P4), on purpose.
+        Assert.assertEquals(ContextProfile.V4_FAITHFUL.sha(), "582487d67cc6", "v4-faithful's context_sha moved");
     }
 
     /** The cache order opens the state with a record that only grows: a decision's state starts with the previous
