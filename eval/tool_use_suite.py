@@ -55,7 +55,7 @@ SNIPPET = 240              # ContextMemory.snippet
 # Verbatim from ContextMemory.instructions() and SeatObservation.inspectInstructions(); the unit
 # test compares both against the Java sources so the text arm cannot drift from the shipped grammar.
 MEMORY_INSTRUCTIONS = (
-    "MEMORY TOOLS evidence-tools-v6: instead of an action, you may reply with exactly ONE line: "
+    "MEMORY TOOLS evidence-tools-v7: instead of an action, you may reply with exactly ONE line: "
     "MEMORY SEARCH <offset> <literal text> (50 matching evidence snippets per page), "
     "MEMORY READ <evidence id> <character offset> (20000 characters per page), or "
     "MEMORY NOTE <evidence id> <hypothesis or plan, max 2000 characters>. "
