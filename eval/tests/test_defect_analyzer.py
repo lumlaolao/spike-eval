@@ -504,6 +504,27 @@ def test_a_game_whose_log_failed_to_write_fails_the_invariants():
         check("a whole log passes", hi.get("eval_log_write_failed_total") == 0 and hi["pass"] is True, str(hi))
 
 
+def test_a_decision_a_harness_failure_took_fails_the_invariants():
+    """Critique A2/O12: a hook that threw passed the priority window with no row, and a state that did not render was
+    still sent. Both are now rows (`play(err:...)`, `(render-failed)`) and either fails the run; a lost answer does not."""
+    with tempfile.TemporaryDirectory() as d:
+        write_lines(Path(d) / "game-1-1000.jsonl", [
+            dec(tier="auto", fallback="play(err:NullPointerException)->PASS", prompt=None, raw_reply=None),
+            dec(tier="auto", fallback="targets(multi,err)->first [Arc Trail]", prompt=None, raw_reply=None),
+            dec(tier="auto", fallback="play(render-failed)->PASS"),
+            dec(tier="auto", fallback="entity(unparsed)->first", prompt=None, raw_reply=None),
+            dec(tier="auto", fallback="play(no-budget)->PASS", prompt=None, raw_reply=None),
+            game_line(seed=1)])
+        r = da.build_report([Path(d)])
+        hi = r["hard_invariants"]
+        check("three harness failures are counted, not the lost answer or the budget", hi.get("harness_error_total") == 3,
+              str(hi))
+        check("and fail the run", hi["pass"] is False)
+        check("the text says so", "harness_error_total=3" in da.render_text(r))
+    check("an error fallback is recognised", da.harness_error("attackers(err)->none"))
+    check("a fallback named 'error...' outside the cause is not", not da.harness_error("error-order(unparsed)->as-is"))
+
+
 def test_the_standards_name_every_hard_invariant():
     """docs/STANDARDS.md section 4 lists the run oracle's hard invariants; a new one must be named there."""
     with tempfile.TemporaryDirectory() as d:

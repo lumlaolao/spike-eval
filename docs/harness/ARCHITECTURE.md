@@ -298,9 +298,32 @@ Since harness-epoch-39 all 44 are played by a golden check (`eval/play_gaps.txt`
   the text of the face being cast; the engine's description is only the cost and its reminder. The cost shown is the
   cost paid (a Defiler's reduction taken off), and alternative costs keep their printed names (Web-slinging).
 
-**When the model gives no usable answer:** a fixed legal option (the first, or decline; no attack for
-attackers), recorded on the decision row with why. Never Forge's AI, and never an option read out of the
-model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M2).
+**When the model gives no usable answer:** one rule for every cause (no budget left, the turn's loop guard, a dead
+bridge, a lost or unreadable answer, a hook that threw): the do-nothing option where one exists (PASS, no attack, no
+block, decline, keep on top), a play not yet made is not made (its target ask had CANCEL on the list: the window
+passes, `target(<cause>)->cancel play`), and the first legal option only where a choice is mandatory (a split of
+divided damage: even, `split(unanswered)->even`; a Phyrexian payment: its first option, mana). Never a land drop or
+an attack, never Forge's AI, never an option read out of the model's plan text (the "plan-named" fallbacks went in
+harness-epoch-30, review M2). The row's fallback names the cause and what was done (`entity(no-budget)->decline`,
+never "->first" for a decline; `noAnswer`, `noAnswerCause`). The floor and random arms keep their fixed policies (land
+drop, all-in attack), which the canaries pin (`zeroModelArm`). A tool answer lost by the model carries `lost_reason`
+on its row (`no-call`, `invalid`, `call-as-text`, `lookups-only`, `rounds`); only a missing reply is the bridge's
+(harness-epoch-102, critique A2-A5, A9, A13-A15, A18, A20-A22, A25, A29, A30, C17, C18). In particular: an attack or block
+tax is not paid, an optional static does not apply, harmonize taps the smallest power and a cost reduction is the
+least (they were the "do it" option); an answer the harness cannot use is asked once more with the reason, then
+completed from the seat's own picks first (convoke, a discard-unless set, a priced mode set), and a crew pick short
+of the power is not paid; a hook that throws names the exception on its fallback row (`(err:<class>)`); an empty
+numeric range from the engine is answered with its minimum instead of an exception.
+
+**An either-or confirm shows the engine's two captions** (Discover: "Cast" / "Hand"; a library position: "Top" /
+"Bottom"), as the human controller does; YES/NO only for a yes-or-no question (critique C21). **A pile is hidden only
+when the card says so** (`FaceDown$ True` both, `One` pile 1); Fact or Fiction's piles are both shown (critique P29: the
+seat was shown the opposite, and the golden check encoded it).
+- *Harness failures fail the run:* a hook that threw writes its row (`play(err:<class>)->PASS`, `target(err:...)`), a
+  state that did not render is not sent (`(render-failed)`), and `defect_analyzer.py` fails on either
+  (`harness_error_total`).
+- *Combat rows say what was declared:* `declared` lists the attackers ("name#id") or blocks ("blocker#id->attacker#id")
+  the seat's combat holds after the decision (`choice` is only the count).
 - *Why fixed and recorded:* a fallback that chooses well would hide a broken ask; a fixed one keeps the
   defect visible in the numbers (`eval/defect_analyzer.py` counts them).
 
@@ -1199,7 +1222,7 @@ precons in `res/quest/commanderprecons` by name). `PLAYERS=3` or `4` seats C and
   egress) cover seats A and B, so the model seat is A or B. `--pairs` is refused: a game of more seats is rotated, not
   swapped. The derived cap is 30 minutes with no model seat and 120 + 90 a model seat (four Forge AI seats played 56-77
   turns in 37-84 s; the study estimates 70-100 minutes for one model seat among three AI).
-- What the seat reads with more than one opponent (harness-epoch-102, `multi_opponent_version` multi-opponent-v1 on
+- What the seat reads with more than one opponent (harness-epoch-103, `multi_opponent_version` multi-opponent-v1 on
   the game line; `MultiSeat.many`, a game of more than two players): the state already had an `OPP [name]` block per opponent; FACTS gives the clocks
   and instant-speed mana against each opponent by name; an opponent's object is labelled with its owner (`[Battlefield,
   Rival's]`, not `opponent's`); the attackers question names each opponent's life and poison and gives the engine
@@ -1269,7 +1292,8 @@ precons in `res/quest/commanderprecons` by name). `PLAYERS=3` or `4` seats C and
     routing-filter refusal (`routing_refusals` on a puzzle row), and a refusal of function calling
     (`native_tools_downgraded`). A `claude-cli:` seat (never scored) counts nothing.
   - The game line carries `bridge_down_decisions_a` / `_b` and `circuit_breaker_trips_a` / `_b` (five dead decisions
-    in a row), 0 when nothing was lost.
+    in a row), 0 when nothing was lost. A tripped breaker makes one attempt per decision, no retries, until a reply
+    comes back (harness-epoch-102, critique A8): each retry would wait out its own deadline.
   - `aggregate.bridge_down_decisions` is the one reader (`aggregate.py`, `defect_analyzer.py`, `run_batch.py`): the
     game line's count, or on a line from before the fields the transport failures in its log (`aggregate.paired_log`:
     the log whose `[EVAL] jsonl` names the game file, else `game-<seed>-<0|1>.log` unless that names another game

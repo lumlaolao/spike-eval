@@ -327,6 +327,34 @@ public class AnswerToolTest {
         Assert.assertFalse(AnswerTool.CALL_AS_FUNCTION.contains("No lookups"), AnswerTool.CALL_AS_FUNCTION);
     }
 
+    /** Critique A9: every exit the model caused is `lost` with its reason. A call written as text twice, lookups past
+     *  the budget twice, or no answer within the rounds returned null without `lost`, and the caller recorded the
+     *  decision as lost to a dead bridge. A null turn (the transport) stays not lost. */
+    @Test
+    public void everyExitTheModelCausedIsLostWithItsReasonNotABridgeFailure() {
+        String markup = "<tool_call>{\"name\":\"simulate\",\"arguments\":{\"option\":1}}</tool_call>";
+        JsonObject said = new JsonObject();
+        said.addProperty("role", "assistant");
+        said.addProperty("content", markup);
+        NativeTools.Turn asText = new NativeTools.Turn(markup, said.toString(), java.util.Collections.emptyList());
+        AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(3), false);
+        Assert.assertNull(AnswerTool.converse("DECISION", ask, (u, m, t, a, r) -> asText, null, (x, y) -> { }));
+        Assert.assertTrue(ask.lost, "a call written as text twice is the model's");
+        Assert.assertEquals(ask.lostReason, "call-as-text");
+
+        AnswerTool.Ask lookups = new AnswerTool.Ask(AnswerTool.Spec.one(3), false);
+        Assert.assertNull(AnswerTool.converse("DECISION", lookups,
+                (u, m, t, a, r) -> calls(new NativeTools.Call("s" + r, "simulate", "{\"option\":1}")),
+                AnswerTool.previewOnly(null), (x, y) -> { }));
+        Assert.assertTrue(lookups.lost, "lookups and no answer after being told to answer is the model's");
+        Assert.assertEquals(lookups.lostReason, "lookups-only");
+
+        AnswerTool.Ask transport = new AnswerTool.Ask(AnswerTool.Spec.one(3), false);
+        Assert.assertNull(AnswerTool.converse("DECISION", transport, (u, m, t, a, r) -> null, null, (x, y) -> { }));
+        Assert.assertFalse(transport.lost, "no turn at all is the bridge's");
+        Assert.assertNull(transport.lostReason);
+    }
+
     /** A seat with the lookahead preview declares `simulate` on every ask, so a decision without a play
      *  menu has the same tools as one with; a preview there is refused with the reason. */
     @Test

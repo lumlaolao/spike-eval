@@ -16,7 +16,7 @@ import forge.game.zone.ZoneType;
 import static forge.spike.LineFindingProbeTest.bareGame;
 import static forge.spike.LineFindingProbeTest.card;
 
-/** What the seat reads with more than one opponent (Commander plan C2, multi-opponent-v1, harness-epoch-102):
+/** What the seat reads with more than one opponent (Commander plan C2, multi-opponent-v1, harness-epoch-103):
  *  every opponent named where one used to be "the opponent", and a Commander player's tax and damage. A two-player
  *  game reads as before (GoldenChecksTest.twoPlayerStartAndAttackAsksAreUnchanged and the prompt-fidelity tests). */
 public class MultiOpponentTest {

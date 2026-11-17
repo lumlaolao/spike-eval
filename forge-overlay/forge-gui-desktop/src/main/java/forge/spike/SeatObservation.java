@@ -1321,7 +1321,7 @@ final class SeatObservation {
                 s.append("YOUR CARD INTERACTIONS (you wrote this from your own decklist; unverified): ").append(deckLines).append('\n');
             return s.toString();
         } catch (Exception e) {
-            return "== (state unavailable: " + e + ") ==";
+            return LlmSpikeGui.PlayerControllerLLM.STATE_UNAVAILABLE + ": " + e + ") ==";
         }
     }
 
