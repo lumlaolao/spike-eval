@@ -844,6 +844,11 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 - *Why no MCP in the seat:* MCP is a transport for tools. The tools are already native definitions in
   the request, so a server would add latency and give no new capability.
 
+**A preview keeps what the seat knows (lookahead-preview-v19, harness-epoch-108, critique O4, U7).** `determinize`
+keeps the cards at the top of the seat's library that it knows in order (its library-top line) and only shuffles the
+rest, and keeps in an opponent's hand the cards KNOWN IN HIDDEN ZONES puts there, re-dealing only the rest from that
+hand plus library; every other player's hand is hidden, a teammate's too.
+
 ## 8. Memory across decisions
 
 - **The archive (`ContextMemory`):** every event the seat saw, searchable with `memory_search`. Each ask

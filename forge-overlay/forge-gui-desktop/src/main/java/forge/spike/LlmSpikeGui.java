@@ -474,8 +474,10 @@ public final class LlmSpikeGui {
      *  Epoch 107 (2026-11-17, critique batch 6): the tools. `answer` reads slips of form as meant; `steps` only under
      *  PLAN_EXECUTE; read pages of 4000 characters; a report is free; `simulate` says what its copy leaves out; rules
      *  search finds every word, and its results name the function.
+     *  Epoch 108 (2026-11-17, critique batch 7): a preview keeps what the seat knows (its library's known top, cards it
+     *  saw in an opponent's hand) instead of shuffling it away (lookahead-preview-v19).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-107";
+    static final String HARNESS_EPOCH = "harness-epoch-108";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */

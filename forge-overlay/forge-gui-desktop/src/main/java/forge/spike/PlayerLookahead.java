@@ -66,7 +66,9 @@ final class PlayerLookahead {
     // harness-seat rules: the own-card source (RP_175), the animated-manland skip, a lethal-tap-damage source last.
     // v18 (2026-11-08, #432): the copy's seat takes the five more payment lifts of HARNESS_SEAT_PAYS_BY_RULES
     // (ENGINE-PATCHES.md, audit table).
-    static final String VERSION = "lookahead-preview-v18";
+    // v19 (2026-11-17, critique O4, U7): the copy keeps the top of the seat's library it knows in order and the cards it
+    // knows are in an opponent's hand; every other player's hand is hidden, a teammate's too.
+    static final String VERSION = "lookahead-preview-v19";
 
     private PlayerLookahead() { }
 
@@ -323,25 +325,39 @@ final class PlayerLookahead {
      * states that differ only in hidden cards give the same copy, and so the same preview.
      */
     static void determinize(Game copy, Player copySeat) {
+        determinize(copy, copySeat, 0, java.util.Collections.emptyMap());
+    }
+
+    /** {@code knownTop}: how many cards from the top of the seat's own library it knows in order; they stay where they
+     *  are and only the rest is shuffled. {@code knownHands}: by player name, cards the seat knows are in an opponent's
+     *  hand; they stay in that hand and only the rest of it is re-dealt from hand plus library (critique O4: a preview
+     *  threw away the top the seat had just set with Brainstorm, and re-dealt a hand Thoughtseize had shown it). */
+    static void determinize(Game copy, Player copySeat, int knownTop, java.util.Map<String, java.util.List<String>> knownHands) {
         for (Player p : copy.getPlayers()) {
             Zone lib = p.getZone(ZoneType.Library);
             Zone hand = p.getZone(ZoneType.Hand);
-            boolean opponent = copySeat != null && p != copySeat && p.isOpponentOf(copySeat);
+            // Every other player's hand is hidden from the seat, a teammate's too (critique U7: only opponents' were).
+            boolean opponent = copySeat != null && p != copySeat;
             if (opponent && lib != null && hand != null && hand.size() > 0) {
-                java.util.List<forge.game.card.Card> pool = new java.util.ArrayList<>();
-                for (forge.game.card.Card c : hand.getCards()) pool.add(c);
+                java.util.List<String> known = new java.util.ArrayList<>(knownHands.getOrDefault(p.getName(), java.util.Collections.emptyList()));
+                java.util.List<forge.game.card.Card> kept = new java.util.ArrayList<>(), pool = new java.util.ArrayList<>();
+                for (forge.game.card.Card c : hand.getCards()) { if (known.remove(c.getName())) kept.add(c); else pool.add(c); }
                 for (forge.game.card.Card c : lib.getCards()) pool.add(c);
                 pool.sort(java.util.Comparator.comparing(forge.game.card.Card::getName));
                 java.util.Collections.shuffle(pool, MyRandom.getRandom());
-                int n = hand.size();
-                hand.setCards(new java.util.ArrayList<>(pool.subList(0, n)));
+                int n = hand.size() - kept.size();
+                kept.addAll(pool.subList(0, n));
+                hand.setCards(kept);
                 lib.setCards(new java.util.ArrayList<>(pool.subList(n, pool.size())));
             } else if (lib != null && lib.size() >= 2) {
-                java.util.List<forge.game.card.Card> order = new java.util.ArrayList<>();
-                for (forge.game.card.Card c : lib.getCards()) order.add(c);
+                int keep = p == copySeat ? Math.min(Math.max(0, knownTop), lib.size()) : 0;
+                java.util.List<forge.game.card.Card> all = new java.util.ArrayList<>(lib.getCards());
+                java.util.List<forge.game.card.Card> order = new java.util.ArrayList<>(all.subList(keep, all.size()));
                 order.sort(java.util.Comparator.comparing(forge.game.card.Card::getName));
                 java.util.Collections.shuffle(order, MyRandom.getRandom());
-                lib.setCards(order);
+                java.util.List<forge.game.card.Card> out = new java.util.ArrayList<>(all.subList(0, keep));
+                out.addAll(order);
+                lib.setCards(out);
             }
         }
     }
@@ -499,7 +515,13 @@ final class PlayerLookahead {
             copyImprints(live, sim.getGameCopier());
             boolean stackBelow = copyStack(live, simGame, sim.getGameCopier());
             // Determinize BEFORE anything resolves so the preview cannot depend on what the seat cannot see.
-            determinize(simGame, (Player) sim.getGameCopier().find(seat));
+            int knownTop = 0;
+            java.util.Map<String, java.util.List<String>> knownHands = java.util.Collections.emptyMap();
+            if (seat.getController() instanceof LlmSpikeGui.PlayerControllerLLM) {
+                SeatObservation o = ((LlmSpikeGui.PlayerControllerLLM) seat.getController()).observer();
+                if (o != null) { knownTop = o.knownTopCount(); knownHands = o.knownInHands(); }
+            }
+            determinize(simGame, (Player) sim.getGameCopier().find(seat), knownTop, knownHands);
             COPY_SEAT.set((Player) sim.getGameCopier().find(seat));
             StringBuilder b = new StringBuilder("if you ");
             String stopped = null, delta = "";

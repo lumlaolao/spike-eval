@@ -606,6 +606,21 @@ final class SeatObservation {
         return b.append('\n').toString();
     }
 
+    /** How many cards from the top of its library the seat knows in order (the library top line), for a preview. */
+    int knownTopCount() {
+        ownTopText();   // drops what is no longer on top
+        return ownTop.size();
+    }
+
+    /** The cards the seat knows are in each opponent's hand, by player name (KNOWN IN HIDDEN ZONES), for a preview. */
+    Map<String, List<String>> knownInHands() {
+        Map<String, List<String>> out = new HashMap<>();
+        for (KnownLoc k : knownHidden.values())
+            if (k.owner != viewer && k.zone == ZoneType.Hand)
+                for (int i = 0; i < Math.max(1, k.count); i++) out.computeIfAbsent(k.owner.getName(), n -> new ArrayList<>()).add(k.name);
+        return out;
+    }
+
     /** The line under the seat's hand, or "" when it knows nothing about its library's order. */
     String ownTopText() {
         if (ownTop.isEmpty()) return "";
