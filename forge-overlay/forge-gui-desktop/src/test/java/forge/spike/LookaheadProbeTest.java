@@ -62,6 +62,22 @@ public class LookaheadProbeTest {
 
     // ---- copy mechanism -----------------------------------------------------------------------
 
+    /** The copy's stack is resolved for the seat's opponent (GameSimulator.resolveStack gives that player a simulating
+     *  AI controller). It was player index 1 in every two-player game: for seat B, the seat itself (Commander study,
+     *  C2 decision 1). */
+    @Test
+    public void theCopysStackIsResolvedForTheSeatsOpponentFromEitherSeat() {
+        Game g = SeatObservationTest.bareGame();
+        for (int i = 0; i < 2; i++) {
+            Player seat = g.getPlayers().get(i), opp = g.getPlayers().get(1 - i);
+            forge.ai.simulation.GameSimulator sim = new forge.ai.simulation.GameSimulator(
+                    new forge.ai.simulation.SimulationController(new forge.ai.simulation.GameStateEvaluator.Score(0)), g, seat, null);
+            Player resolver = PlayerLookahead.stackResolver(sim, seat);
+            Assert.assertEquals(resolver, sim.getGameCopier().find(opp), "seat " + (i == 0 ? "A" : "B") + "'s opponent");
+            Assert.assertNotEquals(resolver, sim.getGameCopier().find(seat), "never the seat itself");
+        }
+    }
+
     /** runs/loop/g16 T8 (2026-10-18): two `simulate` calls failed with "Couldn't map Enroot (151)". Carnivorous
      *  Cultivator enters prepared: an effect remembers a copy of the card in its prepared-spell state that is in no
      *  zone the copier copies, so GameCopier.find threw, in the preview's copy and (g23) in the simulator's own. */

@@ -159,6 +159,13 @@ final class PlayerLookahead {
     }
 
     /** The copy's version of mana ability {@code live}: the host's mana ability with the same description. */
+    /** The player the engine resolves the copy's stack for (GameSimulator.resolveStack gives it a simulating AI
+     *  controller for the resolution: the seat's opponent). */
+    static Player stackResolver(GameSimulator sim, Player seat) {
+        // The seat's next opponent. It was index 1 in a two-player game: for seat B, the seat itself.
+        return nextOpponent(sim, seat);
+    }
+
     /** The seat's next opponent in turn order on the copy (the live seat's copy, then the player after it). */
     static Player nextOpponent(GameSimulator sim, Player seat) {
         Player copySeat = (Player) sim.getGameCopier().find(seat);
@@ -565,9 +572,7 @@ final class PlayerLookahead {
                     stopped = label;
                     break;
                 }
-                // The engine resolves with an AI controller for one opponent. Index 1 in a two-player game, as before;
-                // with more players, the seat's next opponent on the copy (index 1 may be the seat).
-                GameSimulator.resolveStack(simGame, MultiSeat.many(simGame) ? nextOpponent(sim, seat) : simGame.getPlayers().get(1));
+                GameSimulator.resolveStack(simGame, stackResolver(sim, seat));
                 b.append(i == 0 ? "" : ", then ")
                  .append(isLand ? "play " : (o.isSpell() ? "cast " : "activate ")).append(label)
                  .append(assumed.isEmpty() ? "" : " " + ASSUMING + assumed + "]");
