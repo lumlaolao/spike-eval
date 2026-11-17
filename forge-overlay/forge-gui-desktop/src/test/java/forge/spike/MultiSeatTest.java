@@ -154,7 +154,7 @@ public class MultiSeatTest {
             third.loseConditionMet(GameLossReason.Poisoned, null);
             g.onPlayerLost(third);
             String f = MultiSeat.gameLineFields(g, env, "Seat", false, null);
-            Assert.assertTrue(f.startsWith(",\"n_players\":4,\"players\":[{\"seat\":\"A\",\"name\":\"Seat\""), f);
+            Assert.assertTrue(f.startsWith(",\"n_players\":4,\"multi_opponent_version\":\"" + MultiSeat.VERSION + "\",\"players\":[{\"seat\":\"A\",\"name\":\"Seat\""), f);
             Assert.assertTrue(f.contains("\"seat\":\"A\",\"name\":\"Seat\",\"controller\":\"llm\",\"deck\":\"\",\"place\":1,"
                     + "\"eliminated_turn\":null,\"reason\":\"won\""), f);
             Assert.assertTrue(f.contains("\"seat\":\"D\",\"name\":\"Fourth\",\"controller\":\"ai\",\"deck\":\"fourth.dck\","
