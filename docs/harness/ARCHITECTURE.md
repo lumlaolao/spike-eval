@@ -1195,12 +1195,22 @@ precons in `res/quest/commanderprecons` by name). `PLAYERS=3` or `4` seats C and
   lines' `game_format`).
 - `run_batch.py --players N --deck-c/-d --name-c/-d --controller-c/-d --ai-profile-c/-d`, and `--format commander`, are
   exploratory only: placement scoring is not built (the study's stage 5), and a panel is two-seat Constructed. Seats C
-  and D are zero-model seats there (ai, ai-log, random, floor) until the seat reads more than one opponent (stage 3);
-  seat A or B may be the model seat. `--pairs` is refused: a game of more seats is rotated, not swapped. The derived
-  cap is 30 minutes with no model seat and 120 + 90 a model seat (four Forge AI seats played 56-77 turns in 37-84 s;
-  the study estimates 70-100 minutes for one model seat among three AI).
-- The seat itself still reads one opponent in its observation, plan signature and prompt wording (the study's stage
-  3); only the attackers, who starts (harness-epoch-101) and the seat count are multiplayer so far.
+  and D are zero-model seats there (ai, ai-log, random, floor): the batch's model checks (pinned tiers, prices, budget,
+  egress) cover seats A and B, so the model seat is A or B. `--pairs` is refused: a game of more seats is rotated, not
+  swapped. The derived cap is 30 minutes with no model seat and 120 + 90 a model seat (four Forge AI seats played 56-77
+  turns in 37-84 s; the study estimates 70-100 minutes for one model seat among three AI).
+- What the seat reads with more than one opponent (harness-epoch-102, observation-faithful-v47; `MultiSeat.many`, a
+  game of more than two players): the state already had an `OPP [name]` block per opponent; FACTS gives the clocks
+  and instant-speed mana against each opponent by name; an opponent's object is labelled with its owner (`[Battlefield,
+  Rival's]`, not `opponent's`); the attackers question names each opponent's life and poison and gives the engine
+  outlook against each; the plan signature covers every opponent; the mulligan ask states the multiplayer rules (the
+  first mulligan is free, every player draws on their first turn); the system prompt says how many opponents and how a
+  free-for-all is won; the proposal arm names an opponent instead of "your opponent" and refuses a bare "opponent";
+  the lookahead resolves the copy's stack with the seat's next opponent (index 1, kept for two players, may be the
+  seat itself; in a two-player game it is for seat B, not changed here). A Commander game (two seats too) states its rules in the system prompt, and each player line shows each
+  commander's casts and tax and the commander damage taken (n/21); the engine's "Commander Effect" object is left out
+  of the command zone. A two-player Constructed game asks and shows the same bytes. Not done: the v1 snapshot
+  (`buildSnapshot`, a legacy profile kept byte-identical) still reads the first opponent.
 - The `commander` acceptance stage plays two pinned four-seat games on four precons, four Forge AI seats and then a
   random seat A among three; both seeds replay to the same game.
 
