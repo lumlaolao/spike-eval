@@ -141,6 +141,9 @@ FAILURE_PATTERNS = (
     ("type", ("not a JSON object", " value must be ", "is a list of handles", "each block is an object",
               "each block needs", "value is none")),
 )
+# Fragments no current source prints, kept to classify older logs: since answer-tool-v23 (critique T2) an unknown
+# field is ignored, not refused.
+RETIRED_FRAGMENTS = ("unknown field",)
 UNATTRIBUTED = ("", "unknown", "mixed")      # a log that does not name one model: neither a fixture nor a score
 NO_MODEL = UNATTRIBUTED + ("random",)
 # The retired bare-name text lane of the Claude CLI (owner, 2026-10-25): a development lane, never a menu score.
