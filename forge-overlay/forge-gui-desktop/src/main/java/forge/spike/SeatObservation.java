@@ -104,11 +104,9 @@ final class SeatObservation {
     // v45 (2026-11-07, #368): a keyword granted to a player is on its line ("| has hexproof"), and the engine's
     // "Keyword Effects" object is left out of the command zone, where it was listed with a handle like a card.
     // v46 (2026-11-07, #408): the guide says the player line shows only the keywords the engine names.
-    // v47 (2026-11-16, Commander plan C2): in a game of more than two players FACTS gives the clocks and instant-speed
-    // mana against each opponent by name; a Commander player's line shows each commander's casts and its tax, and the
-    // commander damage taken (n/21), and the engine's "Commander Effect" object is left out of the command zone. A
-    // two-player Constructed state is unchanged byte for byte.
-    static final String VERSION = "observation-faithful-v47";
+    // A game of more than two players, or Commander, reads more (per-opponent FACTS, commander tax and damage): that is
+    // MultiSeat.VERSION, stamped on such a game's line; a two-player Constructed state is unchanged, so this is not.
+    static final String VERSION = "observation-faithful-v46";
 
     /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
      *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */

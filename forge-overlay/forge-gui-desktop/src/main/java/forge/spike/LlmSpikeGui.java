@@ -454,7 +454,7 @@ public final class LlmSpikeGui {
      *  name (FACTS per opponent, the plan signature, labels and the proposal arm's player references), the attackers
      *  question gives the outlook against each, the mulligan ask states the multiplayer rules, and the system prompt
      *  says how many opponents; a Commander game's prompt states its rules and each player line its commander tax and
-     *  damage (observation-faithful-v47). A two-player Constructed game asks and shows the same bytes.
+     *  damage (multi-opponent-v1). A two-player Constructed game asks and shows the same bytes.
      */
     static final String HARNESS_EPOCH = "harness-epoch-102";
 
@@ -13256,11 +13256,19 @@ public final class LlmSpikeGui {
         if (d == null) return "";
         try {
             java.util.TreeMap<String, String> lines = new java.util.TreeMap<>();
-            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.getMain()) {
+            // A Commander deck's commander first, marked (it is in no main deck: critique U10); none in other decks.
+            java.util.List<String> commanders = new java.util.ArrayList<>();
+            java.util.List<java.util.Map.Entry<forge.item.PaperCard, Integer>> cards = new java.util.ArrayList<>();
+            if (d.has(DeckSection.Commander)) for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.get(DeckSection.Commander)) {
+                cards.add(e);
+                commanders.add(e.getKey().getName());
+            }
+            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.getMain()) cards.add(e);
+            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : cards) {
                 forge.item.PaperCard pc = e.getKey();
                 String n = pc.getName();
                 if (n == null || n.isEmpty() || lines.containsKey(n)) continue;
-                StringBuilder b = new StringBuilder("  ").append(n);
+                StringBuilder b = new StringBuilder("  ").append(n).append(commanders.contains(n) ? " (your commander)" : "");
                 try {
                     forge.card.CardRules r = pc.getRules();
                     if (r != null) {
@@ -13281,6 +13289,7 @@ public final class LlmSpikeGui {
             }
             if (lines.isEmpty()) return "";
             StringBuilder b = new StringBuilder();
+            for (String c : commanders) if (lines.containsKey(c)) b.append(lines.remove(c)).append('\n');
             for (String l : lines.values()) b.append(l).append('\n');
             return b.toString();
         } catch (Exception e) { return ""; }
@@ -13293,8 +13302,16 @@ public final class LlmSpikeGui {
                 counts.merge(e.getKey().getName(), e.getValue(), Integer::sum);
             }
             StringBuilder b = new StringBuilder();
+            // A Commander deck names its commander first (it is in no main deck: critique U10); no other deck changes.
+            if (d.has(DeckSection.Commander)) {
+                StringBuilder c = new StringBuilder();
+                for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.get(DeckSection.Commander))
+                    c.append(c.length() == 0 ? "" : ", ").append(e.getKey().getName());
+                if (c.length() > 0) b.append("commander: ").append(c).append("; main deck: ");
+            }
+            int head = b.length();
             for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
-                if (b.length() > 0) b.append(", ");
+                if (b.length() > head) b.append(", ");
                 b.append(e.getValue()).append("x ").append(e.getKey());
             }
             return b.toString();

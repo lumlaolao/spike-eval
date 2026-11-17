@@ -16,7 +16,7 @@ import forge.game.zone.ZoneType;
 import static forge.spike.LineFindingProbeTest.bareGame;
 import static forge.spike.LineFindingProbeTest.card;
 
-/** What the seat reads with more than one opponent (Commander plan C2, observation-faithful-v47, harness-epoch-102):
+/** What the seat reads with more than one opponent (Commander plan C2, multi-opponent-v1, harness-epoch-102):
  *  every opponent named where one used to be "the opponent", and a Commander player's tax and damage. A two-player
  *  game reads as before (GoldenChecksTest.twoPlayerStartAndAttackAsksAreUnchanged and the prompt-fidelity tests). */
 public class MultiOpponentTest {
@@ -110,6 +110,21 @@ public class MultiOpponentTest {
         LlmSpikeGui.PlayerControllerLLM c2 = LineFindingProbeTest.seat(two, model, model);
         Card b2 = card("Grizzly Bears", two.getPlayers().get(1), ZoneType.Battlefield);
         Assert.assertTrue(c2.labelOf(b2).endsWith("[Battlefield, opponent's]"), c2.labelOf(b2));
+    }
+
+    /** A Commander deck's commander is in its decklist and card texts, marked (critique U10: both read the main deck
+     *  only, so the seat was never told its own commander); a deck with no commander reads as before. */
+    @Test
+    public void theSeatsOwnCommanderIsInItsDecklistAndCardTexts() throws Exception {
+        forge.deck.Deck precon = LlmSpikeGui.loadDeck("Abzan Armor", new java.io.File(
+                forge.localinstance.properties.ForgeConstants.RES_DIR, "quest/commanderprecons/Abzan Armor [TDC] [2025].dck").getPath());
+        String list = LlmSpikeGui.decklist(precon), text = LlmSpikeGui.cardText(precon);
+        Assert.assertTrue(list.startsWith("commander: Felothar the Steadfast; main deck: 1x "), list.substring(0, 80));
+        Assert.assertTrue(text.startsWith("  Felothar the Steadfast (your commander) {1}{W}{B}{G} — "), text.substring(0, 120));
+        forge.deck.Deck plain = new forge.deck.Deck("plain");
+        plain.getMain().add("Grizzly Bears", 2);
+        Assert.assertEquals(LlmSpikeGui.decklist(plain), "2x Grizzly Bears");
+        Assert.assertEquals(LlmSpikeGui.cardText(plain), "  Grizzly Bears {1}{G}\n");
     }
 
     /** A model that is never asked here. */

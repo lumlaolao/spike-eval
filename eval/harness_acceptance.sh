@@ -607,10 +607,14 @@ if has_stage commander; then
       PLACES="$(python3 - "$dir" <<'EOF'
 import glob, json, sys
 g = [json.loads(l) for f in glob.glob(sys.argv[1] + "/game-*.jsonl") for l in open(f) if '"t":"game"' in l]
-print(" ".join("%s%s" % (p["seat"], p["place"]) for p in g[0].get("players", [])) if g else "none")
+print((" ".join("%s%s" % (p["seat"], p["place"]) for p in g[0].get("players", [])) + " "
+       + g[0].get("multi_opponent_version", "none")) if g else "none")
 EOF
 )"
       ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+      MV="${PLACES##* }"; PLACES="${PLACES% *}"
+      # The multiplayer read's stamp (MultiSeat.VERSION): move this pin WITH it.
+      [ "$MV" = "multi-opponent-v1" ] || CPROBS="$CPROBS $arm: multi_opponent_version=$MV;"
       got="winner=$1 turns=$2 decisions=$3 places=$(echo $PLACES | tr ' ' ,)"
       pin="winner=$(want commander-$arm.winner) turns=$(want commander-$arm.turns) decisions=$(want commander-$arm.decisions) places=$(want commander-$arm.places)"
       if [ $ARC -ne 0 ]; then CPROBS="$CPROBS $arm: defect_analyzer rc=$ARC (see $dir/defects.txt);"
@@ -1098,7 +1102,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("context_profile")!="v5-cache": problems.append("context_profile=%r"%game.get("context_profile"))
-    if game.get("observation_version")!="observation-faithful-v47+cache-v2":
+    if game.get("observation_version")!="observation-faithful-v46+cache-v2":
         problems.append("observation_version=%r (move this pin WITH SeatObservation.VERSION/CACHE_VERSION)"%game.get("observation_version"))
 model=[r for r in rows if r.get("t")=="decision" and r.get("tier") in ("smart","fast")]
 if len(model)<10: problems.append("only %d model decisions"%len(model))
@@ -1117,7 +1121,7 @@ if late: problems.append("%d messages with a record lack the archive lines after
 early=[p for p in asks if "<archive>\n" in p and "== Turn " not in p.split("<archive>\n")[0]]
 if early: problems.append("%d messages put the archive lines before the state"%len(early))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v47+cache-v2 " not in log: problems.append("observer never announced the cache order in the log")
+if "[OBSERVATION] observation-faithful-v46+cache-v2 " not in log: problems.append("observer never announced the cache order in the log")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
 if "[TEXT-PARSE]" in log: problems.append("[TEXT-PARSE] in log")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
@@ -1204,7 +1208,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v47" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v46" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)

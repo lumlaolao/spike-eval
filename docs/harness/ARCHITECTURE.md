@@ -1199,8 +1199,8 @@ precons in `res/quest/commanderprecons` by name). `PLAYERS=3` or `4` seats C and
   egress) cover seats A and B, so the model seat is A or B. `--pairs` is refused: a game of more seats is rotated, not
   swapped. The derived cap is 30 minutes with no model seat and 120 + 90 a model seat (four Forge AI seats played 56-77
   turns in 37-84 s; the study estimates 70-100 minutes for one model seat among three AI).
-- What the seat reads with more than one opponent (harness-epoch-102, observation-faithful-v47; `MultiSeat.many`, a
-  game of more than two players): the state already had an `OPP [name]` block per opponent; FACTS gives the clocks
+- What the seat reads with more than one opponent (harness-epoch-102, `multi_opponent_version` multi-opponent-v1 on
+  the game line; `MultiSeat.many`, a game of more than two players): the state already had an `OPP [name]` block per opponent; FACTS gives the clocks
   and instant-speed mana against each opponent by name; an opponent's object is labelled with its owner (`[Battlefield,
   Rival's]`, not `opponent's`); the attackers question names each opponent's life and poison and gives the engine
   outlook against each; the plan signature covers every opponent; the mulligan ask states the multiplayer rules (the

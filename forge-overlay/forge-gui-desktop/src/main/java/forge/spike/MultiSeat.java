@@ -25,6 +25,15 @@ import forge.game.player.RegisteredPlayer;
 final class MultiSeat {
     private MultiSeat() {}
 
+    /** What a seat reads and is asked in a game of more than two players or a Commander game, beyond the two-player
+     *  stamps (which do not move: a two-player Constructed game reads the same bytes). Stamped as
+     *  {@code multi_opponent_version} on such a game's line only.
+     *  v1 (2026-11-16, Commander plan C2): FACTS per opponent by name, owner-named labels, the attack outlook against
+     *  each opponent, the plan signature over every opponent, the multiplayer mulligan ask and system prompt; Commander's
+     *  rules in the system prompt, commander tax and damage on each player line, no "Commander Effect" in the command
+     *  zone. */
+    static final String VERSION = "multi-opponent-v1";
+
     /** The seat ids, in seat order: the game line's {@code winner} and each {@code players} entry use them. */
     static final String[] IDS = {"A", "B", "C", "D"};
 
@@ -214,7 +223,8 @@ final class MultiSeat {
         }
         Places pl = places;
         if (pl != null) pl.note();
-        StringBuilder b = new StringBuilder(",\"n_players\":" + n + ",\"players\":[");
+        StringBuilder b = new StringBuilder(",\"n_players\":" + n + ",\"multi_opponent_version\":\"" + VERSION + "\""
+                + ",\"players\":[");
         for (int i = 0; i < n; i++) {
             String id = IDS[i];
             Player p = byId.get(id);
