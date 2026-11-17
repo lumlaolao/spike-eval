@@ -298,6 +298,14 @@ Since harness-epoch-39 all 44 are played by a golden check (`eval/play_gaps.txt`
   the text of the face being cast; the engine's description is only the cost and its reminder. The cost shown is the
   cost paid (a Defiler's reduction taken off), and alternative costs keep their printed names (Web-slinging).
 
+**The menus (harness-epoch-106, critique batch 5).** An attacker is named by its handle and state, as every other
+option is; a target list puts the opponents' objects first, then the rest, then the seat's own (`opponentsFirst`; the
+arms keep engine order); a multi-target play may be cancelled at its target ask, as a single-target one may; a play
+that failed (unpaid, forbidden, no target left) stays on the menu labelled for the rest of the window, and leaves it
+only after a second failure there, and the seat is told why each kind failed; a pile split's single card is asked
+(`chooseCardsForEffect` forced only when every card must be taken); X is searched by doubling and halving with no cap
+at 99; convoke symbols are matched to the most picks.
+
 **When the model gives no usable answer:** one rule for every cause (no budget left, the turn's loop guard, a dead
 bridge, a lost or unreadable answer, a hook that threw): the do-nothing option where one exists (PASS, no attack, no
 block, decline, keep on top), a play not yet made is not made (its target ask had CANCEL on the list: the window

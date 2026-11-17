@@ -467,8 +467,12 @@ public final class LlmSpikeGui {
      *  seat with no CONTEXT_PROFILE is refused.
      *  Epoch 105 (2026-11-17, critique batch 4): the state is smaller and says what it is (observation-faithful-v49): a
      *  library search is one line, not the library in the history and in REVEALS TO YOU at every later decision.
+     *  Epoch 106 (2026-11-17, critique batch 5): the menus. An attacker is named by its handle and state; target lists
+     *  put the opponents' objects first; a multi-target play can be cancelled; a play that failed once stays on the menu,
+     *  labelled (twice in a window, it leaves); the seat is told why a forbidden or target-less play vanished; a pile
+     *  split's single card is asked; X is searched past 99; convoke symbols are matched to the most picks.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-105";
+    static final String HARNESS_EPOCH = "harness-epoch-106";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */
@@ -1184,6 +1188,11 @@ public final class LlmSpikeGui {
          *  failed ability the same way (SpellAbility.setSkip); the menu did not, and the keyword gauntlet's seat was
          *  offered the same unpayable craft 999 times in one window. */
         private final java.util.Set<String> failedInWindow = new java.util.HashSet<>();
+        /** Plays that failed twice in this window: only these leave the menu (critique C2: one failure hid a legal play
+         *  for the rest of the window; the owner rule is that a legal action is never hidden). After one failure the
+         *  play stays, labelled; a second failure in the same window shows the engine will not take it there. */
+        private final java.util.Set<String> failedTwiceInWindow = new java.util.HashSet<>();
+        private void failedPlay(String key) { if (!failedInWindow.add(key)) failedTwiceInWindow.add(key); }
         static String failedPlayKey(SpellAbility sa) {
             return sa.getHostCard().getId() + "|" + sa.getAlternativeCost() + "|" + sa.getCardStateName() + "|" + sa.getDescription();
         }
@@ -1890,7 +1899,9 @@ public final class LlmSpikeGui {
         List<String> playLabels(List<SpellAbility> options, List<Card> landCards) {
             if (observer == null) return buildPlayLabels(options, landCards);
             List<String> out = new ArrayList<>();
-            for (SpellAbility sa : options) out.add(verbOf(sa) + " " + labelOf(sa));
+            for (SpellAbility sa : options)
+                out.add(verbOf(sa) + " " + labelOf(sa) + (failedInWindow.contains(failedPlayKey(sa))
+                        ? " [this play failed a moment ago in this window: see the note above]" : ""));
             for (Card lc : landCards) out.add("PLAY LAND " + observer.describe(lc, true));
             out.add(passLabel());
             return out;
@@ -3477,7 +3488,10 @@ public final class LlmSpikeGui {
                 // and substring collisions, and decideMany prepends the full game snapshot — the model sees
                 // opp life/board/untapped mana when deciding attacks, not just its own creature list.
                 List<String> labels = new ArrayList<>();
-                for (Card c : legal) labels.add(c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
+                // Faithful: an attacker by its handle and state, as everything else is named (critique O3: "Name (P/T)", and
+                // two copies became "#1" / "#2" with no link to the board lines that carry their counters and auras).
+                for (Card c : legal) labels.add(observer != null ? observer.describe(c, false)
+                        : c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
                 if (!proposesCombat()) p("[ROUTER] attackers: " + legal.size() + " can attack -> " + routeLabel(smart.getModel(), rnd != null));
                 if (proposesCombat()) {   // no outlook: it names which attackers could be blocked by what
                     proposeAttackers(attacker, combat, legal, labels, shadowAtk, attackersQuestion(combat, legal, false));
@@ -4497,7 +4511,7 @@ public final class LlmSpikeGui {
                 PhaseHandler phh = me.getGame().getPhaseHandler();
                 boolean ownMain = phh.isPlayerTurn(me) && (phh.is(PhaseType.MAIN1) || phh.is(PhaseType.MAIN2));
                 String winKey = phh.getTurn() + "|" + phh.getPhase() + "|" + safeStackTop(me.getGame());
-                if (!winKey.equals(cancelKey)) { cancelKey = winKey; cancels = 0; cancelNote = null; failedInWindow.clear(); }
+                if (!winKey.equals(cancelKey)) { cancelKey = winKey; cancels = 0; cancelNote = null; failedInWindow.clear(); failedTwiceInWindow.clear(); }
 
                 // SPEED: on a reactive (not-our-main) priority window, only think when something can
                 // actually matter — a spell/ability on the stack, combat (tricks/removal), or the
@@ -4529,8 +4543,11 @@ public final class LlmSpikeGui {
                 // both build the byte-identical option menu — see enumeratePlayOptions).
                 PlayOptions po = enumeratePlayOptions(me, ownMain, faithfulMenu(observer != null, rnd));
                 List<SpellAbility> options = po.spells;
-                if (!failedInWindow.isEmpty() && options.removeIf(sa -> failedInWindow.contains(failedPlayKey(sa))))
-                    p("[ROUTER] play: a play that failed to pay in this window is not offered again");
+                // Faithful: a play that failed once stays on the menu, labelled; one that failed twice in this window leaves
+                // it. The legacy profiles keep their behaviour (removed after one failure).
+                java.util.Set<String> gone = observer != null ? failedTwiceInWindow : failedInWindow;
+                if (!gone.isEmpty() && options.removeIf(sa -> gone.contains(failedPlayKey(sa))))
+                    p("[ROUTER] play: a play that failed " + (observer != null ? "twice" : "to pay") + " in this window is not offered again");
                 List<SpellAbility> landPlays = po.landPlays;
                 List<Card> landCards = po.landCards;
                 boolean haveLand = !landPlays.isEmpty();
@@ -5007,6 +5024,7 @@ public final class LlmSpikeGui {
                 // longer wants the play (runs/loop/g06 Grindstone, g07 Wirewood Symbiote: "there's no
                 // 'don't activate' option"). The menu is asked again, at most twice per window.
                 targetUnanswered = false;
+                targetCancelled = false;
                 if (!ensureTargetsSet(chosen, observer != null && rnd == null && cancels < 2, true)) {
                     for (SpellAbility s = chosen; s != null; s = s.getSubAbility()) s.resetTargets();
                     dropModes(chosen);
@@ -5198,7 +5216,7 @@ public final class LlmSpikeGui {
                 }
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) return firstLegalTargets(sa, "targets(no-restrictions)");
-                List<forge.game.GameObject> cands = targetCandidates(sa, tr);
+                List<forge.game.GameObject> cands = opponentsFirst(targetCandidates(sa, tr));
                 int min = sa.getMinTargets();
                 if (cands == null || cands.isEmpty()) {           // truly no target: the ability cannot be targeted
                     auto("targets(no-candidate)->cannot target " + labelOf(sa));
@@ -5280,10 +5298,18 @@ public final class LlmSpikeGui {
                     for (int i = 0; i < cands.size(); i++) tp.add(i);
                     evalDec("targets", cands.size(), tp.size(), "auto", 0, "forced(multi)", labels);
                 } else if (okFor("targets")) {
+                    // A play not yet committed may be cancelled here, as a single-target ask may (critique C16).
+                    List<String> menu = labels;
+                    if (cancellable) { menu = new ArrayList<>(labels); menu.add(COST_CANCEL_LABEL.replace("pay nothing", "target nothing")); }
                     tp = decideMany(bridgeFor("targets"), "targets", "Choose TARGETS for " + labelOf(sa)
                             + " (pick " + lo + " to " + hi + " from the list" + striveNote + ")"
                             + (observer == null ? "." : "; the spell or ability resolves against the ones you pick"
-                               + (divided ? ", and how its amount is divided among them is asked next." : ".")), labels, lo, hi);
+                               + (divided ? ", and how its amount is divided among them is asked next." : ".")), menu, lo, hi,
+                            cancellable ? labels.size() : -1);
+                    if (cancellable && tp != null && tp.contains(labels.size())) {
+                        targetCancelled = true;
+                        return false;
+                    }
                     if (tp == null || tp.size() < lo) {
                         // decideMany returns null both for no reply and for a reply it could not read: the reply tells them apart.
                         String cause = tp == null && !answerLost() && lastReply == null ? "bridge-down" : "unparsed";
@@ -5393,6 +5419,26 @@ public final class LlmSpikeGui {
             };
         }
 
+        /** Faithful model seat: the opponents' objects first, then the rest, then the seat's own (critique O18: engine order
+         *  put the seat's own creatures first for every removal spell). The arms keep engine order (their draws are
+         *  pinned by the canaries). A stable reorder: within each group the engine's order stays. */
+        private List<forge.game.GameObject> opponentsFirst(List<forge.game.GameObject> cands) {
+            if (cands == null || observer == null || zeroModelArm()) return cands;
+            List<forge.game.GameObject> theirs = new ArrayList<>(), other = new ArrayList<>(), mine = new ArrayList<>();
+            Player me = getPlayer();
+            for (forge.game.GameObject o : cands) {
+                Player who = o instanceof Player ? (Player) o : o instanceof Card ? ((Card) o).getController()
+                        : o instanceof forge.game.spellability.SpellAbility ? ((forge.game.spellability.SpellAbility) o).getActivatingPlayer() : null;
+                if (who == null) other.add(o);
+                else if (who == me) mine.add(o);
+                else if (who.isOpponentOf(me)) theirs.add(o);
+                else other.add(o);
+            }
+            theirs.addAll(other);
+            theirs.addAll(mine);
+            return theirs;
+        }
+
         /** Label of the cancel option a target ask offers before its play is committed. */
         static final String CANCEL_LABEL = "CANCEL: do not take this action; go back to the action menu";
 
@@ -5424,7 +5470,7 @@ public final class LlmSpikeGui {
                     if (noTargetAtX(root, sa)) continue;
                     TargetRestrictions tr = sa.getTargetRestrictions();
                     if (tr == null) continue;
-                    List<forge.game.GameObject> cands = targetCandidates(sa, tr);
+                    List<forge.game.GameObject> cands = opponentsFirst(targetCandidates(sa, tr));
                     if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
                     // PROPOSE_ACTIONS: the target the accepted proposal named, checked with it (proposalTarget); still
                     // legal after X and costs, it is set without a list being shown.
@@ -5443,7 +5489,7 @@ public final class LlmSpikeGui {
                         List<String> many = new ArrayList<>();
                         for (forge.game.GameObject ge : cands) many.add(targetLabel(ge));
                         chooseManyTargets(sa, cands, many, sa.getMinTargets(), cancellable);
-                        if (targetUnanswered) return false;
+                        if (targetUnanswered || targetCancelled) return false;
                         continue;
                     }
                     int min = Math.max(1, sa.getMinTargets());
@@ -5530,6 +5576,8 @@ public final class LlmSpikeGui {
         /** Set when a target ask of a play not yet committed got no usable answer and the play was cancelled for it:
          *  the play loop passes the window instead of asking the menu again (critique A13, C17). */
         private boolean targetUnanswered;
+        /** Set when the seat chose CANCEL on a multi-target ask of a play not yet made (critique C16). */
+        private boolean targetCancelled;
         private boolean targetUnanswered(String type, String cause, List<String> labels) {
             String what = type + "(" + cause + ")->cancel play";
             autoPicks++;
@@ -5910,13 +5958,19 @@ public final class LlmSpikeGui {
             // a static that forbids the play stops it here even if a menu missed it (rules pilot RP_207).
             if (!sa.checkRestrictions(ai)) {
                 p("[ROUTER] play: " + labelOf(sa) + " is forbidden by a static -> nothing was played");
-                failedInWindow.add(chosenKey);
+                failedPlay(chosenKey);
+                if (observer != null)   // the seat is told why the play vanished (critique A26)
+                    cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa) + ", and a continuous effect forbids it right now, so "
+                            + "nothing was played.";
                 playsNotMade++;
                 forge.game.GameActionUtil.rollbackAbility(sa, castFrom, hzPos, new CostPayment(sa.getPayCosts(), sa), source);
                 return true;
             }
             if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) {
                 playsNotMade++;
+                // Off the stack again, as the branches around it do (critique A26: the card stayed in the stack zone).
+                forge.game.GameActionUtil.rollbackAbility(sa, castFrom, hzPos, new CostPayment(sa.getPayCosts(), sa), source);
+                if (observer != null) cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa) + ", and no mode could be chosen for it, so nothing was played.";
                 return true;
             }
 
@@ -5934,7 +5988,10 @@ public final class LlmSpikeGui {
                 game.getStack().addAndUnfreeze(sa);
                 if (!reaches) {
                     p("[ROUTER] play: " + labelOf(sa) + " paid but has no legal target -> the stack refused it");
-                    failedInWindow.add(chosenKey);
+                    failedPlay(chosenKey);
+                    if (observer != null)   // critique A26
+                        cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa) + ", and it had no legal target left once its "
+                                + "costs were paid, so nothing was played and the play was undone.";
                     playsNotMade++;
                     forge.game.GameActionUtil.rollbackAbility(sa, castFrom, hzPos, pay, source);
                     return true;
@@ -5954,7 +6011,7 @@ public final class LlmSpikeGui {
                 p("[ROUTER] play: cancelled " + labelOf(sa) + " at its cost -> re-ask");
             } else {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
-                failedInWindow.add(chosenKey);
+                failedPlay(chosenKey);
                 playsNotMade++;
                 // The seat is told, as after a cancel: a play that silently did not happen read as made (#392). New seat
                 // text, so not on a legacy profile (docs/STANDARDS.md section 4: legacy stays byte-identical).
@@ -6565,7 +6622,9 @@ public final class LlmSpikeGui {
             clearLast();
             if (sourceList == null || sourceList.isEmpty()) return new CardCollection();   // nothing to choose from
             List<Card> opts = new ArrayList<>(sourceList);
-            if (opts.size() <= Math.max(1, min) && !isOptional) return firstN(opts, min, "cards-for-effect(forced)");
+            // Forced only when every card must be taken: one card with min 0 (TwoPilesEffect: pile 1 or pile 2) is a choice
+            // (critique A28). The arms keep the old bound, which the canaries pin.
+            if (opts.size() <= (zeroModelArm() ? Math.max(1, min) : min) && !isOptional) return firstN(opts, min, "cards-for-effect(forced)");
             try {
                 if (!smartOk()) {
                     if (isOptional) { auto("cards-for-effect(no-budget)->decline"); return new CardCollection(); }
@@ -8234,19 +8293,30 @@ public final class LlmSpikeGui {
         }
 
         /** Each picked card pays the first symbol it can (a creature: generic or its colour; an artifact: generic). */
-        private static Map<Card, forge.card.mana.ManaCostShard> assignConvoke(List<Card> opts, List<Integer> picks,
+        static Map<Card, forge.card.mana.ManaCostShard> assignConvoke(List<Card> opts, List<Integer> picks,
                 List<forge.card.mana.ManaCostShard> shards, boolean creatures) {
+            // A maximum matching of picks to symbols (augmenting paths), so every pick that can pay something does: the
+            // first-fit pass let a green-white creature take {G} and left a mono-green pick paying nothing (critique C22).
+            int n = shards.size();
+            int[] owner = new int[n];   // shard -> index into picks, or -1
+            java.util.Arrays.fill(owner, -1);
+            for (int p = 0; p < picks.size(); p++) convokeAugment(p, opts, picks, shards, creatures, owner, new boolean[n]);
             Map<Card, forge.card.mana.ManaCostShard> out = new java.util.HashMap<>();
-            List<forge.card.mana.ManaCostShard> left = new ArrayList<>(shards);
-            for (int i : picks) {
-                Card c = opts.get(i);
-                for (java.util.Iterator<forge.card.mana.ManaCostShard> it = left.iterator(); it.hasNext(); ) {
-                    forge.card.mana.ManaCostShard sh = it.next();
-                    boolean ok = sh.isGeneric() || (creatures && c.isCreature() && c.getColor().hasAnyColor(sh.getColorMask()));
-                    if (ok) { out.put(c, sh); it.remove(); break; }
-                }
-            }
+            for (int k = 0; k < n; k++) if (owner[k] >= 0) out.put(opts.get(picks.get(owner[k])), shards.get(k));
             return out;
+        }
+
+        private static boolean convokeAugment(int p, List<Card> opts, List<Integer> picks, List<forge.card.mana.ManaCostShard> shards,
+                                              boolean creatures, int[] owner, boolean[] seen) {
+            Card c = opts.get(picks.get(p));
+            for (int k = 0; k < shards.size(); k++) {
+                forge.card.mana.ManaCostShard sh = shards.get(k);
+                boolean ok = sh.isGeneric() || (creatures && c.isCreature() && c.getColor().hasAnyColor(sh.getColorMask()));
+                if (!ok || seen[k]) continue;
+                seen[k] = true;
+                if (owner[k] < 0 || convokeAugment(owner[k], opts, picks, shards, creatures, owner, seen)) { owner[k] = p; return true; }
+            }
+            return false;
         }
 
         /** Whether the symbols {@code convoked} leaves can be paid by the sources this payment may still tap. */
@@ -8647,7 +8717,12 @@ public final class LlmSpikeGui {
                     // The most X the engine says it can pay. ComputerUtilMana.determineLeftoverMana answered 0
                     // and 1 with three Forests for Green Sun's Zenith while canPayManaCost(X=2) is true.
                     max = min;
-                    while (max < 99 && seatCanPay(sa, getPlayer(), max + 1, false)) max++;
+                    // Doubling then halving, as payableKeywordTimes does: no fixed cap at 99, and about 2 log2(X) test payments
+                    // instead of up to 99 (critique C28).
+                    int step = 1;
+                    while (max < 1_000_000 && seatCanPay(sa, getPlayer(), max + step, false)) { max += step; step *= 2; }
+                    for (step /= 2; step >= 1; step /= 2)
+                        if (seatCanPay(sa, getPlayer(), max + step, false)) max += step;
                     note = " (you can pay for X up to " + max + ")";
                 } else {
                     org.apache.commons.lang3.Range<Integer> range = forge.game.ability.AbilityUtils.getAnnouncementBounds(sa, "X");
