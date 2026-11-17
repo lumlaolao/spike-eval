@@ -175,6 +175,40 @@ class VerifyTapeLineTest(unittest.TestCase):
         self.assertFalse(seen["tape"].parent.exists(), "the tape's directory outlived the replay")
 
 
+class VerifyRecordTest(unittest.TestCase):
+    """E28: `verify --record` writes the epoch the lines replayed on and the active puzzles that did not replay, which
+    puzzle_score.py requires before it scores that epoch."""
+
+    def test_the_record_names_the_epoch_the_failures_and_the_puzzles_with_no_line(self):
+        manifest = {"suite": "s", "suite_sha256": "abc", "puzzles": [
+            {"id": "a", "status": "active"}, {"id": "b", "status": "active"}, {"id": "c", "status": "active"},
+            {"id": "d", "status": "retired"}]}
+        ver = lambda st: {"status": st, "harness_epoch": "harness-epoch-9"}
+        results = [{"id": "a", "verification": ver("verified")}, {"id": "b", "verification": ver("failed")},
+                   {"id": "d", "verification": ver("failed")}]
+        build = mock.Mock(overlay_sha="o1")
+        rec = pb.verification_record(manifest, results, build)
+        self.assertEqual((rec["harness_epoch"], rec["suite_sha256"], rec["overlay_sha"]), ("harness-epoch-9", "abc", "o1"))
+        self.assertEqual(rec["failed"], ["b"], "a retired puzzle's failure does not count")
+        self.assertEqual(rec["unverified"], ["c"], "an active puzzle with no line cannot be scored")
+        with tempfile.TemporaryDirectory() as d:
+            sp = Path(d) / "suite.json"
+            pb.pf.record_line_verification(sp, manifest, rec)
+            self.assertEqual(pb.pf.line_verification(sp, manifest, "harness-epoch-9")["failed"], ["b"])
+            self.assertIsNone(pb.pf.line_verification(sp, manifest, "harness-epoch-8"))
+            self.assertIsNone(pb.pf.line_verification(sp, dict(manifest, suite_sha256="other"), "harness-epoch-9"))
+            pb.pf.record_line_verification(sp, manifest, dict(rec, failed=[]))
+            self.assertEqual(pb.pf.line_verification(sp, manifest, "harness-epoch-9")["failed"], [], "the latest wins")
+
+    def test_replays_on_two_epochs_or_none_are_refused(self):
+        manifest = {"suite": "s", "suite_sha256": "abc", "puzzles": [{"id": "a", "status": "active"}]}
+        for epochs in (["e1", "e2"], [None]):
+            results = [{"id": "a%d" % i, "verification": {"status": "verified", "harness_epoch": e}}
+                       for i, e in enumerate(epochs)]
+            with self.assertRaises(SystemExit):
+                pb.verification_record(manifest, results, mock.Mock(overlay_sha="o"))
+
+
 class MinimalityTest(unittest.TestCase):
     """HARD-PUZZLES.md section 4, item 3: every solver action of a written line is needed; remove one, it fails."""
 

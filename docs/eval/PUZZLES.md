@@ -118,6 +118,13 @@ python3 eval/puzzles/puzzle_format.py check eval/suites/puzzles-forge-builtin-v1
   suite breaks the hash, and every tool then refuses it.
 - `puzzle_baselines.py verify --suite S` replays every stored line. Run it after an engine bump: a
   puzzle whose line no longer reaches the goal is retired.
+- **A score needs its lines replayed on its own epoch (E28).** A line is played through the seat's menus, so a menu or
+  payment change at a later harness epoch can hide one step, and the puzzle is then a certain failure scored as the
+  model's. `verify --suite S --record` writes the run to `verified/<suite>.json` beside the suite (the harness epoch
+  the lines replayed on, from the result rows; the suite version; the build's overlay; the active puzzles whose line
+  failed or that have none). `puzzle_score.py` refuses a score at an epoch with no record for that suite version, or
+  with an active puzzle of the split in either list, and names them. An `--ids` pilot is not a score and needs none.
+  Run `verify --record` on every suite after any change that moves `HARNESS_EPOCH`.
 
 ## Proving a puzzle against every opponent reply
 

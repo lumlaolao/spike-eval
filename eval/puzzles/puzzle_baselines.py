@@ -12,7 +12,7 @@ Every arm here is free: no model is called and nothing leaves the machine.
   ai      Forge's AI in the solver seat (CONTROLLER_A=ai-log) -- the tiering anchor
 
   python3 eval/puzzles/puzzle_baselines.py run    --suite S.json [--ids a,b] [--rollouts 200] [-j 4] --write S.json
-  python3 eval/puzzles/puzzle_baselines.py verify --suite S.json [-j 4]
+  python3 eval/puzzles/puzzle_baselines.py verify --suite S.json [-j 4] [--record]
   python3 eval/puzzles/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
   python3 eval/puzzles/puzzle_baselines.py line   --pzl P.pzl [--script L.txt] [--seeds 1..3] [--opponent search]
                                           [--minimality]
@@ -22,7 +22,10 @@ Every arm here is free: no model is called and nothing leaves the machine.
 puzzle has none (searching further seeds with --search N if the baseline rollouts found none),
 replays that line in a fresh JVM, and sets tier and status. A puzzle random solves more than 20% of
 the time is dropped. `verify` replays every stored line and exits 1 if an active puzzle's line no
-longer reaches the goal (an engine bump retires such a puzzle).
+longer reaches the goal (an engine bump retires such a puzzle). With --record it writes the run (harness epoch,
+suite version, failures) to verified/<suite>.json beside the suite: puzzle_score.py scores a run only at an epoch whose
+every active line replayed, since a menu or payment change that breaks a step makes the puzzle a certain failure
+scored as the model's (E28).
 
 `prove` runs the search prover (CONTROLLER_A=search, PuzzleSearch.java; docs/eval/BENCHMARK-V1.md, phase 2) and
 stores its result as the record's `proof`: "proven" means a strategy that beats every opponent choice the
@@ -509,7 +512,8 @@ def verify_puzzle(build, rec, out_root):
     problems = check(line, row)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
     ver = {"status": "verified" if not problems else "failed", "engine_sha": engine, "date": stamp,
-           "replay_log_sha256": row.get("log_sha256") if row else None}
+           "replay_log_sha256": row.get("log_sha256") if row else None,
+           "harness_epoch": row.get("harness_epoch") if row else None}
     if problems:
         ver["problems"] = problems
     # A search re-proof may prove the puzzle on another line (check_search_replay); say which one (#269). Only when it
@@ -922,7 +926,31 @@ def cmd_verify(a):
             bad += 1
         print("%-24s %-7s %s %s" % (r["id"], r.get("status"), v["status"], "; ".join(v.get("problems", []))))
     print("%d line(s) replayed, %d active puzzle(s) failed" % (len(res), bad))
+    if a.record:
+        rec = verification_record(manifest, res, build)
+        print("recorded %s: %s at %s, %d failed, %d with no line" % (
+            pf.record_line_verification(a.suite, manifest, rec), manifest.get("suite"), rec["harness_epoch"],
+            len(rec["failed"]), len(rec["unverified"])))
     return 1 if bad else 0
+
+
+def verification_record(manifest, results, build):
+    """One verify run as the scorer reads it (E28): the harness epoch the lines were replayed on (from the rows; one
+    epoch or the run is refused), the suite version, the build, and the active puzzles whose line failed or that have
+    no line. puzzle_score.py refuses a score at an epoch with no such record, or with an active puzzle in either list."""
+    epochs = {r["verification"].get("harness_epoch") for r in results}
+    if len(epochs) != 1 or None in epochs:
+        raise SystemExit("verify --record: the replays ran on harness epochs %s; one stamped epoch is needed"
+                         % sorted(epochs, key=str))
+    by_id = {r["id"]: r for r in results}
+    active = [r for r in manifest["puzzles"] if r.get("status") == "active"]
+    return {"harness_epoch": epochs.pop(), "suite_sha256": manifest.get("suite_sha256"),
+            "overlay_sha": build.overlay_sha, "engine_sha": (REPO / "FORGE_COMMIT").read_text().strip()
+            if (REPO / "FORGE_COMMIT").is_file() else "unknown", "date": datetime.date.today().isoformat(),
+            "replayed": len(results),
+            "failed": sorted(r["id"] for r in active if r["id"] in by_id
+                             and by_id[r["id"]]["verification"]["status"] != "verified"),
+            "unverified": sorted(r["id"] for r in active if r["id"] not in by_id)}
 
 
 def main(argv=None):
@@ -952,6 +980,8 @@ def main(argv=None):
     v.add_argument("--suite", required=True)
     v.add_argument("-j", "--jobs", type=int, default=4)
     v.add_argument("--out-dir", default=None)
+    v.add_argument("--record", action="store_true",
+                   help="write the run to the suite's verified/<suite>.json, which puzzle_score.py requires (E28)")
     pr = sub.add_parser("prove")
     pr.add_argument("--suite", required=True)
     pr.add_argument("--ids", default=None)

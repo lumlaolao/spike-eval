@@ -38,7 +38,9 @@ epoch, k, engine, game cap, every BRIDGE_CONDITIONS key).
 
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix solvers, game caps,
 call deadlines or token caps, score a puzzle with fewer than k attempts, or score an unscoreable row or one that lost
-decisions to a routing filter or a dead model bridge. Stdlib only.
+decisions to a routing filter or a dead model bridge, or score (outside an --ids pilot) at a harness epoch with no
+line verification of the suite, or one where an active puzzle of the split did not replay its line (E28:
+`puzzle_baselines.py verify --record`, kept in verified/<suite>.json beside the suite). Stdlib only.
 """
 
 import argparse
@@ -299,6 +301,24 @@ def group_attempts(manifest, rows, split, k, solver=None, ids=None):
             raise Refused("%s: attempts repeat a seed %s; k attempts must be k distinct seeds" % (pid, seeds))
         out[pid] = att[:k]
     return {pid: out[pid] for pid in wanted}
+
+
+def require_verified_lines(suite_path, manifest, epoch, split):
+    """The suite's line verification at the results' harness epoch (E28), or Refused: a menu or payment change can
+    hide one step of a puzzle's line, and the puzzle is then a certain failure scored as the model's. Every active
+    puzzle of the split must have replayed its line on that epoch (`puzzle_baselines.py verify --record`)."""
+    if epoch is None:
+        raise Refused("the results carry no harness epoch, so no line verification can match them")
+    rec = pf.line_verification(suite_path, manifest, epoch)
+    if rec is None:
+        raise Refused("no line verification of suite %s at %s; run puzzle_baselines.py verify --suite %s --record on "
+                      "that build first" % (manifest.get("suite"), epoch, suite_path))
+    split_ids = {r["id"] for r in manifest["puzzles"] if r["split"] == split and r["status"] == "active"}
+    broken = sorted((set(rec.get("failed", [])) | set(rec.get("unverified", []))) & split_ids)
+    if broken:
+        raise Refused("%d active %s puzzle(s) do not replay their line at %s, so a failure there is not the model's: %s"
+                      % (len(broken), split, epoch, ", ".join(broken[:12])))
+    return {"harness_epoch": epoch, "date": rec.get("date"), "overlay_sha": rec.get("overlay_sha")}
 
 
 def solver_of(row):
@@ -769,7 +789,10 @@ def main(argv=None):
             raise Refused("suite does not validate: " + "; ".join(problems[:5]))
         ids = set(a.ids.split(",")) if a.ids else None
         def scored(paths, k=a.k):  # every run of one command scored alike, the paired ones too
-            return score(manifest, load_rows(paths), a.split, k, a.solver, a.bootstrap, a.seed, ids)
+            r = score(manifest, load_rows(paths), a.split, k, a.solver, a.bootstrap, a.seed, ids)
+            if ids is None:   # a pilot (--ids) proves the chain, not a score
+                r["line_verification"] = require_verified_lines(a.suite, manifest, r["harness_epoch"], a.split)
+            return r
         rep = scored(a.results)
     except Refused as e:
         print("REFUSED: %s" % e, file=sys.stderr)

@@ -559,6 +559,35 @@ def validate_suite(manifest, repo=REPO, check_files=True):
     return p
 
 
+def verification_file(suite_path):
+    """Where the line verifications of the suite at suite_path are kept: verified/<stem>.json beside it (E28)."""
+    sp = Path(suite_path)
+    return sp.parent / "verified" / (sp.stem + ".json")
+
+
+def line_verification(suite_path, manifest, epoch):
+    """The verification of every active puzzle's line at harness epoch `epoch` for this suite version, or None.
+    Written by `puzzle_baselines.py verify --record`; a later record for the same epoch and suite replaces an earlier."""
+    f = verification_file(suite_path)
+    if epoch is None or not f.is_file():
+        return None
+    found = None
+    for rec in json.loads(f.read_text(encoding="utf-8")).get("records", []):
+        if rec.get("harness_epoch") == epoch and rec.get("suite_sha256") == manifest.get("suite_sha256"):
+            found = rec
+    return found
+
+
+def record_line_verification(suite_path, manifest, rec):
+    """Append rec (one verify run: its epoch, suite version, build and failures) to the suite's verification file."""
+    f = verification_file(suite_path)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    data = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {"suite": manifest.get("suite"), "records": []}
+    data["records"].append(rec)
+    f.write_text(json.dumps(data, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return f
+
+
 def load_suite(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 

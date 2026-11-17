@@ -2,6 +2,8 @@
 """The PUZ puzzle axis: record and suite validation, scoring and its refusals, and the baseline
 runner's pure decisions (docs/eval/PUZZLES.md). No JVM: the Java side is PuzzleArmsTest."""
 
+import contextlib
+import io
 import json
 import sys
 import tempfile
@@ -48,10 +50,23 @@ def suite(recs, frozen=True):
     return pf.freeze(m) if frozen else m
 
 
+EPOCH = "harness-epoch-T"
+
+
 def result(r, seed, status="solved", **kw):
-    row = {"schema": "pzl-result-v1", "id": r["id"], "pzl_sha256": r["pzl_sha256"], "seed": seed, "status": status, "solver_arm": "llm"}
+    row = {"schema": "pzl-result-v1", "id": r["id"], "pzl_sha256": r["pzl_sha256"], "seed": seed, "status": status,
+           "solver_arm": "llm", "harness_epoch": EPOCH}
     row.update(kw)
     return row
+
+
+def lines_verified(suite_path, failed=(), epoch=EPOCH):
+    """The record `puzzle_baselines.py verify --record` writes for the suite file at suite_path: every active line
+    replayed at `epoch` except `failed` (puzzle_score.py scores only then, E28)."""
+    m = json.loads(Path(suite_path).read_text())
+    return pf.record_line_verification(suite_path, m, {
+        "harness_epoch": epoch, "suite_sha256": m.get("suite_sha256"), "overlay_sha": "o", "engine_sha": "e",
+        "date": "2026-11-17", "replayed": len(m["puzzles"]), "failed": sorted(failed), "unverified": []})
 
 
 class FormatTest(unittest.TestCase):
@@ -179,7 +194,21 @@ class ScoreTest(unittest.TestCase):
             sp.write_text(json.dumps(m))
             res = Path(d) / "puzzle-results.jsonl"
             res.write_text("\n".join(json.dumps(r) for r in self.rows([1, 1, 1])))
+            # E28: no line verification at the results' epoch, no score; with one, the score.
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                self.assertEqual(ps.main(["--suite", str(sp), "--split", "open", "--bootstrap", "50", str(d)]), 2)
+            self.assertIn("no line verification of suite", err.getvalue())
+            lines_verified(sp, failed=[m["puzzles"][0]["id"]])
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                self.assertEqual(ps.main(["--suite", str(sp), "--split", "open", "--bootstrap", "50", str(d)]), 2)
+            self.assertIn("do not replay their line at " + EPOCH, err.getvalue())
+            self.assertIn(m["puzzles"][0]["id"], err.getvalue())
+            lines_verified(sp)   # a later run at the same epoch replaces it
             self.assertEqual(ps.main(["--suite", str(sp), "--split", "open", "--bootstrap", "50", str(d)]), 0)
+            self.assertEqual(ps.main(["--suite", str(sp), "--split", "open", "--bootstrap", "50", "--ids",
+                                      m["puzzles"][0]["id"], str(d)]), 0, "a pilot needs no verification")
             res.write_text("\n".join(json.dumps(r) for r in self.rows([1, 1, 1])[:-1]))
             self.assertEqual(ps.main(["--suite", str(sp), "--split", "open", str(d)]), 2)
 

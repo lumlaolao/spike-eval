@@ -13,7 +13,7 @@ import evalpath  # noqa: E402,F401  (every eval script folder on sys.path)
 import module_tmp  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
-from test_puzzle_suite import rec, result, suite  # noqa: E402
+from test_puzzle_suite import lines_verified, rec, result, suite  # noqa: E402
 
 
 def setUpModule():
@@ -80,6 +80,7 @@ class PairedTest(unittest.TestCase):
         recs = [dict(r, pzl=str(Path(self.tmp.name) / r["pzl"])) for r in self.recs]  # the suite check reads the files
         sfile = Path(self.tmp.name) / "s.json"
         sfile.write_text(json.dumps(suite(recs)))
+        lines_verified(sfile)
         dirs = {n: self.write_run(n, recs, sv) for n, sv in
                 (("a", [4, 4, 4]), ("b", [4, 2, 4]), ("c", [4, 4, 4]), ("d", [4, 4, 0]))}
         buf = io.StringIO()
@@ -273,6 +274,7 @@ class PassAtKTest(unittest.TestCase):
         recs = [dict(r, pzl=str(Path(self.tmp.name) / r["pzl"])) for r in self.recs]  # the suite check reads the files
         sfile = Path(self.tmp.name) / "s.json"
         sfile.write_text(json.dumps(suite(recs)))
+        lines_verified(sfile)
         dirs = {}
         for name, solves, k in (("one", [1, 0, 0], 1), ("three", [3, 1, 0], 3)):
             out = Path(self.tmp.name) / name
@@ -616,7 +618,7 @@ class ScoreV2Test(unittest.TestCase):
         rep = ps.score(self.m, self.rows([4, 2, 0], harness_epoch="harness-epoch-69"), "open", k=4, n_boot=20)
         self.assertEqual(rep["harness_epoch"], "harness-epoch-69")
         self.assertIn("epoch=harness-epoch-69", ps.render(rep))
-        old = ps.score(self.m, self.rows([4, 4, 0]), "open", k=4, n_boot=20)
+        old = ps.score(self.m, self.rows([4, 4, 0], harness_epoch=None), "open", k=4, n_boot=20)
         self.assertIsNone(old["harness_epoch"])
         c = ps.paired(old, rep, n_boot=50)
         self.assertEqual(c["epochs"], [None, "harness-epoch-69"])
@@ -734,6 +736,7 @@ class TwinPairingTest(unittest.TestCase):
             recs = [dict(r, pzl=str(Path(self.tmp.name) / r["pzl"])) for r in recs]
             f = Path(self.tmp.name) / name
             f.write_text(json.dumps(suite(recs)))
+            lines_verified(f)
             return str(f)
         so, st = suite_file("so.json", self.orig, self.mo), suite_file("st.json", self.twins, self.mt)
         o = self.write_run("o", self.orig, [4, 4, 4, 4, 2, 0])
