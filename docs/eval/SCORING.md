@@ -87,10 +87,10 @@ python3 eval/panel_score.py runs/panel-mirror-deepseek --panel mirror [--score s
 
 | Number | Definition |
 |---|---|
-| cell score | wins / decisive games (`--score decisive`, the default and the `aggregate.py` convention), Wilson 95% CI; the strict score (wins + draws/2 over every started game, unfinished = 0) beside it; the seat-1 win share |
+| cell score | wins / decisive games (`--score decisive`, the default and the `aggregate.py` convention), a 95% CI from a bootstrap over the cell's seeds (both seat orders of a seed together: they share the shuffle; critique E11) and the Wilson interval beside it; the strict score (wins + draws/2 over every started game, unfinished = 0) beside it; the seat-1 win share |
 | pooled | mean of the cell scores, each cell weighted equally whatever its game count |
 | pooled CI | stratified: Var = Σ p̃(1−p̃)/n / M², with p̃ = (w + ½)/(n + 1) so a 0/n cell does not claim zero variance; and a cluster bootstrap resampling seeds (both seat orders together) within each cell |
-| spread | worst cell, best cell, number of cells whose Wilson CI lies wholly below 50% |
+| spread | worst cell, best cell, number of cells whose seed-bootstrap and Wilson CIs both lie wholly below 50% (the bootstrap alone reads 0/n as certain) |
 | margin (cross) | per cell WR(pilot on d vs AI on d') − WR(AI on d vs AI on d'), pooled the same way; its variance adds the control's |
 | STR_norm | (WR − WR_random) / (WR_AImirror − WR_random), **uncapped**. WR_random is the pooled random arm over the same cells; WR_AImirror is 0.5 (mirror) or the pooled control (cross). Not computed without a random arm in every cell |
 

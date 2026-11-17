@@ -178,6 +178,17 @@ class TestMirrorPanel(unittest.TestCase):
         self.assertEqual(p["best_cell"], ["elves", 1.0])
         self.assertEqual(p["n_cells_ci_below_half"], 1)
 
+    def test_a_cells_ci_resamples_seeds_not_games(self):
+        """E11: a seed's two seat orders share the shuffle; a cell won in one order and lost in the other on every
+        seed is one coin per seed, and its seed bootstrap cannot be narrower than the per-game Wilson interval
+        pretends. Here every seed splits 1-1, so every resample is exactly 50%."""
+        panel, pool = panel_run(self.root, "mirror", default_wins=4, sanity=ZERO_ARMS)
+        c = panel["cells"][0]
+        write_block(self.root / c["id"], ps.cell_deck_sha(c, pool), {s: ("A", "B") for s in SEEDS[:4]})
+        cell = self.score()["cells"][c["id"]]
+        self.assertEqual(cell["ci95_seeds"], [0.5, 0.5])
+        self.assertLess(cell["wilson95"][0], 0.3)
+
     def test_str_norm_uses_the_random_arm_and_the_fifty_percent_mirror_and_is_uncapped(self):
         panel_run(self.root, "mirror", default_wins=6, sanity=dict(ZERO_ARMS))
         r = self.score()

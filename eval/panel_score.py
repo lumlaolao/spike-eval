@@ -13,13 +13,15 @@ the same deck pair. run_batch.py --panel writes one directory per cell under a r
 
 What it reports (eval/research/2026-10-15-scoring-design.md sections 1.2, 1.6, 1.7):
 
-  cell       wins / decisive games with a Wilson 95% CI, the strict score (wins + half the draws
-             over every started game, an unfinished game scoring 0), and the seat-1 win share.
+  cell       wins / decisive games, the strict score (wins + half the draws over every started game, an
+             unfinished game scoring 0), and the seat-1 win share. Its 95% CI is a bootstrap over the cell's
+             seeds (both seat orders of a seed resampled together: they share the shuffle; critique E11);
+             the Wilson interval, which counts every game as an independent trial, is kept beside it.
   pooled     the mean over cells, every cell weighted equally whatever its game count, with the
              stratified CI (Var = sum p_m(1-p_m)/n_m / M^2, p_m Jeffreys-smoothed so a 0/n cell does
              not claim zero variance) and a cluster bootstrap that resamples seeds (both seat orders
              together) within each cell. Plus the worst and best cell and the number of cells whose
-             Wilson CI lies wholly below 50%.
+             CI lies wholly below 50% by both intervals.
   margin     cross panel only: WR(pilot on d vs AI on d') - WR(AI on d vs AI on d') per cell,
              pooled the same way; it removes the matchup's own asymmetry.
   STR_norm   (WR - WR_random) / (WR_AImirror - WR_random), uncapped: 0 = random, 1 = plays like the
@@ -272,6 +274,14 @@ def bootstrap(cells, score, resamples, seed, fn):
     return [_pct(vals, 0.025), _pct(vals, 0.975)]
 
 
+def cell_ci(block, score, resamples, seed, cid):
+    """A cell's own percentile CI from resampling its seeds (critique E11: the Wilson interval treated a seed's two
+    seat orders as independent games)."""
+    rng = random.Random("%s:%s" % (seed, cid))
+    vals = [v for v in (resample_point(block, score, rng) for _ in range(resamples)) if v is not None]
+    return [_pct(vals, 0.025), _pct(vals, 0.975)] if vals else None
+
+
 def _mean(xs):
     xs = [x for x in xs if x is not None]
     return sum(xs) / len(xs) if xs else None
@@ -360,6 +370,7 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
             row.update({k: block[k] for k in ("dir", "pilot", "wins", "decisive", "draws", "started", "crashed",
                                                "win_rate", "wilson95", "strict_score", "seat1_share")})
             row["score"], row["n"] = p, n
+            row["ci95_seeds"] = cell_ci(block, score, resamples, bootstrap_seed, cid)
             fg = block["fallback_gate"]
             row["fallback_gate"] = {"failed": fg["failed"], "harness_failed": fg["harness_failed"],
                                     "fallback_rate": fg["fallback_rate"],
@@ -398,7 +409,10 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
         worst = min(scored, key=lambda k: scored[k]["score"])
         best = max(scored, key=lambda k: scored[k]["score"])
         pooled.update({"worst_cell": [worst, scored[worst]["score"]], "best_cell": [best, scored[best]["score"]],
-                       "n_cells_ci_below_half": sum(1 for r in scored.values() if r["wilson95"][1] < 0.5)})
+                       # Below 50% by both intervals: the seed bootstrap reads a 0/n cell as [0, 0], a certainty
+                       # it does not have, and Wilson treats a seed's two seat orders as independent.
+                       "n_cells_ci_below_half": sum(1 for r in scored.values() if r["wilson95"][1] < 0.5
+                                                    and r["ci95_seeds"] and r["ci95_seeds"][1] < 0.5)})
     pooled["ci95_bootstrap"] = bootstrap(cells, score, resamples, bootstrap_seed,
                                          lambda rep: _mean([x.get("model") for x in rep.values()]))
     pooled["strict_pooled"] = _mean([r.get("strict_score") for r in scored.values()])
@@ -543,13 +557,15 @@ def print_human(r):
         print("!!! MIXED CONDITIONS ALLOWED BY FLAG: %s" % "; ".join(
             r["condition_problems"] + ([r["benchmark_version_problem"]] if r["benchmark_version_problem"] else [])))
     print("score: %s (decisive = wins/decisive; strict = wins + draws/2 over every started game)" % r["score_mode"])
-    print("%-44s %9s %8s %16s %8s %8s %8s" % ("cell", "W/n", "score", "Wilson95", "strict", "seat1", "margin"))
+    print("%-44s %9s %8s %16s %16s %8s %8s %8s" % ("cell", "W/n", "score", "seeds CI95", "Wilson95", "strict",
+                                                   "seat1", "margin"))
     for cid, c in r["cells"].items():
         if c.get("score") is None and "wins" not in c:
             print("%-44s MISSING" % cid)
             continue
-        print("%-44s %4d/%-4d %8s %16s %8s %8s %8s%s" % (
-            cid, c["wins"], c["decisive"], _pc(c["score"]), _ci(c["wilson95"]), _pc(c["strict_score"]),
+        print("%-44s %4d/%-4d %8s %16s %16s %8s %8s %8s%s" % (
+            cid, c["wins"], c["decisive"], _pc(c["score"]), _ci(c.get("ci95_seeds")), _ci(c["wilson95"]),
+            _pc(c["strict_score"]),
             _pc(c["seat1_share"]), "-" if c.get("margin") is None else "%+.1f" % (100 * c["margin"]),
             "" if not c["sanity"] else "  sanity %s" % ("ok" if c["sanity"]["ok"] else "VIOLATED")))
     p = r["pooled"]
@@ -557,7 +573,7 @@ def print_human(r):
         p["n_cells"], _pc(p["score"]), _ci(p["ci95"]), _ci(p["ci95_bootstrap"])))
     print("        decisive-only %s   strict %s" % (_pc(p["decisive_pooled"]), _pc(p["strict_pooled"])))
     if p.get("worst_cell"):
-        print("spread: worst %s %s, best %s %s, %d cell(s) with the Wilson CI wholly below 50%%" % (
+        print("spread: worst %s %s, best %s %s, %d cell(s) with both CIs wholly below 50%%" % (
             p["worst_cell"][0], _pc(p["worst_cell"][1]), p["best_cell"][0], _pc(p["best_cell"][1]),
             p["n_cells_ci_below_half"]))
     m = r["margin"]
