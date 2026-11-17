@@ -939,9 +939,10 @@ def render(item, cards=None):
 CLI_MODELS = ("claude-haiku-5-5", "haiku", "claude-sonnet-5-5", "sonnet")
 # What the CLI child inherits, by name (ClaudeCliBridge.KEEP_ENV): how it runs, reaches the network and logs in to the
 # subscription. An API key, a cloud provider's switch and its credentials only with CLAUDE_CLI_ALLOW_API_KEY=1.
+# NODE_OPTIONS is not kept (critique V16): it can load code into the child.
 KEEP_ENV = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "TERM", "LANG", "TZ", "TMPDIR",
             "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "ALL_PROXY", "https_proxy", "http_proxy", "no_proxy", "all_proxy",
-            "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS", "NODE_OPTIONS",
+            "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS",
             "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR")
 API_KEY_OPT_IN = "CLAUDE_CLI_ALLOW_API_KEY"
 API_KEY_ENV = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
