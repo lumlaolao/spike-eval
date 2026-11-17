@@ -36,9 +36,9 @@ public class MultiOpponentTest {
         card("Hill Giant", third, ZoneType.Battlefield);
         third.setLife(2, null);
         String s = state(g, me);
-        Assert.assertTrue(s.contains("your next combat against Rival: 1 attacker(s) dealing 2 unblocked; Rival's life 20 -> 18"), s);
-        Assert.assertTrue(s.contains("your next combat against Third: 1 attacker(s) dealing 2 unblocked; Third's life 2 -> 0 = LETHAL"), s);
-        Assert.assertTrue(s.contains("Third's next combat against you: 1 attacker(s) dealing 3 unblocked; YOUR life 20 -> 17"), s);
+        Assert.assertTrue(s.contains("your next combat against Rival: 1 attacker(s) dealing 2 if none is blocked; Rival's life 20"), s);
+        Assert.assertTrue(s.contains("your next combat against Third: 1 attacker(s) dealing 2 if none is blocked; Third's life 2"), s);
+        Assert.assertTrue(s.contains("Third's next combat against you: 1 attacker(s) dealing 3 if none is blocked; YOUR life 20"), s);
         Assert.assertTrue(s.contains("Rival can make up to 0 mana") && s.contains("Third can make up to 0 mana"), s);
         Assert.assertTrue(s.contains("OPP [Rival]") && s.contains("OPP [Third]"), s);
         Assert.assertFalse(s.contains("commander"), "no Commander facts outside Commander");
@@ -46,7 +46,7 @@ public class MultiOpponentTest {
         Game two = bareGame(PhaseType.MAIN1);
         card("Grizzly Bears", two.getPlayers().get(0), ZoneType.Battlefield);
         String t = state(two, two.getPlayers().get(0));
-        Assert.assertTrue(t.contains("FACTS (engine estimates, not truth): your next combat: 1 attacker(s) dealing 2 unblocked; their life 20 -> 18"), t);
+        Assert.assertTrue(t.contains("FACTS (engine estimates, not truth): your next combat: 1 attacker(s) dealing 2 if none is blocked; their life 20"), t);
     }
 
     @Test
