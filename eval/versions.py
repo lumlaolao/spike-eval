@@ -31,6 +31,9 @@ STAMPS = (
     ("SeatObservation.java", "CACHE_VERSION", "(`observation_version` under `CONTEXT_PROFILE=v5-cache`: `VERSION+CACHE_VERSION`)",
      "the cache order of that state: the append-only record it opens with (finished turns, card text when first seen), "
      "where the archive lines go, reveals printed once, and the guide's words for them."),
+    ("MultiSeat.java", "VERSION", "(`multi_opponent_version`, only on the line of a game of more than two players or Commander)",
+     "what the seat reads and is asked beyond the two-player stamps in such a game: FACTS per opponent, owner-named "
+     "labels, the attack outlook per opponent, the multiplayer mulligan and system prompt, commander tax and damage."),
     ("AnswerTool.java", "VERSION", "answer_tool_version", "the `answer` and `set_plan` functions and their validation."),
     ("NativeTools.java", "VERSION", "native_tools_version", "the lookup tools' definitions (inspect, search, read, simulate)."),
     ("ContextMemory.java", "VERSION", "memory_tools_version", "what the evidence lookups return."),
