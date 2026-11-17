@@ -322,6 +322,17 @@ final class AnswerTool {
             s.labels = new ArrayList<>(blockers); s.labels2 = new ArrayList<>(attackers);
             return s;
         }
+        /** The question as data for a harness bridge that answers without a model (ScriptBridge; critique K14: the
+         *  arms read these, not the prompt's wording): the decision type ("play", "attackers", "mana-sources", ...),
+         *  the turn and step it is asked in, and the 1-based PASS and decline options (-1: none). The seat sets them;
+         *  nothing here is sent to a model. */
+        String what;
+        int turn;
+        String phase;
+        int pass = -1, decline = -1;
+        Spec about(String type) { if (what == null) what = type; return this; }
+        Spec pass(int oneBased) { this.pass = oneBased; return this; }
+        Spec decline(int oneBased) { this.decline = oneBased; return this; }
         Spec cancel(int oneBased) { this.cancel = oneBased; return this; }
         Spec check(Function<Answer, String> c) { this.check = c; return this; }
         /** A limit the site checks that the schema cannot state (a pawprint charm's {P} budget), for a bridge that

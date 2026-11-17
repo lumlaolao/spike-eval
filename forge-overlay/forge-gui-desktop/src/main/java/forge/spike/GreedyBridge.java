@@ -61,10 +61,16 @@ final class GreedyBridge implements LLMBridge {
 
     @Override
     public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+        return chat(messagesJson, toolsJson, allowCalls, null);
+    }
+
+    /** {@code spec}: the question as data (ScriptBridge.Question reads it in place of the prompt's wording, K14). */
+    @Override
+    public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls, AnswerTool.Spec spec) {
         calls++;
         JsonArray msgs = JsonParser.parseString(messagesJson).getAsJsonArray();
         String prompt = ScriptBridge.text(msgs.get(0));
-        ScriptBridge.Question q = new ScriptBridge.Question(prompt);
+        ScriptBridge.Question q = new ScriptBridge.Question(prompt, spec);
         Map<String, Integer> asked = new LinkedHashMap<>();   // call id -> option previewed
         Map<Integer, String> seen = new LinkedHashMap<>();    // option -> preview text
         for (JsonElement e : msgs) {
@@ -127,7 +133,7 @@ final class GreedyBridge implements LLMBridge {
             for (Integer n : targets(q, assumed, a.getAsJsonArray("options").size(), Integer.MAX_VALUE)) picks.add(n);
             a.add("options", picks);
         }
-        if ("options".equals(q.field) && q.block.contains("declare attackers")) {
+        if ("options".equals(q.field) && q.attackers) {
             JsonArray all = new JsonArray();
             for (Integer n : q.options.keySet()) all.add(n);
             a.add("options", all);

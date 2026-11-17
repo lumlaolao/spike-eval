@@ -2303,7 +2303,9 @@ public final class LlmSpikeGui {
                         : base + "\n\n(Your previous reply had no parseable CHOICE line. Answer with ONE line only, nothing else: CHOICE: <a number from the list above>.)";
                 List<String> menu = new ArrayList<>(options);
                 if (noneLabel != null) menu.add(noneLabel);
-                offerAnswer(b, AnswerTool.Spec.one(menu.size()).labels(menu));
+                // The do-nothing option a script arm takes: a CANCEL on the list before the decline (the menu's order).
+                int cancelAt = options.indexOf(CANCEL_LABEL);
+                offerAnswer(b, AnswerTool.Spec.one(menu.size()).labels(menu).about(type).decline(cancelAt >= 0 ? cancelAt + 1 : noneIdx));
                 String reply = ask(b, prompt, simulate);
                 noteAnswerVia(attempt);
                 if (answerLost()) return -1;               // two invalid replies: the caller's legal default
@@ -2378,7 +2380,7 @@ public final class LlmSpikeGui {
                 String prompt = attempt == 0 ? base
                         : base + "\n\n(Your previous reply had no parseable PICKS line. Answer with ONE line only, nothing else: PICKS: <"
                           + min + " to " + max + " numbers from the list above, comma-separated>.)";
-                offerAnswer(b, AnswerTool.Spec.many(options.size(), min, max).cancel(cancelIdx >= 0 ? cancelIdx + 1 : -1).labels(options));
+                offerAnswer(b, AnswerTool.Spec.many(options.size(), min, max).cancel(cancelIdx >= 0 ? cancelIdx + 1 : -1).labels(options).about(type));
                 String reply = ask(b, prompt);
                 noteAnswerVia(attempt);
                 if (reply == null) return null;
@@ -3272,7 +3274,7 @@ public final class LlmSpikeGui {
                 String prompt = attempt == 0 ? basePrompt : observer != null ? basePrompt + "\n\n(" + retry + ")" : retry;
                 // The retry is the whole decision again when the tool is offered or under the faithful profile:
                 // a one-line correction would reach a stateless backend with no hand in it.
-                offerAnswer(smart, AnswerTool.Spec.keep());
+                offerAnswer(smart, AnswerTool.Spec.keep().about("mulligan"));
                 String reply = ask(smart, attempt > 0 && nextAnswer != null && observer == null ? basePrompt + "\n\n" + retry : prompt);
                 noteAnswerVia(attempt);
                 if (answerLost()) break;   // two invalid replies: the deterministic KEEP below, recorded as unparsed
@@ -3393,6 +3395,7 @@ public final class LlmSpikeGui {
                 PuzzleArms.Line line = PuzzleArms.searchLine;
                 for (int attempt = 0; attempt < 2; attempt++) {
                     int noted = line == null ? 0 : line.choices.size();
+                    askingWhat = "attackers";
                     picks = decideMany(smart, null, question, labels, 0, legal.size());
                     if (picks == null) break;
                     for (int i : picks)
@@ -3471,7 +3474,7 @@ public final class LlmSpikeGui {
                 return err;
             });
             p("[ROUTER] attackers: proposed (" + legal.size() + " could attack) -> " + routeLabel(smart.getModel(), false));
-            offerAnswer(smart, spec);
+            offerAnswer(smart, spec.about("attackers"));
             String reply = ask(smart, prompt);
             noteAnswerVia(0);
             if (lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, AnswerTool.DECLARE_ATTACKERS));
@@ -3508,7 +3511,7 @@ public final class LlmSpikeGui {
                 return err;
             });
             p("[ROUTER] blockers: proposed (" + atkList.size() + " atk / " + blkList.size() + " could block) -> " + routeLabel(smart.getModel(), false));
-            offerAnswer(smart, spec);
+            offerAnswer(smart, spec.about("blockers"));
             String reply = ask(smart, prompt);
             noteAnswerVia(0);
             if (lastAnswer != null) PROPOSAL_ROW.set(proposalRecord(lastAnswer.proposals, AnswerTool.DECLARE_BLOCKERS));
@@ -4300,7 +4303,7 @@ public final class LlmSpikeGui {
                     // The retry carries the whole decision, as decideOne does.
                     String text = attempt == 0 ? prompt
                             : prompt + "\n\n(Your previous reply had no BLOCKS line. End with EXACTLY: BLOCKS: blocker->attacker, ...   or BLOCKS: NONE)";
-                    offerAnswer(smart, blockSpec);
+                    offerAnswer(smart, blockSpec.about("blockers"));
                     String reply = ask(smart, nextAnswer != null ? text + numbered : text);
                     noteAnswerVia(attempt);
                     if (answerLost()) { auto("blockers(unparsed)->" + fallbackBlocks(defender, combat)); return; }
@@ -4706,7 +4709,7 @@ public final class LlmSpikeGui {
                         playSpec.lines = askLines;
                     }
                     playSpec.keep = observer != null && !options.isEmpty();
-                    offerAnswer(b, playSpec);
+                    offerAnswer(b, playSpec.about("play").pass(passIdx));
                     // The preview takes menu numbers, which this arm does not show: no preview under it (run_batch refuses
                     // --lookahead with --propose-actions).
                     String reply = ask(b, prompt, nativeSim && attempt == 0 && !propose ? simulateTool : null);
@@ -8520,12 +8523,23 @@ public final class LlmSpikeGui {
          *  profile (as PLAN: lines are read there), and the play ask that asks for the turn plan. */
         private AnswerTool.Ask offerAnswer(LLMBridge b, AnswerTool.Spec spec) {
             lastAnswer = null;
+            // The question as data for a bridge that answers without a model (K14); never sent to one.
+            spec.about(askingWhat);
+            askingWhat = null;
+            try {
+                PhaseHandler ph = getGame().getPhaseHandler();
+                spec.turn = ph.getTurn();
+                spec.phase = ph.getPhase() == null ? null : ph.getPhase().name();
+            } catch (RuntimeException e) { /* no game: a test's bare spec */ }
             if (!answerToolFor(b)) { nextAnswer = null; return null; }
             AnswerTool.Ask a = new AnswerTool.Ask(spec, spec.plan || (observer != null && b == smart));
             a.planSink = this::adoptPlanText;
             nextAnswer = a;
             return a;
         }
+        /** The decision type the next offerAnswer's Spec is about, for a site that asks through a helper with no type
+         *  (attackers through decideMany): set just before it, consumed there. */
+        private String askingWhat;
         /** Text read for a decision on an ask that offered `answer`: must stay 0. A tool answer is read from the
          *  typed {@link AnswerTool.Answer}; the text grammar is only for a backend with no function calling. */
         int textParsesOnToolAsks = 0;

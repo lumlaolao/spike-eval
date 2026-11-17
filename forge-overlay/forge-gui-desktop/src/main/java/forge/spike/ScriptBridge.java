@@ -134,13 +134,21 @@ final class ScriptBridge implements LLMBridge {
 
     @Override
     public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+        return chat(messagesJson, toolsJson, allowCalls, null);
+    }
+
+    /** {@code spec}: the question as data (its kind, type, turn, step, PASS and decline options, ranges and block
+     *  lists), read in place of the prompt's wording wherever the seat set it (critique K14); the option labels are
+     *  still matched as the menu shows them. */
+    @Override
+    public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls, AnswerTool.Spec spec) {
         calls++;
         JsonArray msgs = JsonParser.parseString(messagesJson).getAsJsonArray();
         String prompt = text(msgs.get(0));
         String refused = null;
         JsonElement last = msgs.get(msgs.size() - 1);
         if (msgs.size() > 1 && "tool".equals(role(last)) && text(last).startsWith("ERROR:")) refused = text(last);
-        String args = decide(new Question(prompt), refused).toString();
+        String args = decide(new Question(prompt, spec), refused).toString();
         List<NativeTools.Call> one = new ArrayList<>();
         one.add(new NativeTools.Call("s" + calls, AnswerTool.NAME, args));
         return NativeTools.Turn.ofCalls(one);
@@ -258,12 +266,17 @@ final class ScriptBridge implements LLMBridge {
         final Map<Integer, String> options = new LinkedHashMap<>();
         final int turn;
         final String phase;
-        final boolean playMenu, manaUntap;
+        final boolean playMenu, manaUntap, attackers;
         final String prompt;
+        /** The question as data, or null (a test's bare prompt): see {@link ScriptBridge#chat}. */
+        final AnswerTool.Spec spec;
         String ambiguity, takenLabel;
 
-        Question(String prompt) {
+        Question(String prompt) { this(prompt, null); }
+
+        Question(String prompt, AnswerTool.Spec spec) {
             this.prompt = prompt;
+            this.spec = spec;
             int d = prompt.lastIndexOf("DECISION:");
             String b = d < 0 ? prompt : prompt.substring(d);
             int a = b.lastIndexOf("ANSWER:");
@@ -271,23 +284,28 @@ final class ScriptBridge implements LLMBridge {
             Matcher f = FIELD.matcher(prompt);
             String fld = "option";
             while (f.find()) fld = f.group(1);
-            field = fld;
+            field = spec != null ? AnswerTool.fieldOf(spec.kind) : fld;
             Matcher o = OPTION.matcher(block);
             while (o.find()) options.put(Integer.parseInt(o.group(1)), o.group(2).trim());
+            if (options.isEmpty() && spec != null && !"blocks".equals(field))
+                for (int i = 0; i < spec.labels.size(); i++) options.put(i + 1, spec.labels.get(i));
             Matcher h = HEADER.matcher(prompt);
             int t = 0;
             String ph = "";
             if (h.find()) { t = Integer.parseInt(h.group(1)); ph = h.group(2); }
             Matcher p = PRIORITY.matcher(block);
             if (p.find()) ph = p.group(1);
-            turn = t;
-            phase = ph;
-            playMenu = block.contains("You have priority (") && passOption() > 0;
-            manaUntap = block.startsWith("DECISION: MANA: you are paying") && block.contains("stay untapped");
+            boolean known = spec != null && spec.what != null;
+            turn = spec != null && spec.turn > 0 ? spec.turn : t;
+            phase = spec != null && spec.phase != null ? spec.phase : ph;
+            playMenu = known ? "play".equals(spec.what) && spec.pass > 0 : block.contains("You have priority (") && passOption() > 0;
+            manaUntap = known ? "mana-sources".equals(spec.what)
+                    : block.startsWith("DECISION: MANA: you are paying") && block.contains("stay untapped");
+            attackers = known ? "attackers".equals(spec.what) : block.contains("declare attackers");
         }
 
         boolean opensAction() {
-            return playMenu || "blocks".equals(field) || block.contains("declare attackers");
+            return playMenu || "blocks".equals(field) || attackers;
         }
 
         String head() {
@@ -296,8 +314,15 @@ final class ScriptBridge implements LLMBridge {
         }
 
         int passOption() {
+            if (spec != null && spec.what != null) return spec.pass;
             for (Map.Entry<Integer, String> e : options.entrySet()) if (e.getValue().startsWith("PASS")) return e.getKey();
             return -1;
+        }
+
+        /** The decline or cancel option the seat named (1-based), or -1; null when the spec says nothing. */
+        private Integer declineOption() {
+            if (spec == null || spec.what == null) return null;
+            return spec.decline > 0 ? spec.decline : spec.cancel;
         }
 
         /** The one unused option {@code body} names, or null (with {@link #ambiguity} when two different labels fit). */
@@ -399,14 +424,19 @@ final class ScriptBridge implements LLMBridge {
          *  that fit are ambiguous. Twins (labels equal but for the handle) take turns as blockers ({@code used}); as
          *  attackers they are ambiguous, since one each and a double block are both legal: the line names a handle. */
         private int listed(String header, String name, Set<Integer> used, boolean twinsTakeTurns) {
-            int i = block.lastIndexOf(header);
-            if (i < 0) return -1;
-            int end = block.indexOf('\n', i);
-            String row = block.substring(i + header.length(), end < 0 ? block.length() : end);
             Map<Integer, String> items = new LinkedHashMap<>();
-            for (String item : row.split(";")) {
-                Matcher m = LIST_ITEM.matcher(item);
-                if (m.matches()) items.put(Integer.parseInt(m.group(1)), m.group(2).trim());
+            if (spec != null && "blocks".equals(field)) {   // the Spec's lists: blockers, then attackers
+                List<String> from = header.startsWith("YOUR BLOCKERS") ? spec.labels : spec.labels2;
+                for (int k = 0; k < from.size(); k++) items.put(k + 1, from.get(k));
+            } else {
+                int i = block.lastIndexOf(header);
+                if (i < 0) return -1;
+                int end = block.indexOf('\n', i);
+                String row = block.substring(i + header.length(), end < 0 ? block.length() : end);
+                for (String item : row.split(";")) {
+                    Matcher m = LIST_ITEM.matcher(item);
+                    if (m.matches()) items.put(Integer.parseInt(m.group(1)), m.group(2).trim());
+                }
             }
             for (Map.Entry<Integer, String> e : items.entrySet())
                 if (!used.contains(e.getKey()) && norm(e.getValue()).equals(norm(name))) return e.getKey();
@@ -431,6 +461,9 @@ final class ScriptBridge implements LLMBridge {
             switch (field) {
                 case "option": {
                     int none = passOption();
+                    Integer named = declineOption();
+                    if (none <= 0 && named != null) none = named;
+                    // A two-way ask with no declared decline ("Pay" / "Do not pay") is still read by its labels.
                     for (Map.Entry<Integer, String> e : options.entrySet()) {
                         if (none > 0) break;
                         String l = norm(e.getValue());
@@ -441,7 +474,7 @@ final class ScriptBridge implements LLMBridge {
                 }
                 case "options": {
                     Matcher m = PICK_RANGE.matcher(prompt);
-                    int lo = m.find() ? Integer.parseInt(m.group(1) != null ? m.group(1) : m.group(2)) : 0;
+                    int lo = spec != null ? spec.min : m.find() ? Integer.parseInt(m.group(1) != null ? m.group(1) : m.group(2)) : 0;
                     JsonArray picks = new JsonArray();
                     for (Integer n : options.keySet()) { if (picks.size() >= lo) break; picks.add(n); }
                     a.add("options", picks);
@@ -450,13 +483,16 @@ final class ScriptBridge implements LLMBridge {
                 case "blocks": a.add("blocks", new JsonArray()); return a;
                 case "number": {
                     Matcher m = NUMBER_FROM.matcher(prompt);
-                    a.addProperty("number", m.find() ? Integer.parseInt(m.group(1)) : 0);
+                    a.addProperty("number", spec != null ? spec.min : m.find() ? Integer.parseInt(m.group(1)) : 0);
                     return a;
                 }
                 case "amounts": {
                     Matcher m = AMOUNTS_SPEC.matcher(prompt);
                     JsonArray out = new JsonArray();
-                    if (m.find()) {
+                    if (spec != null) {
+                        out.add(spec.max);   // ALLOC: n amounts summing to the total (Spec.alloc keeps it in min and max)
+                        for (int i = 1; i < spec.n; i++) out.add(0);
+                    } else if (m.find()) {
                         out.add(Integer.parseInt(m.group(2)));
                         for (int i = 1; i < Integer.parseInt(m.group(1)); i++) out.add(0);
                     }

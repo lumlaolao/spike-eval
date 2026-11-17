@@ -135,6 +135,38 @@ public class ScriptBridgeTest {
         Assert.assertEquals(attack.report().get("script_actions"), Arrays.asList(0), "an attack is an action");
     }
 
+    /** K14: the arms read the question as data where the seat gives it (the Spec), so rewording the prompt (the PASS
+     *  label, "You have priority", the mana ask's sentence, "declare attackers") moves no puzzle line. Only the option
+     *  labels are still matched as shown. */
+    @Test
+    public void aRewordedQuestionIsReadFromItsSpec() {
+        String reworded = PLAY_MAIN2.replace("You have priority (MAIN2,", "Your window (MAIN2,")
+                .replace("PASS (do nothing)", "Let the game move on");
+        AnswerTool.Spec play = AnswerTool.Spec.one(4).about("play").pass(4);
+        play.turn = 1;
+        play.phase = "MAIN2";
+        ScriptBridge b = script("cast Lightning Bolt");
+        NativeTools.Turn t = b.chat(messages(reworded), "[]", true, play);
+        Assert.assertEquals(JsonParser.parseString(t.calls.get(0).arguments).getAsJsonObject().get("option").getAsInt(), 4,
+                "the spec's PASS is the wait, whatever its label says");
+        Assert.assertNull(b.drift);
+        Assert.assertEquals(b.waits, 1);
+
+        String mana = MANA.replace("Which should stay untapped after this payment", "Choose the sources you keep open");
+        ScriptBridge u = script("untap: Swamp", "cast Animate Dead");
+        AnswerTool.Spec keep = AnswerTool.Spec.many(2, 0, 2).about("mana-sources");
+        keep.turn = 1;
+        keep.phase = "MAIN1";
+        Assert.assertEquals(JsonParser.parseString(u.chat(messages(mana), "[]", true, keep).calls.get(0).arguments)
+                .getAsJsonObject().getAsJsonArray("options").get(0).getAsInt(), 1, "the untap line is still taken");
+        Assert.assertNull(u.drift);
+
+        String atk = ATTACK.replace("declare attackers", "choose who swings");
+        ScriptBridge a = script("Goblin Electromancer; Thermo-Alchemist");
+        a.chat(messages(atk), "[]", true, AnswerTool.Spec.many(2, 0, 2).about("attackers"));
+        Assert.assertEquals(a.report().get("script_actions"), Arrays.asList(0), "an attack is an action by its type");
+    }
+
     @Test
     public void aPlayMenuWithNoMatchPassesAndKeepsTheLine() {
         ScriptBridge b = script("cast Lightning Bolt");
