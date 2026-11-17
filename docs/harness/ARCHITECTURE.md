@@ -333,6 +333,16 @@ seat was shown the opposite, and the golden check encoded it).
 
 ## 4. What the model sees: the observation
 
+**Smaller and labelled for what it is (observation-faithful-v49, harness-epoch-105, critique batch 4).** A search of
+the seat's own library is one history line ("you looked through your library (N cards...)") and, from then on, one
+current `library (N cards, unordered, ...)` line under the hand: each search printed the whole library into GAME
+HISTORY and REVEALS TO YOU, and one "engine presented" line per card, re-sent at every later decision (two thirds of a
+turn-25 prompt; `OWN_LIBRARY_SEARCH`, `ownLibraryText`). "(was @k)" is printed the turn of the move only. A permanent
+shows every keyword the engine says it has (printed or "(granted)"), none of the casting-only ones (`CAST_ONLY`), and a
+changed P/T its base. Forge AI's arithmetic is headed ESTIMATES (it was FACTS), for every opponent. LANDS PLAYED lists
+only lands no longer in play; SPENT THIS TURN is on the seat's own turn only; a turn's digest keeps its order,
+collapsing only repeats in a row.
+
 **`SeatObservation` (faithful profile, `CONTEXT_PROFILE=v4-faithful`).**
 - The state as the seat's player could know it:
   - its own hand;

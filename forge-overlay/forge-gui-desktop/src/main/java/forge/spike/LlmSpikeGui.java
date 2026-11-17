@@ -465,8 +465,10 @@ public final class LlmSpikeGui {
      *  the plan paragraph are no longer in every message; lookup counts come with each lookup's result; no glossary in
      *  the faithful profile; a zone-change, a long type list and the mana pool are asked in the harness's words; a model
      *  seat with no CONTEXT_PROFILE is refused.
+     *  Epoch 105 (2026-11-17, critique batch 4): the state is smaller and says what it is (observation-faithful-v49): a
+     *  library search is one line, not the library in the history and in REVEALS TO YOU at every later decision.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-104";
+    static final String HARNESS_EPOCH = "harness-epoch-105";
 
     /** Games a runner stopped at its wall-clock cap (LlmSpikeHeadless, LlmSpikePuzzle: one JVM may play many), held
      *  weakly. Marked before the runner sets the game over, so a seat can name the cap on its rows. */
@@ -1961,10 +1963,20 @@ public final class LlmSpikeGui {
             }
         }
 
+        /** A reveal of this many cards or more of the seat's own library is a search: recorded as one line, its contents
+         *  shown once as the state's library line (critique O1: each search printed the whole library into the history
+         *  and REVEALS TO YOU, re-sent with every later decision; two thirds of a turn-25 prompt). */
+        static final int OWN_LIBRARY_SEARCH = 8;
+
         @Override
         public void reveal(CardCollectionView cards, ZoneType zone, Player owner, String messagePrefix, boolean addSuffix) {
             super.reveal(cards, zone, owner, messagePrefix, addSuffix);
             if (observer == null || cards == null || cards.isEmpty()) return;
+            if (owner == getPlayer() && zone == ZoneType.Library && cards.size() >= OWN_LIBRARY_SEARCH) {
+                observer.noteOwnLibrarySearch();
+                observer.recordReveal("you looked through your library (" + cards.size() + " cards; its contents are your library line)");
+                return;
+            }
             try {
                 StringBuilder b = new StringBuilder();
                 for (Card c : cards) { if (b.length() > 0) b.append(", "); b.append(observer.describe(c, true)); }

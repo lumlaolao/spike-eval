@@ -28,9 +28,7 @@ import forge.util.MyRandom;
  *       bit-identical.</li>
  * </ol>
  *
- * <p>Scope note (v1): this is the primitive only — copy + determinize + a public-delta reporter.
- * Applying a specific option and reporting its resolution is the next step and belongs to the tool
- * wiring, not here. It is NOT yet wired to the seat; nothing calls it during a real game.
+ * <p>The seat's `simulate` tool and the attack outlook call it (LlmSpikeGui, NativeTools) when LOOKAHEAD is on.
  */
 final class PlayerLookahead {
     /** How a preview names the targets it assumed; the greedy floor (GreedyBridge) reads them back. */

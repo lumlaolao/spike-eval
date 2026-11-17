@@ -343,20 +343,23 @@ final class GameHistory {
     /**
      * One digest line for events [from, to], labelled and carrying its canonical id range.
      *
-     * Repeated messages collapse to "msg xN" — a turn that logs the same trigger six times is one
-     * fact, not six — and TURN entries themselves are dropped, since the label already says which
-     * turn this is.
+     * A message repeated in a row collapses to "msg xN" (a trigger logged six times is one fact, not six); the same
+     * message later in the turn is listed again where it happened, so the order is kept (critique O22: "A attacks; B
+     * blocks; A attacks" read "A attacks x2; B blocks"). TURN entries are dropped: the label says which turn it is.
      */
     private static String digestLine(List<Ev> evs, int from, int to, String label,
                                      int cap, boolean highSignalOnly) {
-        LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
+        List<Map.Entry<String, Integer>> runs = new ArrayList<>();
         for (int i = from; i <= to; i++) {
             Ev e = evs.get(i);
             if (e.type == GameLogEntryType.TURN) continue;
             if (highSignalOnly && !HIGH_SIGNAL.contains(e.type)) continue;
             if (e.msg == null || e.msg.isEmpty()) continue;
-            counts.merge(e.msg, 1, Integer::sum);
+            Map.Entry<String, Integer> last = runs.isEmpty() ? null : runs.get(runs.size() - 1);
+            if (last != null && last.getKey().equals(e.msg)) last.setValue(last.getValue() + 1);
+            else runs.add(new java.util.AbstractMap.SimpleEntry<>(e.msg, 1));
         }
+        List<Map.Entry<String, Integer>> counts = runs;
         String ids = "[E" + evs.get(from).id + "-E" + evs.get(to).id + "]";
         if (counts.isEmpty()) {
             // The block is not empty — it was compacted to nothing. Say so, so the model does not
@@ -365,7 +368,7 @@ final class GameHistory {
         }
         StringBuilder b = new StringBuilder(label).append(' ').append(ids).append(": ");
         int shown = 0;
-        for (Map.Entry<String, Integer> e : counts.entrySet()) {
+        for (Map.Entry<String, Integer> e : counts) {
             if (shown == cap) {
                 b.append("; ...(").append(counts.size() - cap).append(" more)");
                 break;

@@ -108,7 +108,12 @@ final class SeatObservation {
     // defender's life, never "= LETHAL" (it ignored blockers and read as a verdict).
     // v48 (2026-11-17, critique P8, M3): the mana caveat, NOT VISIBLE's fixed sentences and the plan banner's paragraph
     // are said once, in the guide; the plan line says how many turns ago it was stated.
-    static final String VERSION = "observation-faithful-v48";
+    // v49 (2026-11-17, critique batch 4): a search of the seat's own library is one line, and its contents a current
+    // library line (O1); "(was @k)" only the turn of the move (O5); every engine keyword, granted ones marked, none of
+    // the cast-only ones on a permanent (O6, O7); ESTIMATES, not FACTS, for Forge AI's arithmetic, for every opponent
+    // (O8, U2); LANDS PLAYED only for lands no longer in play (O10); SPENT THIS TURN on the seat's own turn (O13); a
+    // changed P/T shows its base (O15); a turn's digest keeps its order (O22).
+    static final String VERSION = "observation-faithful-v49";
 
     /** The version a game is stamped with: under PROPOSE_ACTIONS the state shows no hand tags and lists the seat's
      *  activated abilities ({@link #abilitiesBlock}), so it is its own observation (2026-11-03). */
@@ -195,7 +200,9 @@ final class SeatObservation {
             + "then each keyword the engine names that the player has (\"has hexproof\"); a keyword the engine leaves unnamed is "
             + "not shown here; the card or effect that gives it is, and its printed rules text says what it does.\n"
             + HAND_TAGS_GUIDE
-            + "- board lists nonland permanents; lands lists lands, with [tapped] or [untapped] for each. [sick] marks a "
+            + "- board lists nonland permanents, each with every keyword the engine says it has now (one marked \"(granted)\" "
+            + "comes from another card or an effect, not its own text; a changed power/toughness shows its base); lands lists "
+            + "lands, with [tapped] or [untapped] for each. [sick] marks a "
             + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
             + "- mana available is the mana your untapped sources can make right now, as the engine counts it (Ancient Tomb "
             + "makes 2; a summoning-sick creature makes none). Per colour it is the mana that can be made in that colour; a "
@@ -203,11 +210,11 @@ final class SeatObservation {
             + "is the total, and a source that makes more than one mana is named with its amount. Mana that can be spent only on "
             + "some spells is listed apart, in the card's own words, and not counted in the total.\n"
             + "- @N is your handle for one object, given when you first see it, and used the same way in the options. When an "
-            + "object changes zone it becomes a new object with a new handle; \"(was @k)\" links the two when you saw the whole "
+            + "object changes zone it becomes a new object with a new handle; \"(was @k)\", printed the turn it moves, links the two when you saw the whole "
             + "move. \"face-down <type>\" is an object whose identity is hidden from you. Zones list every card unless a "
             + "\"(+N more not shown)\" note says otherwise.\n"
-            + "- CAST THIS GAME and LANDS PLAYED record what the opponent has cast and played, even cards that have since left "
-            + "play. OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n"
+            + "- CAST THIS GAME records what the opponent has cast, and LANDS PLAYED, NOT IN PLAY NOW the lands they played "
+            + "that have since left play. OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n"
             + ACTIVATE_GUIDE
             + "- STACK lists what is waiting to resolve, top first (the top resolves first); COMBAT describes attackers and "
             + "blockers; NOT VISIBLE names what is hidden from you. Continuous effects are applied to the shown P/T, types, "
@@ -219,17 +226,17 @@ final class SeatObservation {
             + "- KNOWN IN HIDDEN ZONES is what you saw go into an opponent's hidden zone (it is dropped once you see it leave). "
             + "SPENT THIS TURN states what you have already used (land drop, spells, attackers), so nothing has to be inferred "
             + "from a missing option.\n"
-            + "- FACTS is the engine's arithmetic (the next combat's damage, the mana they can make at instant speed): "
+            + "- ESTIMATES is Forge AI's arithmetic (the next combat's damage, the mana they can make at instant speed): "
             + "estimates, not guarantees.\n"
             + "- YOUR PLAN, YOUR OPPONENT PROFILE and YOUR CARD INTERACTIONS are notes you wrote yourself earlier, with the turn "
             + "you wrote them and how long ago that was. They are not verified and not commitments: events since then have "
             + "happened, so check a note against the state, and replace it when it no longer fits.\n"
             + "Where each part comes from, so nothing is mistaken for someone's message: the state (YOU, OPP, STACK, COMBAT, "
-            + "FACTS, the hand tags, mana available) is read from the Forge engine. GAME HISTORY, SINCE YOUR LAST DECISION and "
+            + "ESTIMATES, the hand tags, mana available) is read from the Forge engine. GAME HISTORY, SINCE YOUR LAST DECISION and "
             + "REVEALS TO YOU are lines of Forge's game log, in the engine's own words, about what each player did, you included: "
             + "a line naming your player is the engine recording your own action. Lines marked [private reveal to you] or "
             + "[notice to you] are what the engine showed only you. OPPONENT CARDS YOU HAVE SEEN is printed card text from the "
-            + "card database. KNOWN IN HIDDEN ZONES, CAST THIS GAME, LANDS PLAYED and SPENT THIS TURN are the harness's record "
+            + "card database. KNOWN IN HIDDEN ZONES, CAST THIS GAME, LANDS PLAYED and SPENT THIS TURN (your own turn only) are the harness's record "
             + "of what you saw and did. Only YOUR PLAN, YOUR OPPONENT PROFILE and YOUR CARD INTERACTIONS are your own words. No "
             + "other model's words appear anywhere: your opponent is known only through the engine.\n";
 
@@ -245,15 +252,6 @@ final class SeatObservation {
     private static final Pattern HIDDEN_ID = Pattern.compile("\\s*\\(H\\d+\\)");
     private static final Pattern ENGINE_ID = Pattern.compile("\\s*\\((\\d+)\\)");
 
-    private static final Keyword[] SHOWN_KEYWORDS = {
-        Keyword.FLYING, Keyword.FIRST_STRIKE, Keyword.DOUBLE_STRIKE, Keyword.DEATHTOUCH, Keyword.LIFELINK,
-        Keyword.TRAMPLE, Keyword.HASTE, Keyword.VIGILANCE, Keyword.REACH, Keyword.MENACE, Keyword.HEXPROOF,
-        Keyword.SHROUD, Keyword.INDESTRUCTIBLE, Keyword.INFECT, Keyword.FLASH, Keyword.DEFENDER, Keyword.PROWESS,
-        Keyword.EXALTED, Keyword.FEAR, Keyword.INTIMIDATE, Keyword.SHADOW, Keyword.WITHER, Keyword.PERSIST,
-        Keyword.UNDYING, Keyword.FLANKING, Keyword.HORSEMANSHIP, Keyword.SKULK, Keyword.PHASING, Keyword.STORM,
-        Keyword.DELVE, Keyword.CASCADE,
-    };
-
     /** One viewer-visible rules object. */
     private static final class Tracked {
         final int engineId;
@@ -268,9 +266,13 @@ final class SeatObservation {
          *  Inherited from the predecessor when a zone change is publicly linked, so an object keeps ONE
          *  history even though Forge makes a new Card (and we a new handle) on every move. */
         final List<String> trail = new ArrayList<>();
+        /** The turn the object got its handle: the "(was @k)" link is printed that turn only (critique O5: twenty of them
+         *  in a turn-25 state, "Plateau x2 [untapped @8(was @2) @86(was @82)]"; the history keeps the move). */
+        int createdTurn;
         Tracked(int engineId, int handle, long timestamp, int predecessor) {
             this.engineId = engineId; this.handle = handle; this.timestamp = timestamp; this.predecessor = predecessor;
         }
+        boolean showWas(int nowTurn) { return predecessor > 0 && createdTurn == nowTurn; }
     }
 
     private final Game game;
@@ -584,6 +586,26 @@ final class SeatObservation {
 
     void forgetOwnTop() { ownTop.clear(); }
 
+    /** Whether the seat has looked through its whole library this game (a search): from then on its contents are shown
+     *  once, as a current line, instead of a dump of the library in the history at every search (critique O1). */
+    private boolean ownLibrarySeen;
+
+    /** A search of the seat's own library: the reveal line says only that it happened and how many cards. */
+    void noteOwnLibrarySearch() { ownLibrarySeen = true; }
+
+    /** "  library (N cards, unordered): Name x2, ..." once the seat has searched it; "" before. */
+    String ownLibraryText() {
+        if (!ownLibrarySeen) return "";
+        Map<String, Integer> counts = new java.util.TreeMap<>();
+        forge.game.card.CardCollectionView lib = viewer.getCardsIn(ZoneType.Library);
+        for (Card c : lib) counts.merge(safeName(c), 1, Integer::sum);
+        StringBuilder b = new StringBuilder("  library (").append(lib.size()).append(" cards, unordered, as you saw it when you searched it, minus what has left it since): ");
+        int i = 0;
+        for (Map.Entry<String, Integer> e : counts.entrySet())
+            b.append(i++ == 0 ? "" : ", ").append(e.getKey()).append(e.getValue() > 1 ? " x" + e.getValue() : "");
+        return b.append('\n').toString();
+    }
+
     /** The line under the seat's hand, or "" when it knows nothing about its library's order. */
     String ownTopText() {
         if (ownTop.isEmpty()) return "";
@@ -628,7 +650,20 @@ final class SeatObservation {
      *  infer legality from absence (AbsenceBench): it must be TOLD the land drop is gone, rather than
      *  left to notice the missing menu entry — the "played a second land" class of error. Rendered
      *  last, beside the decision, because that is where the attention is. */
+    /** The entries of a "Name, Name x2" list whose name is not on {@code p}'s battlefield now. */
+    private static String notInPlay(String list, Player p) {
+        if (list.isEmpty()) return list;
+        Set<String> inPlay = new HashSet<>();
+        for (Card c : p.getCardsIn(ZoneType.Battlefield)) inPlay.add(c.getName());
+        List<String> out = new ArrayList<>();
+        for (String e : list.split(", ")) if (!inPlay.contains(e.replaceAll(" x\\d+$", ""))) out.add(e);
+        return String.join(", ", out);
+    }
+
     private String spentThisTurn() {
+        // Only on the seat's own turn: on the opponent's turn and at upkeep "attackers declared none" read as a choice
+        // already made (critique O13).
+        try { if (game.getPhaseHandler().getPlayerTurn() != viewer) return ""; } catch (Exception ignore) { }
         StringBuilder b = new StringBuilder("SPENT THIS TURN: ");
         boolean any = false;
         try {
@@ -648,7 +683,10 @@ final class SeatObservation {
         try {
             if (any) b.append(" | ");
             java.util.List<Card> atk = viewer.getCreaturesAttackedThisTurn();
-            b.append("attackers declared ").append(atk == null || atk.isEmpty() ? "none" : atk.size());
+            boolean pastAttack = game.getPhaseHandler().getPhase() != null
+                    && game.getPhaseHandler().getPhase().isAfter(PhaseType.COMBAT_DECLARE_ATTACKERS);
+            b.append(atk == null || atk.isEmpty() ? (pastAttack ? "no attack this turn" : "no attack declared yet")
+                    : "attackers declared " + atk.size());
             any = true;
         } catch (Exception ignore) { }
         return any ? b.append('\n').toString() : "";
@@ -661,18 +699,25 @@ final class SeatObservation {
      *  search), nor mutates the live game. canAttackNextTurn is used so the race is meaningful at
      *  every priority window, not only inside the declare-attackers step. */
     private String facts() {
-        Player opp = null;
-        for (Player o : viewer.getOpponents()) { opp = o; break; }
-        if (opp == null) return "";
+        List<Player> opps = new ArrayList<>();
+        for (Player o : viewer.getOpponents()) opps.add(o);
+        if (opps.isEmpty()) return "";
+        // Every opponent, named when there is more than one (critique U2: the first opponent only).
+        boolean many = opps.size() > 1;
         StringBuilder b = new StringBuilder();
-        clock(viewer, opp, "your next combat", b);
-        clock(opp, viewer, "their next combat", b);
-        try {
-            int mana = forge.ai.ComputerUtilMana.getAvailableManaEstimate(opp);
-            if (b.length() > 0) b.append(" | ");
-            b.append("they can make up to ").append(mana).append(" mana at instant speed right now");
-        } catch (Exception ignore) { }
-        return b.length() == 0 ? "" : "FACTS (engine estimates, not truth): " + b + '\n';
+        for (Player opp : opps) {
+            String vs = many ? " (" + opp.getName() + ")" : "";
+            clock(viewer, opp, "your next combat" + vs, b);
+            clock(opp, viewer, (many ? opp.getName() + "'s" : "their") + " next combat", b);
+            try {
+                int mana = forge.ai.ComputerUtilMana.getAvailableManaEstimate(opp);
+                if (b.length() > 0) b.append(" | ");
+                b.append(many ? opp.getName() : "they").append(" can make up to ").append(mana).append(" mana at instant speed right now");
+            } catch (Exception ignore) { }
+        }
+        // Named for what it is: Forge AI's estimators (sumDamageIfUnblocked, getAvailableManaEstimate), not facts of the
+        // rules engine (critique O8: "FACTS (engine estimates, not truth)").
+        return b.length() == 0 ? "" : "ESTIMATES (Forge AI's arithmetic, not certain): " + b + '\n';
     }
 
     /** Unblocked damage a side could deal in its NEXT combat, and the life left after it. */
@@ -746,6 +791,7 @@ final class SeatObservation {
 
     private Tracked register(int id, long ts, int predecessor) {
         Tracked t = new Tracked(id, nextHandle++, ts, predecessor);
+        t.createdTurn = safeTurn();
         // A publicly linked move continues the SAME object, so it continues the same history.
         if (predecessor >= 0) {
             Tracked prev = byHandle.get(predecessor);
@@ -783,6 +829,11 @@ final class SeatObservation {
         }
         if (c.isCreature() && (inPlay || onStack || known)) {
             s.append(' ').append(c.getNetPower()).append('/').append(c.getNetToughness());
+            // A changed P/T says so: a pumped 2/2 read as a 5/5 (critique O15).
+            try {
+                if (inPlay && (c.getNetPower() != c.getBasePower() || c.getNetToughness() != c.getBaseToughness()))
+                    s.append(" (base ").append(c.getBasePower()).append('/').append(c.getBaseToughness()).append(')');
+            } catch (Exception ignore) { }
         }
         if (inPlay) {
             if (c.isPlaneswalker()) { try { s.append(" [loyalty ").append(c.getCurrentLoyalty()).append(']'); } catch (Exception ignore) { } }
@@ -822,7 +873,7 @@ final class SeatObservation {
             try { if (c.isPlotted()) s.append(" [plotted]"); } catch (Exception ignore) { }
         }
         s.append(" @").append(t.handle);
-        if (t.predecessor > 0) s.append(" (was @").append(t.predecessor).append(')');
+        if (t.showWas(safeTurn())) s.append(" (was @").append(t.predecessor).append(')');
         return s.toString();
     }
 
@@ -873,6 +924,9 @@ final class SeatObservation {
         if (!presentedNoted.add(key)) return;
         Player owner = zoneOwnerOf(c);
         ZoneType zone = zoneTypeOf(c);
+        // A card of the seat's own library offered for a search is not news: one "engine presented" line per card was
+        // printed into the history on every search (critique O1). The search's own line says it happened.
+        if (owner == viewer && zone == ZoneType.Library) return;
         recordReveal("engine presented " + safeName(c) + " from " + (owner == null ? "?" : owner.getName())
                 + "'s " + zone + " for a choice");
         // A card presented out of an opponent's HIDDEN zone is a revealed hand/library: the seat now
@@ -934,19 +988,30 @@ final class SeatObservation {
         return cb.toString();
     }
 
+    /** Keywords that do their work while a card is cast or in another zone, not as a permanent: not shown on the
+     *  battlefield (critique O7: "Orcish Bowmasters 1/1 [untapped] [flash]"). */
+    private static final Set<Keyword> CAST_ONLY = EnumSet.of(Keyword.FLASH, Keyword.STORM, Keyword.DELVE, Keyword.CASCADE,
+            Keyword.CONVOKE, Keyword.IMPROVISE, Keyword.AFFINITY, Keyword.KICKER, Keyword.MULTIKICKER, Keyword.BUYBACK,
+            Keyword.FLASHBACK, Keyword.SPLICE, Keyword.ENTWINE, Keyword.ESCALATE, Keyword.EMERGE, Keyword.SURGE,
+            Keyword.SPECTACLE, Keyword.MADNESS, Keyword.EVOKE, Keyword.DREDGE, Keyword.RETRACE, Keyword.JUMP_START);
+
+    /** Every keyword the engine says the permanent has now, printed and granted alike (critique O6: a fixed list of 31
+     *  left out landwalk, toxic, changeling and any keyword another permanent or an effect grants); one it has from
+     *  something other than its own text is marked "(granted)". */
     private static String keywords(Card c) {
         StringBuilder b = new StringBuilder();
         try {
-            for (Keyword k : SHOWN_KEYWORDS) {
-                if (!c.hasKeyword(k)) continue;
+            Set<String> seen = new HashSet<>();
+            for (KeywordInterface ki : c.getKeywords()) {
+                Keyword k = ki.getKeyword();
+                if (k != null && CAST_ONLY.contains(k)) continue;
+                String text = ki.getOriginal();
+                if (text == null || text.isEmpty()) continue;
+                String shown = text.replace(":", " ").replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT)
+                        + (ki.isIntrinsic() ? "" : " (granted)");
+                if (!seen.add(shown)) continue;
                 if (b.length() > 0) b.append(", ");
-                b.append(k.toString().toLowerCase(Locale.ROOT));
-            }
-            for (Keyword k : new Keyword[] { Keyword.PROTECTION, Keyword.WARD }) {
-                for (KeywordInterface ki : c.getKeywords(k)) {
-                    if (b.length() > 0) b.append(", ");
-                    b.append(ki.getOriginal().toLowerCase(Locale.ROOT));
-                }
+                b.append(shown);
             }
         } catch (Exception ignore) { }
         return b.toString();
@@ -1251,6 +1316,7 @@ final class SeatObservation {
             s.append("YOU [").append(seatLabel).append("] ").append(playerLine(viewer)).append('\n');
             s.append("  hand(").append(viewer.getCardsIn(ZoneType.Hand).size()).append("): ").append(handList()).append('\n');
             s.append(ownTopText());
+            s.append(ownLibraryText());
             s.append("  board: ").append(perms(viewer)).append('\n');
             s.append("  lands: ").append(lands(viewer)).append('\n');
             s.append("  mana available: ").append(manaLine(viewer)).append('\n');
@@ -1280,8 +1346,9 @@ final class SeatObservation {
                 if (!casts.isEmpty()) s.append("  CAST THIS GAME: ").append(casts).append('\n');
                 String repeats = streamCastRepeats(opp, false, ctx.castHistoryCap);
                 if (!repeats.isEmpty()) s.append("  RECURRING (cast 2+ times): ").append(repeats).append('\n');
-                String landsPlayed = streamCastHistory(opp, true, ctx.castHistoryCap);
-                if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED: ").append(landsPlayed).append('\n');
+                // Only the played lands no longer in play: the others are on the lands line (critique O10).
+                String landsPlayed = notInPlay(streamCastHistory(opp, true, ctx.castHistoryCap), opp);
+                if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED, NOT IN PLAY NOW: ").append(landsPlayed).append('\n');
             }
             if (!cacheOrdered) {
                 s.append(ownNewCardText());
@@ -1446,7 +1513,7 @@ final class SeatObservation {
             if (tgt.length() > 0) tgt.append(' ');
             Tracked t = sight(c, identityKnown(c));
             tgt.append('@').append(t.handle);
-            if (t.predecessor > 0) tgt.append("(was @").append(t.predecessor).append(')');
+            if (t.showWas(safeTurn())) tgt.append("(was @").append(t.predecessor).append(')');
             // What sets this copy apart, beside its handle: an animated or awakened land's P/T and counters, damage, what
             // it remembers (Cavern of Souls' type). The grouped summary dropped all of it (surface check).
             if (identityKnown(c)) {
