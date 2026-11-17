@@ -1195,7 +1195,13 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - The engine plays any deck, so the format is what the seat is told (`GAME_FORMAT`, in the system prompt)
   and what the game line records (`game_format`, an experiment condition: formats never pool).
 - `eval/deck_legality.py` checks a deck against the pinned engine's own format data (legal sets, ban lists,
-  Pauper's rarities); `--format` refuses a deck that is not legal.
+  Pauper's rarities); `--format` refuses a deck that is not legal. It refuses a checkout off `FORGE_COMMIT`, sums
+  two lines of one card, and reads the copy limit a card's own script lifts (Relentless Rats, Seven Dwarves).
+- One grammar for a deck file, read alike by the JVM (`LlmSpikeGui.deckEntries`) and the legality check
+  (`deck_legality.parse_deck`), both tested on `eval/tests/deck_grammar_cases.json` (critique A41): `N Name` lines;
+  `#` starts a comment; a `Sideboard` line, or the first blank line after a card, starts the sideboard; any other
+  line is refused with its number, and the JVM refuses a card name the engine does not know. *Why:* a comment or a
+  blank line anywhere sent the rest of the list to the JVM's sideboard while the check still counted it as main.
 - A deck with no `.plan` gets no plan text, only its decklist and card texts. *Why:* the fallback used to be
   the default decks' plan, so a Standard deck was told it was Grixis Reanimator.
 
@@ -1326,7 +1332,12 @@ precons in `res/quest/commanderprecons` by name). `PLAYERS=3` or `4` seats C and
     `already_done` replays it on `--resume` and its summary flags `LOG-CUT`, `puzzle_watch.py` flags `LOG-CUT`,
     `run_batch.py`'s `combo_status` / `set_aside_dead_bridge` set the game aside and play it again, `mtg_env.py`
     marks the episode invalid, and `defect_analyzer.py` fails on it (`eval_log_write_failed_total`). The game line is
-    itself a row: a failure on it alone leaves a log with no game line, which is already counted invalid.
+    itself a row: a failure on it alone leaves a log with no game line, which is already counted invalid. A decision
+    row that cannot be built (a missing game or phase handler) counts the same: `EvalLog.rowLost` prints `[EVAL] row
+    lost: <type>` and sets the flag, and the row's thread-local fields (proposals, `declared`, `lost_reason`) are
+    cleared in a `finally` so they never land on the next row (critique A39).
+  - A game whose outcome cannot be read is `invalid`, not a draw: the game line's winner starts `invalid` and is
+    `draw` only when the outcome says draw (`outcomeWinner`, critique A38).
   - A training build (`make_sft_data.py`) refuses a game on a seed of `seed_policy`'s reserved blocks or of an
     eval-only bank of `eval/seed_registry.json` (the panels' 7800-7999), unless `--allow-reserved-seeds`.
   - The readers that take no score read it too (issue #430): `make_sft_data.py` (`load_complete_games` skips the game,

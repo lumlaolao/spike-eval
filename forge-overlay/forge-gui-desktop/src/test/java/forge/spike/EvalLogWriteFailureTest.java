@@ -90,4 +90,33 @@ public class EvalLogWriteFailureTest {
             }
         }
     }
+
+    /** A39: a row that could not be built was lost with no word, and its proposal fields went onto the next row. */
+    @Test
+    public void aRowThatCannotBeBuiltIsSaidAndLeavesNothingForTheNext() {
+        LlmSpikeGui.EvalLog.closeForTest();
+        try {
+            java.io.StringWriter log = new java.io.StringWriter();
+            LlmSpikeGui.EvalLog.initToWriter(log, "game-8-1.jsonl");
+            LlmSpikeGui.PROPOSAL_ROW.set(",\"proposals\":[\"x\"]");
+            String out = captureStdout(() -> LlmSpikeGui.emitDecisionRow(null, "A", "play", 2, 0, "smart", 1L, null,
+                    java.util.Arrays.asList("PASS", "CAST X"), null, null, 0L, 1, null, null, -1, -1));
+            Assert.assertTrue(out.contains("[EVAL] row lost: decision row play"), out);
+            Assert.assertTrue(LlmSpikeGui.EvalLog.writeFailed(), "the game line says its log is cut");
+            Assert.assertNull(LlmSpikeGui.PROPOSAL_ROW.get(), "the lost row's proposals stay with it");
+            Assert.assertEquals(log.toString(), "");
+        } finally {
+            LlmSpikeGui.PROPOSAL_ROW.remove();
+            LlmSpikeGui.EvalLog.closeForTest();
+        }
+    }
+
+    /** A38: a game with no outcome to read was written as a draw. */
+    @Test
+    public void onlyAnOutcomeThatSaysDrawIsADraw() {
+        Assert.assertEquals(LlmSpikeGui.outcomeWinner(true, null, "Burn", "Elves"), "draw");
+        Assert.assertEquals(LlmSpikeGui.outcomeWinner(false, null, "Burn", "Elves"), "invalid");
+        Assert.assertEquals(LlmSpikeGui.outcomeWinner(false, "Elves", "Burn", "Elves"), "B");
+        Assert.assertEquals(LlmSpikeGui.outcomeWinner(false, "Goblins", "Burn", "Elves"), "invalid");
+    }
 }

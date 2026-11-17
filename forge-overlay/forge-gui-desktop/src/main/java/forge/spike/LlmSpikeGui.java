@@ -537,6 +537,11 @@ public final class LlmSpikeGui {
             out.println(json);
         }
         static boolean writeFailed() { return writeFailed; }
+        /** A row that could not be built: said, and the log counted as cut, as a failed write is (critique A39). */
+        static void rowLost(String what, Exception e) {
+            writeFailed = true;
+            System.out.println("[EVAL] row lost: " + what + " (" + e + "); the game is not scored");
+        }
         static boolean on() { return out != null; }
         /** The file currently being written (null if EVAL_OUT unset). LlmSpikeFork's check mode reads
          *  this back after the game ends to compare the replayed decision stream against FORK_SOURCE. */
@@ -669,6 +674,13 @@ public final class LlmSpikeGui {
      *  recorded a StackOverflowError as a draw). */
     static String finalWinner(String winner, boolean capped, String error) {
         return capped || error != null ? "invalid" : winner;
+    }
+
+    /** A two-player game line's winner from its outcome: "draw" only when the outcome says draw, A or B by name, and
+     *  "invalid" for anything else (no winner and no draw, or a name neither seat has; critique A38). */
+    static String outcomeWinner(boolean draw, String winnerName, String nameA, String nameB) {
+        if (winnerName != null) return nameA.equals(winnerName) ? "A" : nameB.equals(winnerName) ? "B" : "invalid";
+        return draw ? "draw" : "invalid";
     }
     static volatile String lastPlanB = DEFAULT_PLAN_B;
 
@@ -12406,15 +12418,15 @@ public final class LlmSpikeGui {
             long retryMs, int attempts, String finishReason, String firstFailedReply,
             int promptTokens, int completionTokens, Integer shadowChoice, List<Integer> picks,
             String answerVia, int answerInvalid, int cachedTokens, int cacheWriteTokens) {
-        if (!EvalLog.on()) return;
         try {
+            if (!EvalLog.on()) return;
             PhaseHandler ph = pl.getGame().getPhaseHandler();
             StringBuilder sb = new StringBuilder(256);
             sb.append("{\"t\":\"decision\",\"seat\":\"").append(jsonEscape(seat))
-                    .append("\",\"turn\":").append(ph.getTurn()).append(",\"phase\":\"").append(ph.getPhase())
-                    .append("\",\"type\":\"").append(type).append("\",\"n_options\":").append(nOptions)
+                    .append("\",\"turn\":").append(ph.getTurn()).append(",\"phase\":\"").append(jsonEscape(String.valueOf(ph.getPhase())))
+                    .append("\",\"type\":\"").append(jsonEscape(String.valueOf(type))).append("\",\"n_options\":").append(nOptions)
                     .append(",\"choice\":").append(choice)
-                    .append(",\"tier\":\"").append(tier).append("\",\"latency_ms\":").append(ms)
+                    .append(",\"tier\":\"").append(jsonEscape(String.valueOf(tier))).append("\",\"latency_ms\":").append(ms)
                     .append(",\"fallback\":")
                     .append(fallback == null ? "null" : "\"" + jsonEscape(fallback) + "\"")
                     .append(",\"options\":[");
@@ -12439,14 +12451,14 @@ public final class LlmSpikeGui {
                     // D4 DAgger additive field: the Forge-AI's shadow label over this row's menu, or null.
                     .append(",\"shadow_choice\":").append(shadowChoice == null ? "null" : shadowChoice);
             if (picks != null) sb.append(",\"picks\":").append(picks.toString().replace(" ", ""));
-            if (answerVia != null) sb.append(",\"answer_via\":\"").append(answerVia).append("\",\"answer_invalid\":").append(answerInvalid);
+            if (answerVia != null) sb.append(",\"answer_via\":\"").append(jsonEscape(answerVia)).append("\",\"answer_invalid\":").append(answerInvalid);
             // PROPOSE_ACTIONS: the play's proposals, set by the play decision just before its row (additive fields).
             String proposals = PROPOSAL_ROW.get();
-            if (proposals != null) { sb.append(proposals); PROPOSAL_ROW.remove(); }
+            if (proposals != null) sb.append(proposals);
             String declared = DECLARED_ROW.get();
-            if (declared != null) { sb.append(declared); DECLARED_ROW.remove(); }
+            if (declared != null) sb.append(declared);
             String lost = LOST_ROW.get();
-            if (lost != null) { sb.append(lost); LOST_ROW.remove(); }
+            if (lost != null) sb.append(lost);
             sb.append(cacheFields(cachedTokens, cacheWriteTokens));
             sb.append('}');
             // The write, the index increment, and the hook dispatch must be one atomic unit
@@ -12466,7 +12478,12 @@ public final class LlmSpikeGui {
                     try { hook.onDecision(idx, pl, seat, type, nOptions, choice, options); } catch (Throwable ignore) { }
                 }
             }
-        } catch (Exception ignore) { }
+        } catch (Exception e) {
+            EvalLog.rowLost("decision row " + type, e);
+        } finally {
+            // This row's fields, written or lost, never reach the next row on this thread (critique A39).
+            PROPOSAL_ROW.remove(); DECLARED_ROW.remove(); LOST_ROW.remove();
+        }
     }
 
     /** JSON string escape (minimal, no Unicode escapes above U+001F). */
@@ -13382,7 +13399,7 @@ public final class LlmSpikeGui {
         }
     }
 
-    /** Parse a plain "N Cardname" decklist (blank line separates mainboard from sideboard). */
+    /** Parse a plain "N Cardname" decklist by {@link #deckEntries}; a card the engine does not know is refused. */
     static Deck loadDeck(String name, String path) throws Exception {
         // A Forge .dck (a Commander precon: [metadata], [Commander], [Main]) is read by Forge's own reader.
         if (path.toLowerCase(java.util.Locale.ROOT).endsWith(".dck")) {
@@ -13393,26 +13410,53 @@ public final class LlmSpikeGui {
             return dck;
         }
         Deck deck = new Deck(name);
-        DeckSection section = DeckSection.Main;
         int mainCt = 0, sideCt = 0;
-        Pattern entry = Pattern.compile("^(\\d+)\\s+(.*\\S)\\s*$");
-        for (String raw : Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8)) {
-            String line = raw.trim();
-            if (line.isEmpty()) { section = DeckSection.Sideboard; continue; }
-            if (line.startsWith("#") || line.equalsIgnoreCase("sideboard")) { section = DeckSection.Sideboard; continue; }
-            Matcher m = entry.matcher(line);
-            if (!m.find()) continue;
-            int qty = Integer.parseInt(m.group(1));
-            deck.getOrCreate(section).add(m.group(2).trim(), qty);
+        List<String[]> entries;
+        try { entries = deckEntries(Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8)); }
+        catch (IllegalArgumentException e) { throw new java.io.IOException(path + ": " + e.getMessage()); }
+        for (String[] en : entries) {
+            DeckSection section = "side".equals(en[0]) ? DeckSection.Sideboard : DeckSection.Main;
+            int qty = Integer.parseInt(en[1]);
+            var pool = deck.getOrCreate(section);
+            int before = pool.countAll();
+            pool.add(en[2], qty);
+            if (pool.countAll() - before != qty)  // CardPool.add skips a name no card database holds (critique A41)
+                throw new java.io.IOException(path + ": the engine has no card named \"" + en[2] + "\"");
             if (section == DeckSection.Main) mainCt += qty; else sideCt += qty;
         }
         System.out.println("[DECK] loaded '" + name + "': " + mainCt + " main, " + sideCt + " sideboard  (" + path + ")");
         return deck;
     }
 
+    private static final Pattern DECK_ENTRY = Pattern.compile("^(\\d+)\\s+(.*\\S)$");
+
+    /** The deck-file grammar, one {"main"|"side", count, name} per card line as written; deck_legality.parse_deck reads
+     *  the same and eval/tests/deck_grammar_cases.json pins both (critique A41: a comment or a blank line anywhere sent
+     *  the rest of the list to the sideboard, and "4x Bolt" was dropped). "N Name" lines; a line starting "#" is a
+     *  comment; a "Sideboard" line, or the first blank line after a card, starts the sideboard; any other line throws. */
+    static List<String[]> deckEntries(List<String> lines) {
+        List<String[]> out = new ArrayList<>();
+        boolean inSide = false, marked = false, anyMain = false;
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (line.startsWith("#")) continue;
+            if (line.replaceAll(":+$", "").equalsIgnoreCase("sideboard")) {
+                if (marked) throw new IllegalArgumentException("line " + (i + 1) + ": a second Sideboard line");
+                inSide = marked = true;
+                continue;
+            }
+            if (line.isEmpty()) { inSide = inSide || anyMain; continue; }
+            Matcher m = DECK_ENTRY.matcher(line);
+            if (!m.find()) throw new IllegalArgumentException("line " + (i + 1) + ": \"" + line + "\" is not \"<count> <card name>\"");
+            out.add(new String[] {inSide ? "side" : "main", m.group(1), m.group(2)});
+            anyMain |= !inSide;
+        }
+        return out;
+    }
+
     /** Per-deck strategy sidecar: for deck file foo.txt, read foo.plan (or foo.txt.plan) if present.
-     *  Lets each deck-identity carry its own game plan WITHOUT polluting the decklist parser, where a
-     *  leading '#'/blank line is a section marker (see loadDeck). Env PLAN_A/B still overrides, and
+     *  Lets each deck-identity carry its own game plan WITHOUT putting prose in the decklist, whose grammar
+     *  refuses any line that is not a card, a comment or a section marker (deckEntries). Env PLAN_A/B still overrides, and
      *  PLAN_A="" still yields the plan-free cited arm — this only governs the unset case. */
     static String loadPlanSidecar(String deckPath, String fallback) {
         if (deckPath == null) return fallback;
@@ -13559,7 +13603,8 @@ public final class LlmSpikeGui {
     static void writeGameSummary(Game game, long seed, long durMs, long capMs, boolean capped) {
         String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
         String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
-        String winner = "draw"; int turns = -1; String winCond = "?";
+        // "invalid" until the outcome says otherwise: a missing or throwing outcome is no draw (critique A38).
+        String winner = "invalid"; int turns = -1; String winCond = "?";
         String winnerName = null;
         boolean placed = MultiSeat.placed(System.getenv());
         try {
@@ -13568,12 +13613,11 @@ public final class LlmSpikeGui {
                 winCond = String.valueOf(game.getOutcome().getWinCondition());
                 var w = game.getOutcome().getWinningLobbyPlayer();
                 winnerName = w == null ? null : w.getName();
-                // unknown-name winner should be unreachable; map to "invalid" so the A|B|draw|invalid contract holds
-                if (w != null) winner = nameA.equals(w.getName()) ? "A" : (nameB.equals(w.getName()) ? "B" : "invalid");
+                winner = outcomeWinner(game.getOutcome().isDraw(), winnerName, nameA, nameB);
                 // More seats, or Commander: the winning seat's id (C, D as well).
-                if (placed) winner = MultiSeat.winner(System.getenv(), winnerName);
+                if (placed && w != null) winner = MultiSeat.winner(System.getenv(), winnerName);
             }
-        } catch (Exception ignore) { }
+        } catch (Exception e) { System.out.println("[EVAL] game outcome unreadable: " + e); }
         winner = finalWinner(winner, capped, gameError);
 
         System.out.println("========== GAME OVER ==========");

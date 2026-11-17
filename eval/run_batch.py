@@ -1298,8 +1298,9 @@ def format_guard(args):
     forge = deck_legality.forge_home()
     fmt = deck_legality.read_format(forge, args.format)
     printings = deck_legality.read_printings(forge)
+    limits = deck_legality.read_copy_limits(forge)
     for d in {x for x in (args.deck_a, args.deck_b) if x}:
-        bad = deck_legality.problems(deck_legality.read_deck(d), fmt, printings)
+        bad = deck_legality.problems(deck_legality.read_deck(d), fmt, printings, limits)
         if bad:
             print("run_batch: REFUSING: %s is not legal in %s:\n  - %s" % (d, fmt["name"], "\n  - ".join(bad)),
                   file=sys.stderr)
