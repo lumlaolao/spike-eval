@@ -29,7 +29,8 @@ hard_invariants, named in docs/STANDARDS.md section 4: tier=ai count > 0, a
 silent-drop gap > 0 anywhere, a crashed game, or a decision lost to a dead
 model bridge, aggregate.bridge_down_decisions, issue #369, or a puzzle result row's
 bridge_down_decisions, issue #378, or a game line or puzzle row whose log failed to
-write, eval_log_write_failed, issue #427); 2 usage/input error (not a directory, or no
+write, eval_log_write_failed, issue #427, or a decision taken because a harness hook threw or its state did
+not render, a fallback naming `(err` or `(render-failed)`, critique A2/O12); 2 usage/input error (not a directory, or no
 game-*.jsonl file found in any given directory).
 """
 
@@ -64,6 +65,16 @@ _ILLEGAL_BLOCKS_RE = re.compile(
 # Decision types whose answer is a SUBSET of the options (zero to all of them), so one option still
 # leaves a choice. Every other type picks exactly one, and one option there is a forced pick.
 SUBSET_TYPES = frozenset(("attackers", "blockers", "scry", "surveil"))
+
+# A fallback the harness took because its own code failed: a hook threw ("play(err:NullPointerException)->PASS",
+# "attackers(err)->none") or the state did not render ("play(render-failed)->PASS"). Each is a harness defect, never a
+# model's choice (critique A2, O12).
+_HARNESS_ERROR_RE = re.compile(r'\((?:[^)]*,)?(?:err\b[^)]*|render-failed)\)')
+
+
+def harness_error(fallback):
+    """True when a decision row's fallback names a harness failure (_HARNESS_ERROR_RE)."""
+    return isinstance(fallback, str) and bool(_HARNESS_ERROR_RE.search(fallback))
 
 def parse_log_text(text):
     """Return per-seat log-side event counts from one game's stdout log.
@@ -333,6 +344,11 @@ def summarize(pairs, label, puzzles=()):
     fallback_by_kind = {k: {"count": v, "example": fb_examples.get(k)}
                         for k, v in sorted(fb_counts.items(), key=lambda kv: -kv[1])}
 
+    # --- decisions taken because a harness hook failed (critique A2, O12)
+    error_rows = [{"file": p["jsonl"], "seat": d.get("seat"), "turn": d.get("turn"),
+                   "type": d.get("type"), "fallback": d.get("fallback")}
+                  for p in pairs for d in p["decisions"] if harness_error(d.get("fallback"))]
+
     # --- tier=ai hard invariant
     ai_lines = [{"file": p["jsonl"], "seat": d.get("seat"), "turn": d.get("turn"),
                  "type": d.get("type"), "fallback": d.get("fallback")}
@@ -460,6 +476,8 @@ def summarize(pairs, label, puzzles=()):
         "eval_log_write_failed_files": log_cut,
         "bridge_down_total": sum(bridge_down.values()),
         "bridge_down_files": bridge_down,
+        "harness_error_total": len(error_rows),
+        "harness_error_rows": error_rows,
         "game_crash_count": len(crashed),
         "game_crash_files": crashed,
         "n_decisions": len(decisions),
@@ -512,6 +530,7 @@ def build_report(dirs):
     crash_ok = combined["game_crash_count"] == 0
     bridge_ok = combined["bridge_down_total"] == 0
     log_ok = combined["eval_log_write_failed_total"] == 0
+    error_ok = combined["harness_error_total"] == 0
     report = {
         "dirs": per_dir,
         "combined": combined,
@@ -526,7 +545,9 @@ def build_report(dirs):
             "bridge_down_ok": bridge_ok,
             "eval_log_write_failed_total": combined["eval_log_write_failed_total"],
             "eval_log_write_failed_ok": log_ok,
-            "pass": ai_ok and drop_ok and crash_ok and bridge_ok and log_ok,
+            "harness_error_total": combined["harness_error_total"],
+            "harness_error_ok": error_ok,
+            "pass": ai_ok and drop_ok and crash_ok and bridge_ok and log_ok and error_ok,
         },
     }
     return report
@@ -647,11 +668,13 @@ def render_text(report):
     hi = report["hard_invariants"]
     lines.append("=== hard invariants ===")
     lines.append("ai_tier_count=%d (ok=%s)  silent_drop_total=%d (ok=%s)  game_crash_count=%d (ok=%s)  "
-                 "bridge_down_total=%d (ok=%s)  eval_log_write_failed_total=%d (ok=%s)  overall=%s"
+                 "bridge_down_total=%d (ok=%s)  eval_log_write_failed_total=%d (ok=%s)  "
+                 "harness_error_total=%d (ok=%s)  overall=%s"
                  % (hi["ai_tier_count"], hi["ai_tier_ok"], hi["silent_drop_total"],
                     hi["silent_drop_ok"], hi["game_crash_count"], hi["game_crash_ok"],
                     hi["bridge_down_total"], hi["bridge_down_ok"], hi["eval_log_write_failed_total"],
-                    hi["eval_log_write_failed_ok"], "PASS" if hi["pass"] else "FAIL"))
+                    hi["eval_log_write_failed_ok"], hi["harness_error_total"], hi["harness_error_ok"],
+                    "PASS" if hi["pass"] else "FAIL"))
     return "\n".join(lines)
 
 
@@ -695,9 +718,9 @@ def main():
     hi = report["hard_invariants"]
     if not hi["pass"]:
         print("\nHARD INVARIANT FAILURE: ai_tier_count=%d silent_drop_total=%d game_crash_count=%d bridge_down_total=%d "
-             "eval_log_write_failed_total=%d"
+             "eval_log_write_failed_total=%d harness_error_total=%d"
              % (hi["ai_tier_count"], hi["silent_drop_total"], hi["game_crash_count"], hi["bridge_down_total"],
-                hi["eval_log_write_failed_total"]),
+                hi["eval_log_write_failed_total"], hi["harness_error_total"]),
               file=sys.stderr)
         sys.exit(1)
     sys.exit(0)

@@ -347,13 +347,27 @@ final class LlmCostDecision extends AiCostDecision {
                     + " A tapped creature cannot attack or block until it untaps. Choose which", 1, list.size(), false, null);
             if (tookCancel()) return null;
             if (pick != null && CardLists.getTotalPower(new CardCollection(pick), ability) >= need) return reserve(pick);
-            CardCollection byPower = new CardCollection(list);
-            byPower.sort((a, b) -> Integer.compare(b.getNetPower(), a.getNetPower()));
-            CardCollection out = new CardCollection();
-            for (Card c : byPower) { if (CardLists.getTotalPower(out, ability) >= need) break; out.add(c); }
+            // Short of the power: asked once more with the reason, then the cost is not paid (the play is not made). The
+            // harness tapped "the largest powers first" for the seat, with no reason given (critique A22).
             LlmSpikeGui.PlayerControllerLLM seat = seat();
-            if (seat != null) seat.costDecisionDefault("tap-cost(power short)->largest " + out.size());
-            return reserve(out);
+            if (seat == null || seat.zeroModelArm()) {   // a preview's copy and the floor/random arms keep their fixed fill
+                CardCollection byPower = new CardCollection(list);
+                byPower.sort((a, b) -> Integer.compare(b.getNetPower(), a.getNetPower()));
+                CardCollection out = new CardCollection();
+                for (Card c : byPower) { if (CardLists.getTotalPower(out, ability) >= need) break; out.add(c); }
+                if (seat != null) seat.costDecisionDefault("tap-cost(power short)->largest " + out.size());
+                return reserve(out);
+            }
+            if (pick != null) {
+                offer();
+                pick = player.getController().chooseCardsForEffect(list, ability, "COST: to pay for " + source.getName()
+                        + " you must TAP untapped creatures with total power " + need + " or more; the ones you chose have "
+                        + CardLists.getTotalPower(new CardCollection(pick), ability) + ". Choose again", 1, list.size(), false, null);
+                if (tookCancel()) return null;
+                if (pick != null && CardLists.getTotalPower(new CardCollection(pick), ability) >= need) return reserve(pick);
+            }
+            seat.costDecisionDefault("tap-cost(power short)->not paid");
+            return null;
         }
         int amount = cost.getAbilityAmount(ability);
         final CardCollection able = list;
